@@ -1,6 +1,8 @@
 package it.pagopa.ecommerce.transactions.scheduler.timertriggers.handlers
 
 import it.pagopa.ecommerce.transactions.scheduler.transactionanalyzer.PendingTransactionAnalyzer
+import java.time.LocalDateTime
+import java.time.temporal.ChronoUnit
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -8,8 +10,6 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.scheduling.support.CronExpression
 import org.springframework.stereotype.Component
-import java.time.LocalDateTime
-import java.time.temporal.ChronoUnit
 
 @Component
 class PendingTransactionBatch(
@@ -32,15 +32,15 @@ class PendingTransactionBatch(
         )
         var isOk = false
         runCatching {
-            pendingTransactionAnalyzer
-                .searchPendingTransactions(
-                    lowerThreshold,
-                    upperThreshold,
-                    executionInterleaveMillis
-                )
-                .elapsed()
-                .block()!!
-        }
+                pendingTransactionAnalyzer
+                    .searchPendingTransactions(
+                        lowerThreshold,
+                        upperThreshold,
+                        executionInterleaveMillis
+                    )
+                    .elapsed()
+                    .block()!!
+            }
             .onSuccess {
                 logger.info(
                     "Batch pending transaction analysis end. Is process ok: [${it.t2}] Elapsed time: [${it.t1}] ms "

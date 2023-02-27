@@ -6,8 +6,6 @@ import org.springframework.test.context.TestPropertySource
 
 @SpringBootTest
 @TestPropertySource(locations = ["classpath:application-tests.properties"])
-class TransactionsFunctionsApplicationTests {
-    @Test
-    fun contextLoads() {
-    }
+class TransactionsSchedulerApplicationTests {
+    @Test fun contextLoads() {}
 }

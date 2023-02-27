@@ -1,6 +1,7 @@
 package it.pagopa.ecommerce.transactions.scheduler.transactionanalyzer
 
 import it.pagopa.ecommerce.commons.documents.v1.Transaction
+import it.pagopa.ecommerce.commons.documents.v1.TransactionClosureData
 import it.pagopa.ecommerce.commons.documents.v1.TransactionEvent
 import it.pagopa.ecommerce.commons.generated.server.model.AuthorizationResultDto
 import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
@@ -8,6 +9,10 @@ import it.pagopa.ecommerce.commons.v1.TransactionTestUtils
 import it.pagopa.ecommerce.transactions.scheduler.publishers.TransactionExpiredEventPublisher
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsEventStoreRepository
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsViewRepository
+import java.time.LocalDateTime
+import java.time.ZonedDateTime
+import java.util.*
+import java.util.logging.Logger
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -20,22 +25,15 @@ import org.mockito.kotlin.verify
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
-import java.time.LocalDateTime
-import java.time.ZonedDateTime
-import java.util.*
-import java.util.logging.Logger
 
 @ExtendWith(MockitoExtension::class)
 class PendingTransactionAnalyzerTests {
 
-    @Mock
-    private lateinit var transactionExpiredEventPublisher: TransactionExpiredEventPublisher
+    @Mock private lateinit var transactionExpiredEventPublisher: TransactionExpiredEventPublisher
 
-    @Mock
-    private lateinit var viewRepository: TransactionsViewRepository
+    @Mock private lateinit var viewRepository: TransactionsViewRepository
 
-    @Mock
-    private lateinit var eventStoreRepository: TransactionsEventStoreRepository<Any>
+    @Mock private lateinit var eventStoreRepository: TransactionsEventStoreRepository<Any>
 
     private lateinit var pendingTransactionAnalyzer: PendingTransactionAnalyzer
 
@@ -73,7 +71,7 @@ class PendingTransactionAnalyzerTests {
                 TransactionTestUtils.transactionActivateEvent(),
                 TransactionTestUtils.transactionAuthorizationRequestedEvent()
             )
-                    as List<TransactionEvent<Any>>
+                as List<TransactionEvent<Any>>
 
         val transactions =
             listOf(
@@ -94,7 +92,7 @@ class PendingTransactionAnalyzerTests {
                 TransactionTestUtils.transactionAuthorizationRequestedEvent(),
                 TransactionTestUtils.transactionAuthorizationCompletedEvent()
             )
-                    as List<TransactionEvent<Any>>
+                as List<TransactionEvent<Any>>
 
         val transactions =
             listOf(
@@ -116,7 +114,7 @@ class PendingTransactionAnalyzerTests {
                 TransactionTestUtils.transactionAuthorizationCompletedEvent(),
                 TransactionTestUtils.transactionClosureErrorEvent()
             )
-                    as List<TransactionEvent<Any>>
+                as List<TransactionEvent<Any>>
 
         val transactions =
             listOf(
@@ -136,9 +134,9 @@ class PendingTransactionAnalyzerTests {
                 TransactionTestUtils.transactionActivateEvent(),
                 TransactionTestUtils.transactionAuthorizationRequestedEvent(),
                 TransactionTestUtils.transactionAuthorizationCompletedEvent(),
-                TransactionTestUtils.transactionClosedEvent()
+                TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK)
             )
-                    as List<TransactionEvent<Any>>
+                as List<TransactionEvent<Any>>
 
         val transactions =
             listOf(
@@ -158,7 +156,7 @@ class PendingTransactionAnalyzerTests {
                 TransactionTestUtils.transactionActivateEvent(),
                 TransactionTestUtils.transactionExpiredEvent(TransactionStatusDto.ACTIVATED)
             )
-                    as List<TransactionEvent<Any>>
+                as List<TransactionEvent<Any>>
 
         val transactions =
             listOf(
@@ -178,7 +176,7 @@ class PendingTransactionAnalyzerTests {
                 TransactionTestUtils.transactionActivateEvent(),
                 TransactionTestUtils.transactionUserCanceledEvent()
             )
-                    as List<TransactionEvent<Any>>
+                as List<TransactionEvent<Any>>
 
         val transactions =
             listOf(
@@ -200,9 +198,11 @@ class PendingTransactionAnalyzerTests {
                 TransactionTestUtils.transactionAuthorizationCompletedEvent(
                     AuthorizationResultDto.KO
                 ),
-                TransactionTestUtils.transactionClosureFailedEvent()
+                TransactionTestUtils.transactionClosureFailedEvent(
+                    TransactionClosureData.Outcome.OK
+                )
             )
-                    as List<TransactionEvent<Any>>
+                as List<TransactionEvent<Any>>
 
         val transactions =
             listOf(
@@ -224,10 +224,10 @@ class PendingTransactionAnalyzerTests {
                 TransactionTestUtils.transactionAuthorizationCompletedEvent(
                     AuthorizationResultDto.OK
                 ),
-                TransactionTestUtils.transactionClosedEvent(),
+                TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK),
                 TransactionTestUtils.transactionUserReceiptAddedEvent()
             )
-                    as List<TransactionEvent<Any>>
+                as List<TransactionEvent<Any>>
 
         val transactions =
             listOf(
@@ -249,10 +249,10 @@ class PendingTransactionAnalyzerTests {
                 TransactionTestUtils.transactionAuthorizationCompletedEvent(
                     AuthorizationResultDto.OK
                 ),
-                TransactionTestUtils.transactionClosedEvent(),
+                TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK),
                 TransactionTestUtils.transactionExpiredEvent(TransactionStatusDto.CLOSED)
             )
-                    as List<TransactionEvent<Any>>
+                as List<TransactionEvent<Any>>
 
         val transactions =
             listOf(
@@ -274,11 +274,11 @@ class PendingTransactionAnalyzerTests {
                 TransactionTestUtils.transactionAuthorizationCompletedEvent(
                     AuthorizationResultDto.OK
                 ),
-                TransactionTestUtils.transactionClosedEvent(),
+                TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK),
                 TransactionTestUtils.transactionExpiredEvent(TransactionStatusDto.CLOSED),
                 TransactionTestUtils.transactionRefundedEvent(TransactionStatusDto.EXPIRED)
             )
-                    as List<TransactionEvent<Any>>
+                as List<TransactionEvent<Any>>
 
         val transactions =
             listOf(
@@ -302,12 +302,12 @@ class PendingTransactionAnalyzerTests {
             .willReturn(Mono.just(true))
         // test
         StepVerifier.create(
-            pendingTransactionAnalyzer.searchPendingTransactions(
-                LocalDateTime.now(),
-                LocalDateTime.now(),
-                1000
+                pendingTransactionAnalyzer.searchPendingTransactions(
+                    LocalDateTime.now(),
+                    LocalDateTime.now(),
+                    1000
+                )
             )
-        )
             .expectNext(true)
             .verifyComplete()
         verify(transactionExpiredEventPublisher, times(1)).publishExpiryEvents(any(), any())
@@ -323,12 +323,12 @@ class PendingTransactionAnalyzerTests {
             .willReturn(Flux.just(*events.toTypedArray()))
         // test
         StepVerifier.create(
-            pendingTransactionAnalyzer.searchPendingTransactions(
-                LocalDateTime.now(),
-                LocalDateTime.now(),
-                1000
+                pendingTransactionAnalyzer.searchPendingTransactions(
+                    LocalDateTime.now(),
+                    LocalDateTime.now(),
+                    1000
+                )
             )
-        )
             .expectNext(true)
             .verifyComplete()
         verify(transactionExpiredEventPublisher, times(0)).publishExpiryEvents(any(), any())

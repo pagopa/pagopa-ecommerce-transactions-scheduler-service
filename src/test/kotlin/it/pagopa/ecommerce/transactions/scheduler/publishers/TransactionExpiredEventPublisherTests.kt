@@ -11,13 +11,18 @@ import it.pagopa.ecommerce.commons.documents.v1.Transaction
 import it.pagopa.ecommerce.commons.documents.v1.Transaction.ClientId
 import it.pagopa.ecommerce.commons.documents.v1.TransactionExpiredData
 import it.pagopa.ecommerce.commons.documents.v1.TransactionExpiredEvent
-import it.pagopa.ecommerce.commons.domain.v1.Email
 import it.pagopa.ecommerce.commons.domain.v1.TransactionActivated
 import it.pagopa.ecommerce.commons.domain.v1.TransactionId
 import it.pagopa.ecommerce.commons.domain.v1.pojos.BaseTransaction
 import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
+import it.pagopa.ecommerce.commons.v1.TransactionTestUtils
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsEventStoreRepository
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsViewRepository
+import java.time.Duration
+import java.time.OffsetDateTime
+import java.util.*
+import java.util.concurrent.TimeUnit
+import java.util.logging.Logger
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -32,36 +37,25 @@ import org.mockito.kotlin.willReturn
 import org.mockito.kotlin.willReturnConsecutively
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
-import java.time.Duration
-import java.time.OffsetDateTime
-import java.util.*
-import java.util.concurrent.TimeUnit
-import java.util.logging.Logger
 
 @ExtendWith(MockitoExtension::class)
 class TransactionExpiredEventPublisherTests {
 
-    @Mock
-    private lateinit var queueAsyncClient: QueueAsyncClient
+    @Mock private lateinit var queueAsyncClient: QueueAsyncClient
 
-    @Mock
-    private lateinit var viewRepository: TransactionsViewRepository
+    @Mock private lateinit var viewRepository: TransactionsViewRepository
 
     @Mock
     private lateinit var eventStoreRepository:
-            TransactionsEventStoreRepository<TransactionExpiredData>
+        TransactionsEventStoreRepository<TransactionExpiredData>
 
-    @Captor
-    private lateinit var queueArgumentCaptor: ArgumentCaptor<BinaryData>
+    @Captor private lateinit var queueArgumentCaptor: ArgumentCaptor<BinaryData>
 
-    @Captor
-    private lateinit var viewArgumentCaptor: ArgumentCaptor<Transaction>
+    @Captor private lateinit var viewArgumentCaptor: ArgumentCaptor<Transaction>
 
-    @Captor
-    private lateinit var eventStoreCaptor: ArgumentCaptor<TransactionExpiredEvent>
+    @Captor private lateinit var eventStoreCaptor: ArgumentCaptor<TransactionExpiredEvent>
 
-    @Captor
-    private lateinit var eventsVisibilityTimeoutCaptor: ArgumentCaptor<Duration>
+    @Captor private lateinit var eventsVisibilityTimeoutCaptor: ArgumentCaptor<Duration>
 
     @Test
     fun `Should publish all events`() {
@@ -76,12 +70,12 @@ class TransactionExpiredEventPublisherTests {
         val queueAsyncClientResponse: Mono<Response<SendMessageResult>> =
             Mono.just(ResponseBase(null, 200, null, sendMessageResult, null))
         given(
-            queueAsyncClient.sendMessageWithResponse(
-                queueArgumentCaptor.capture(),
-                eventsVisibilityTimeoutCaptor.capture(),
-                any()
+                queueAsyncClient.sendMessageWithResponse(
+                    queueArgumentCaptor.capture(),
+                    eventsVisibilityTimeoutCaptor.capture(),
+                    any()
+                )
             )
-        )
             .willReturn(queueAsyncClientResponse)
         given(eventStoreRepository.save(eventStoreCaptor.capture())).willAnswer {
             Mono.just(it.arguments[0])
@@ -93,15 +87,15 @@ class TransactionExpiredEventPublisherTests {
         val batchExecutionTimeWindow = TimeUnit.HOURS.toMillis(1)
         // test
         StepVerifier.create(
-            TransactionExpiredEventPublisher(
-                logger = Logger.getGlobal(),
-                expiredEventQueueAsyncClient = queueAsyncClient,
-                viewRepository = viewRepository,
-                eventStoreRepository = eventStoreRepository,
-                1
+                TransactionExpiredEventPublisher(
+                        logger = Logger.getGlobal(),
+                        expiredEventQueueAsyncClient = queueAsyncClient,
+                        viewRepository = viewRepository,
+                        eventStoreRepository = eventStoreRepository,
+                        1
+                    )
+                    .publishExpiryEvents(baseDocuments, batchExecutionTimeWindow)
             )
-                .publishExpiryEvents(baseDocuments, batchExecutionTimeWindow)
-        )
             .expectNext(true)
             .verifyComplete()
         // assertions
@@ -163,18 +157,18 @@ class TransactionExpiredEventPublisherTests {
         // test
 
         StepVerifier.create(
-            TransactionExpiredEventPublisher(
-                logger = Logger.getGlobal(),
-                expiredEventQueueAsyncClient = queueAsyncClient,
-                viewRepository = viewRepository,
-                eventStoreRepository = eventStoreRepository,
-                1
+                TransactionExpiredEventPublisher(
+                        logger = Logger.getGlobal(),
+                        expiredEventQueueAsyncClient = queueAsyncClient,
+                        viewRepository = viewRepository,
+                        eventStoreRepository = eventStoreRepository,
+                        1
+                    )
+                    .publishExpiryEvents(
+                        generateTransactionActivatedBaseDocuments(5),
+                        batchExecutionTimeWindow
+                    )
             )
-                .publishExpiryEvents(
-                    generateTransactionActivatedBaseDocuments(5),
-                    batchExecutionTimeWindow
-                )
-        )
             .expectNext(false)
             .verifyComplete()
         // assertions
@@ -193,18 +187,18 @@ class TransactionExpiredEventPublisherTests {
         val batchExecutionTimeWindow = TimeUnit.HOURS.toMillis(1)
         // test
         StepVerifier.create(
-            TransactionExpiredEventPublisher(
-                logger = Logger.getGlobal(),
-                expiredEventQueueAsyncClient = queueAsyncClient,
-                viewRepository = viewRepository,
-                eventStoreRepository = eventStoreRepository,
-                1
+                TransactionExpiredEventPublisher(
+                        logger = Logger.getGlobal(),
+                        expiredEventQueueAsyncClient = queueAsyncClient,
+                        viewRepository = viewRepository,
+                        eventStoreRepository = eventStoreRepository,
+                        1
+                    )
+                    .publishExpiryEvents(
+                        generateTransactionActivatedBaseDocuments(5),
+                        batchExecutionTimeWindow
+                    )
             )
-                .publishExpiryEvents(
-                    generateTransactionActivatedBaseDocuments(5),
-                    batchExecutionTimeWindow
-                )
-        )
             .expectNext(false)
             .verifyComplete()
         // assertions
@@ -233,18 +227,18 @@ class TransactionExpiredEventPublisherTests {
         val batchExecutionTimeWindow = TimeUnit.HOURS.toMillis(1)
         // test
         StepVerifier.create(
-            TransactionExpiredEventPublisher(
-                logger = Logger.getGlobal(),
-                expiredEventQueueAsyncClient = queueAsyncClient,
-                viewRepository = viewRepository,
-                eventStoreRepository = eventStoreRepository,
-                1
+                TransactionExpiredEventPublisher(
+                        logger = Logger.getGlobal(),
+                        expiredEventQueueAsyncClient = queueAsyncClient,
+                        viewRepository = viewRepository,
+                        eventStoreRepository = eventStoreRepository,
+                        1
+                    )
+                    .publishExpiryEvents(
+                        generateTransactionActivatedBaseDocuments(5),
+                        batchExecutionTimeWindow
+                    )
             )
-                .publishExpiryEvents(
-                    generateTransactionActivatedBaseDocuments(5),
-                    batchExecutionTimeWindow
-                )
-        )
             .expectNext(false)
             .verifyComplete()
         // assertions
@@ -274,12 +268,12 @@ class TransactionExpiredEventPublisherTests {
         val queueAsyncClientResponse: Mono<Response<SendMessageResult>> =
             Mono.just(ResponseBase(null, 200, null, sendMessageResult, null))
         given(
-            queueAsyncClient.sendMessageWithResponse(
-                queueArgumentCaptor.capture(),
-                eventsVisibilityTimeoutCaptor.capture(),
-                any()
+                queueAsyncClient.sendMessageWithResponse(
+                    queueArgumentCaptor.capture(),
+                    eventsVisibilityTimeoutCaptor.capture(),
+                    any()
+                )
             )
-        )
             .willReturn(queueAsyncClientResponse)
         given(eventStoreRepository.save(eventStoreCaptor.capture()))
             .willReturnConsecutively(
@@ -298,15 +292,15 @@ class TransactionExpiredEventPublisherTests {
         val batchExecutionTimeWindow = TimeUnit.HOURS.toMillis(1)
         // test
         StepVerifier.create(
-            TransactionExpiredEventPublisher(
-                logger = Logger.getGlobal(),
-                expiredEventQueueAsyncClient = queueAsyncClient,
-                viewRepository = viewRepository,
-                eventStoreRepository = eventStoreRepository,
-                1
+                TransactionExpiredEventPublisher(
+                        logger = Logger.getGlobal(),
+                        expiredEventQueueAsyncClient = queueAsyncClient,
+                        viewRepository = viewRepository,
+                        eventStoreRepository = eventStoreRepository,
+                        1
+                    )
+                    .publishExpiryEvents(allTransactions, batchExecutionTimeWindow)
             )
-                .publishExpiryEvents(allTransactions, batchExecutionTimeWindow)
-        )
             .expectNext(false)
             .verifyComplete()
         // assertions
@@ -364,12 +358,12 @@ class TransactionExpiredEventPublisherTests {
         val queueAsyncClientResponse: Mono<Response<SendMessageResult>> =
             Mono.just(ResponseBase(null, 200, null, sendMessageResult, null))
         given(
-            queueAsyncClient.sendMessageWithResponse(
-                queueArgumentCaptor.capture(),
-                eventsVisibilityTimeoutCaptor.capture(),
-                any()
+                queueAsyncClient.sendMessageWithResponse(
+                    queueArgumentCaptor.capture(),
+                    eventsVisibilityTimeoutCaptor.capture(),
+                    any()
+                )
             )
-        )
             .willReturn(queueAsyncClientResponse)
         given(eventStoreRepository.save(eventStoreCaptor.capture())).willAnswer {
             Mono.just(it.arguments[0])
@@ -385,15 +379,15 @@ class TransactionExpiredEventPublisherTests {
         val batchExecutionTimeWindow = TimeUnit.HOURS.toMillis(1)
         // test
         StepVerifier.create(
-            TransactionExpiredEventPublisher(
-                logger = Logger.getGlobal(),
-                expiredEventQueueAsyncClient = queueAsyncClient,
-                viewRepository = viewRepository,
-                eventStoreRepository = eventStoreRepository,
-                1
+                TransactionExpiredEventPublisher(
+                        logger = Logger.getGlobal(),
+                        expiredEventQueueAsyncClient = queueAsyncClient,
+                        viewRepository = viewRepository,
+                        eventStoreRepository = eventStoreRepository,
+                        1
+                    )
+                    .publishExpiryEvents(allTransactions, batchExecutionTimeWindow)
             )
-                .publishExpiryEvents(allTransactions, batchExecutionTimeWindow)
-        )
             .expectNext(false)
             .verifyComplete()
         // assertions
@@ -459,12 +453,12 @@ class TransactionExpiredEventPublisherTests {
             Mono.just(it.arguments[0])
         }
         given(
-            queueAsyncClient.sendMessageWithResponse(
-                queueArgumentCaptor.capture(),
-                eventsVisibilityTimeoutCaptor.capture(),
-                any()
+                queueAsyncClient.sendMessageWithResponse(
+                    queueArgumentCaptor.capture(),
+                    eventsVisibilityTimeoutCaptor.capture(),
+                    any()
+                )
             )
-        )
             .willAnswer {
                 if (
                     BinaryData.fromBytes((it.arguments[0] as BinaryData).toBytes())
@@ -480,15 +474,15 @@ class TransactionExpiredEventPublisherTests {
         val batchExecutionTimeWindow = TimeUnit.HOURS.toMillis(1)
         // test
         StepVerifier.create(
-            TransactionExpiredEventPublisher(
-                logger = Logger.getGlobal(),
-                expiredEventQueueAsyncClient = queueAsyncClient,
-                viewRepository = viewRepository,
-                eventStoreRepository = eventStoreRepository,
-                1
+                TransactionExpiredEventPublisher(
+                        logger = Logger.getGlobal(),
+                        expiredEventQueueAsyncClient = queueAsyncClient,
+                        viewRepository = viewRepository,
+                        eventStoreRepository = eventStoreRepository,
+                        1
+                    )
+                    .publishExpiryEvents(allTransactions, batchExecutionTimeWindow)
             )
-                .publishExpiryEvents(allTransactions, batchExecutionTimeWindow)
-        )
             .expectNext(false)
             .verifyComplete()
         // assertions
@@ -534,7 +528,7 @@ class TransactionExpiredEventPublisherTests {
                 TransactionActivated(
                     TransactionId(transactionId),
                     emptyList(),
-                    Email("test@test.it"),
+                    TransactionTestUtils.EMAIL,
                     null,
                     null,
                     ClientId.CHECKOUT

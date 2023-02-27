@@ -2,6 +2,8 @@ package it.pagopa.ecommerce.transactions.scheduler.timertriggers
 
 import it.pagopa.ecommerce.transactions.scheduler.timertriggers.handlers.PendingTransactionBatch
 import it.pagopa.ecommerce.transactions.scheduler.transactionanalyzer.PendingTransactionAnalyzer
+import java.time.temporal.ChronoUnit
+import java.util.concurrent.TimeUnit
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.BDDMockito
@@ -10,15 +12,12 @@ import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
 import org.springframework.test.context.TestPropertySource
 import reactor.core.publisher.Mono
-import java.time.temporal.ChronoUnit
-import java.util.concurrent.TimeUnit
 
 @ExtendWith(MockitoExtension::class)
 @TestPropertySource(locations = ["classpath:application-tests.properties"])
 class PendingTransactionBatchTests {
 
-    @Mock
-    private lateinit var pendingTransactionAnalyzer: PendingTransactionAnalyzer
+    @Mock private lateinit var pendingTransactionAnalyzer: PendingTransactionAnalyzer
 
     private lateinit var pendingTransactionBatch: PendingTransactionBatch
 

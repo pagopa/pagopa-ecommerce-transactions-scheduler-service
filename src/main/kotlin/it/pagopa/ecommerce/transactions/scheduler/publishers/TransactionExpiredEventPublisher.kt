@@ -10,11 +10,11 @@ import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
 import it.pagopa.ecommerce.commons.utils.v1.TransactionUtils
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsEventStoreRepository
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsViewRepository
+import java.util.logging.Logger
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Mono
-import java.util.logging.Logger
 
 @Component
 class TransactionExpiredEventPublisher(
@@ -58,7 +58,7 @@ class TransactionExpiredEventPublisher(
                                 )
                             },
                             TransactionUtils.getTransactionFee(transaction).orElse(null),
-                            transaction.email.value,
+                            transaction.email,
                             TransactionStatusDto.EXPIRED,
                             transaction.clientId,
                             transaction.creationDate.toString()

@@ -6,11 +6,11 @@ import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
 import it.pagopa.ecommerce.transactions.scheduler.publishers.TransactionExpiredEventPublisher
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsEventStoreRepository
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsViewRepository
+import java.time.LocalDateTime
+import java.util.logging.Logger
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
-import java.time.LocalDateTime
-import java.util.logging.Logger
 
 @Service
 class PendingTransactionAnalyzer(
