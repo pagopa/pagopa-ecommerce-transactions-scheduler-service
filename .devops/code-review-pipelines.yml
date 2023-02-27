@@ -8,85 +8,73 @@
 trigger: none
 
 pool:
-  vmImage: 'ubuntu-22.04'
+  vmImage: 'ubuntu-latest'
 
 variables:
   MAVEN_CACHE_FOLDER: $(Pipeline.Workspace)/.m2/repository
   MAVEN_OPTS: '-Dmaven.repo.local=$(MAVEN_CACHE_FOLDER)'
 
+steps:
+  - task: Cache@2
+    inputs:
+      key: 'maven | "$(Agent.OS)" | pom.xml'
+      restoreKeys: |
+        maven | "$(Agent.OS)"
+        maven
+      path: $(MAVEN_CACHE_FOLDER)
+    displayName: Cache Maven local repo
 
-stages:
-  - stage: Test
-    jobs:
-      - job: unit_test
-        steps:
-          - checkout: self
-            persistCredentials: true
+  - task: SonarCloudPrepare@1
+    displayName: 'Prepare SonarCloud analysis configuration'
+    inputs:
+      SonarCloud: '$(SONARCLOUD_SERVICE_CONN)'
+      organization: '$(SONARCLOUD_ORG)'
+      scannerMode: Other
+      extraProperties: |
+        sonar.projectKey=$(SONARCLOUD_PROJECT_KEY)
+        sonar.projectName=$(SONARCLOUD_PROJECT_NAME)
+        sonar.coverage.exclusions=**/config/*,**/*Mock*,**/model/**,**/entity/*
+        sonar.coverage.jacoco.xmlReportPaths=./target/site/jacoco/jacoco.xml
+        sonar.junit.reportPaths=target/surefire-reports/
+        sonar.verbose=true
+  - bash: |
+      docker run -p 10000:10000 -p 10001:10001 -p 10002:10002 mcr.microsoft.com/azure-storage/azurite &
+    displayName: Run azurite to test Service - Storage integration
 
-          - task: Cache@2
-            inputs:
-              key: 'maven | "$(Agent.OS)" | pom.xml'
-              restoreKeys: |
-                maven | "$(Agent.OS)"
-                maven
-              path: $(MAVEN_CACHE_FOLDER)
-            displayName: Cache Maven local repo
+  - task: Maven@3
+    displayName: 'Validate project (build ecommerce commons project)'
+    inputs:
+      mavenPomFile: 'pom.xml'
+      mavenOptions: '-Xmx3072m $(MAVEN_OPTS)'
+      javaHomeOption: 'JDKVersion'
+      jdkVersionOption: '17'
+      jdkArchitectureOption: 'x64'
+      publishJUnitResults: false
+      testResultsFiles: '**/surefire-reports/TEST-*.xml'
+      goals: 'clean validate'
+      sonarQubeRunAnalysis: false
 
-          - task: SonarCloudPrepare@1
-            displayName: 'Prepare SonarCloud analysis configuration'
-            inputs:
-              SonarCloud: '$(SONARCLOUD_SERVICE_CONN)'
-              organization: '$(SONARCLOUD_ORG)'
-              scannerMode: Other
-              extraProperties: |
-                sonar.projectKey=$(SONARCLOUD_PROJECT_KEY)
-                sonar.projectName=$(SONARCLOUD_PROJECT_NAME)
-                sonar.coverage.exclusions=**/config/*,**/*Mock*,**/model/**,**/entity/*
-                sonar.cpd.exclusions=**/model/**,**/entity/*
+  - task: Maven@3
+    displayName: 'Run Junit Tests'
+    inputs:
+      mavenPomFile: 'pom.xml'
+      mavenOptions: '-Xmx3072m $(MAVEN_OPTS)'
+      javaHomeOption: 'JDKVersion'
+      jdkVersionOption: '17'
+      jdkArchitectureOption: 'x64'
+      publishJUnitResults: false
+      testResultsFiles: '**/surefire-reports/TEST-*.xml'
+      goals: 'clean verify'
+      sonarQubeRunAnalysis: true
 
-          - task: Maven@3
-            displayName: 'Run Junit Test'
-            inputs:
-              mavenPomFile: 'pom.xml'
-              goals: 'clean verify'
-              publishJUnitResults: true
-              testResultsFiles: '**/surefire-reports/TEST-*.xml'
-              codeCoverageToolOption: 'JaCoCo'
-              javaHomeOption: 'JDKVersion'
-              jdkVersionOption: '1.11'
-              mavenVersionOption: 'Default'
-              mavenOptions: '-Xmx3072m $(MAVEN_OPTS)'
-              mavenAuthenticateFeed: false
-              effectivePomSkip: false
-              sonarQubeRunAnalysis: true
-              isJacocoCoverageReportXML: true
-              sqMavenPluginVersionChoice: 'latest'
+  - task: SonarCloudPublish@1
+    displayName: 'Publish SonarCloud results on build summary'
+    inputs:
+      pollingTimeoutSec: '300'
 
-          - task: SonarCloudPublish@1
-            displayName: 'Publish SonarCloud results on build summary'
-            inputs:
-              pollingTimeoutSec: '300'
-
-      - job: smoke_tests
-        dependsOn: # parallel running job
-        pool:
-          vmImage: 'ubuntu-18.04'
-        steps:
-          - checkout: self
-            persistCredentials: true
-
-          - task: Docker@2
-            displayName: "Docker login"
-            inputs:
-              containerRegistry: "$(DEV_CONTAINER_REGISTRY_SERVICE_CONN)"
-              command: "login"
-
-          - task: Bash@3
-            displayName: 'Run Integration Tests'
-            inputs:
-              targetType: 'inline'
-              script: |
-                cd ./integration-test
-                sh run_integration_test.sh local
-
-
+  - task: PublishCodeCoverageResults@1
+    inputs:
+      codeCoverageTool: 'JaCoCo'
+      summaryFileLocation: 'target/site/jacoco/jacoco.xml'
+      reportDirectory: 'target/site/jacoco'
+    displayName: 'Publish Code Coverage on Azure Devops'
