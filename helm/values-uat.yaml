@@ -3,7 +3,7 @@ microservice-chart:
   nameOverride: ""
   fullnameOverride: ""
   image:
-    repository: pagopadcommonacr.azurecr.io/pagopaecommercetransactionsschedulerservice
+    repository: pagopaucommonacr.azurecr.io/pagopaecommercetransactionsschedulerservice
     tag: "0.0.1" #improve
     pullPolicy: Always
   livenessProbe:
