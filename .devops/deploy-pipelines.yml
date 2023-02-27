@@ -33,46 +33,35 @@ parameters:
       - True
 
 variables:
-  imageRepository: '$(IMAGE_REPOSITORY_NAME)'
-  nameSpace: '$(K8S_NAMESPACE)'
+  imageRepository: '$(K8S_IMAGE_REPOSITORY_NAME)'
 
   ${{ if eq(parameters['ENV'], 'dev') }}:
     dockerRegistryServiceConnection: $(DEV_CONTAINER_REGISTRY_SERVICE_CONN)
     dockerRegistryFqdn: $(DEV_CONTAINER_NAMESPACE)
     kubernetesServiceConnection: '$(DEV_KUBERNETES_SERVICE_CONN)'
     poolImage: 'pagopa-dev-linux'
-    appInsightsServiceConn: "$(TF_APPINSIGHTS_SERVICE_CONN_DEV)"
-    appInsightsResourceId: "$(TF_APPINSIGHTS_RESOURCE_ID_DEV)"
-    API_SUBSCRIPTION_KEY: $(DEV_API_SUBSCRIPTION_KEY)
   ${{ if eq(parameters['ENV'], 'uat') }}:
     dockerRegistryServiceConnection: $(UAT_CONTAINER_REGISTRY_SERVICE_CONN)
     dockerRegistryFqdn: $(UAT_CONTAINER_NAMESPACE)
     kubernetesServiceConnection: '$(UAT_KUBERNETES_SERVICE_CONN)'
     poolImage: 'pagopa-uat-linux'
-    appInsightsServiceConn: "$(TF_APPINSIGHTS_SERVICE_CONN_UAT)"
-    appInsightsResourceId: "$(TF_APPINSIGHTS_RESOURCE_ID_UAT)"
-    API_SUBSCRIPTION_KEY: $(UAT_API_SUBSCRIPTION_KEY)
   ${{ if eq(parameters['ENV'], 'prod') }}:
     dockerRegistryServiceConnection: $(PROD_CONTAINER_REGISTRY_SERVICE_CONN)
     dockerRegistryFqdn: $(PROD_CONTAINER_NAMESPACE)
     kubernetesServiceConnection: '$(PROD_KUBERNETES_SERVICE_CONN)'
     poolImage: 'pagopa-prod-linux'
-    appInsightsServiceConn: "$(TF_APPINSIGHTS_SERVICE_CONN_PROD)"
-    appInsightsResourceId: "$(TF_APPINSIGHTS_RESOURCE_ID_PROD)"
 
   ${{ if eq(variables['Build.SourceBranchName'], 'merge') }}:
     sourceBranch: "main" # force to main branch
   ${{ if ne(variables['Build.SourceBranchName'], 'merge') }}:
     sourceBranch: ${{ variables['Build.SourceBranchName'] }}
 
-
-
 resources:
   repositories:
     - repository: pagopaCommons
       type: github
       name: pagopa/azure-pipeline-templates
-      ref: refs/tags/v3.1.0
+      ref: refs/tags/v2.10.1
       endpoint: 'io-azure-devops-github-ro'
 
 stages:
@@ -153,9 +142,7 @@ stages:
                     DO_DEPLOY: true
                     ENV: ${{ parameters['ENV'] }}
                     KUBERNETES_SERVICE_CONN: ${{ variables.kubernetesServiceConnection }}
-                    NAMESPACE: $(nameSpace)
+                    NAMESPACE: ecommerce
                     APP_NAME: $(imageRepository)
                     VALUE_FILE: "helm/values-${{ parameters['ENV'] }}.yaml"
                     DEPLOY_VERSION: $(deploy_version)
-                    APPINSIGHTS_SERVICE_CONN: ${{ variables.appInsightsServiceConn }}
-                    APPINSIGHTS_RESOURCE_ID: ${{ variables.appInsightsResourceId }}
