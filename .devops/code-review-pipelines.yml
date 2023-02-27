@@ -1,0 +1,92 @@
+# Maven
+# Build your Java project and run tests with Apache Maven.
+# Add steps that analyze code, save build artifacts, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/java
+
+# Automatically triggered on PR
+# https://docs.microsoft.com/en-us/azure/devops/pipelines/yaml-schema?view=azure-devops&tabs=schema%2Cparameter-schema#pr-trigger
+trigger: none
+
+pool:
+  vmImage: 'ubuntu-22.04'
+
+variables:
+  MAVEN_CACHE_FOLDER: $(Pipeline.Workspace)/.m2/repository
+  MAVEN_OPTS: '-Dmaven.repo.local=$(MAVEN_CACHE_FOLDER)'
+
+
+stages:
+  - stage: Test
+    jobs:
+      - job: unit_test
+        steps:
+          - checkout: self
+            persistCredentials: true
+
+          - task: Cache@2
+            inputs:
+              key: 'maven | "$(Agent.OS)" | pom.xml'
+              restoreKeys: |
+                maven | "$(Agent.OS)"
+                maven
+              path: $(MAVEN_CACHE_FOLDER)
+            displayName: Cache Maven local repo
+
+          - task: SonarCloudPrepare@1
+            displayName: 'Prepare SonarCloud analysis configuration'
+            inputs:
+              SonarCloud: '$(SONARCLOUD_SERVICE_CONN)'
+              organization: '$(SONARCLOUD_ORG)'
+              scannerMode: Other
+              extraProperties: |
+                sonar.projectKey=$(SONARCLOUD_PROJECT_KEY)
+                sonar.projectName=$(SONARCLOUD_PROJECT_NAME)
+                sonar.coverage.exclusions=**/config/*,**/*Mock*,**/model/**,**/entity/*
+                sonar.cpd.exclusions=**/model/**,**/entity/*
+
+          - task: Maven@3
+            displayName: 'Run Junit Test'
+            inputs:
+              mavenPomFile: 'pom.xml'
+              goals: 'clean verify'
+              publishJUnitResults: true
+              testResultsFiles: '**/surefire-reports/TEST-*.xml'
+              codeCoverageToolOption: 'JaCoCo'
+              javaHomeOption: 'JDKVersion'
+              jdkVersionOption: '1.11'
+              mavenVersionOption: 'Default'
+              mavenOptions: '-Xmx3072m $(MAVEN_OPTS)'
+              mavenAuthenticateFeed: false
+              effectivePomSkip: false
+              sonarQubeRunAnalysis: true
+              isJacocoCoverageReportXML: true
+              sqMavenPluginVersionChoice: 'latest'
+
+          - task: SonarCloudPublish@1
+            displayName: 'Publish SonarCloud results on build summary'
+            inputs:
+              pollingTimeoutSec: '300'
+
+      - job: smoke_tests
+        dependsOn: # parallel running job
+        pool:
+          vmImage: 'ubuntu-18.04'
+        steps:
+          - checkout: self
+            persistCredentials: true
+
+          - task: Docker@2
+            displayName: "Docker login"
+            inputs:
+              containerRegistry: "$(DEV_CONTAINER_REGISTRY_SERVICE_CONN)"
+              command: "login"
+
+          - task: Bash@3
+            displayName: 'Run Integration Tests'
+            inputs:
+              targetType: 'inline'
+              script: |
+                cd ./integration-test
+                sh run_integration_test.sh local
+
+
