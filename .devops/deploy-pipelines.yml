@@ -70,7 +70,7 @@ stages:
     jobs:
       - job: make_release
         steps:
-          - ${{ if eq(parameters['SEMVER'], 'skip') }}:
+          - ${{ if ne(parameters['SEMVER'], 'skip') }}:
               - checkout: self
                 clean: true
                 persistCredentials: true
