@@ -15,13 +15,12 @@ parameters:
       - uat
       - prod
   - name: SEMVER
-    displayName: "When packing a release, define the version bump to apply. Use only buildNumber or skip for manual deployment"
+    displayName: "When packing a release, define the version bump to apply. Use skip only for manual deployment"
     type: string
     values:
       - major
       - minor
       - patch
-      - buildNumber
       - skip
     default: skip
   - name: "FORCE_REPLACE_DOCKER_IMAGE"
@@ -69,21 +68,21 @@ stages:
   # Create a release on GitHub
   - stage: Release
     jobs:
-      - job: make_release
-        steps:
-          - checkout: self
-            clean: true
-            persistCredentials: true
+      - ${{ if eq(parameters['SEMVER'], 'skip') }}:
+          - job: make_release
+            steps:
+              - checkout: self
+                clean: true
+                persistCredentials: true
 
-          - template: templates/maven-github-release/template.yaml@pagopaCommons
-            parameters:
-              release_branch: $(sourceBranch)
-              gitEmail: $(GIT_EMAIL)
-              gitUsername: $(GIT_USERNAME)
-              gitHubConnection: $(GITHUB_CONNECTION)
-              semver: "${{ parameters.SEMVER }}"
-
-          - template: templates/maven-github-current-version/template.yaml@pagopaCommons
+              - template: templates/maven-github-release/template.yaml@pagopaCommons
+                parameters:
+                  release_branch: $(sourceBranch)
+                  gitEmail: $(GIT_EMAIL)
+                  gitUsername: $(GIT_USERNAME)
+                  gitHubConnection: $(GITHUB_CONNECTION)
+                  semver: "${{ parameters.SEMVER }}"
+      - template: templates/maven-github-current-version/template.yaml@pagopaCommons
 
   # Build and Push Docker Image
   - stage: Build
