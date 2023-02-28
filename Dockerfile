@@ -34,4 +34,4 @@ COPY --from=build --chown=user ${EXTRACTED}/application/ ./
 RUN true
 
 
-ENTRYPOINT ["java","org.springframework.boot.loader.JarLauncher"]
+ENTRYPOINT ["java","--enable-preview","org.springframework.boot.loader.JarLauncher"]
