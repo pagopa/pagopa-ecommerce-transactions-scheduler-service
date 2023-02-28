@@ -68,9 +68,9 @@ stages:
   # Create a release on GitHub
   - stage: Release
     jobs:
-      - ${{ if eq(parameters['SEMVER'], 'skip') }}:
-          - job: make_release
-            steps:
+      - job: make_release
+        steps:
+          - ${{ if eq(parameters['SEMVER'], 'skip') }}:
               - checkout: self
                 clean: true
                 persistCredentials: true
@@ -82,7 +82,7 @@ stages:
                   gitUsername: $(GIT_USERNAME)
                   gitHubConnection: $(GITHUB_CONNECTION)
                   semver: "${{ parameters.SEMVER }}"
-      - template: templates/maven-github-current-version/template.yaml@pagopaCommons
+          - template: templates/maven-github-current-version/template.yaml@pagopaCommons
 
   # Build and Push Docker Image
   - stage: Build
