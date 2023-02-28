@@ -111,7 +111,7 @@ stages:
 
   # Deploy on K8s with Helm
   - stage: Deploy
-    condition: and(succeeded())
+    condition: succeeded('Build')
     dependsOn:
       - Release
       - Build
