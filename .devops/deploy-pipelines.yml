@@ -128,10 +128,6 @@ stages:
                 - checkout: self
                   persistCredentials: true
 
-                - script: |
-                    git checkout $(sourceBranch)
-                  displayName: Checkout and update branch
-
                 - template: templates/helm-microservice-chart-setup/template.yaml@pagopaCommons
                   parameters:
                     DEPLOY_VERSION: $(deploy_version)
