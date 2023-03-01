@@ -1,4 +1,4 @@
-package it.pagopa.ecommerce.transactions.scheduler.timertriggers.handlers
+package it.pagopa.ecommerce.transactions.scheduler.scheduledperations
 
 import it.pagopa.ecommerce.transactions.scheduler.transactionanalyzer.PendingTransactionAnalyzer
 import java.time.LocalDateTime

@@ -1,6 +1,5 @@
-package it.pagopa.ecommerce.transactions.scheduler.timertriggers
+package it.pagopa.ecommerce.transactions.scheduler.scheduledperations
 
-import it.pagopa.ecommerce.transactions.scheduler.timertriggers.handlers.PendingTransactionBatch
 import it.pagopa.ecommerce.transactions.scheduler.transactionanalyzer.PendingTransactionAnalyzer
 import java.time.temporal.ChronoUnit
 import java.util.concurrent.TimeUnit
