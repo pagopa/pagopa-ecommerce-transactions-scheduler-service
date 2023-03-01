@@ -8,11 +8,9 @@ import com.azure.storage.queue.models.QueueStorageException
 import com.azure.storage.queue.models.SendMessageResult
 import com.mongodb.MongoException
 import it.pagopa.ecommerce.commons.documents.v1.Transaction
-import it.pagopa.ecommerce.commons.documents.v1.Transaction.ClientId
 import it.pagopa.ecommerce.commons.documents.v1.TransactionExpiredData
 import it.pagopa.ecommerce.commons.documents.v1.TransactionExpiredEvent
-import it.pagopa.ecommerce.commons.domain.v1.TransactionActivated
-import it.pagopa.ecommerce.commons.domain.v1.TransactionId
+import it.pagopa.ecommerce.commons.domain.v1.*
 import it.pagopa.ecommerce.commons.domain.v1.pojos.BaseTransaction
 import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
 import it.pagopa.ecommerce.commons.v1.TransactionTestUtils
@@ -20,6 +18,7 @@ import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsEvent
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsViewRepository
 import java.time.Duration
 import java.time.OffsetDateTime
+import java.time.ZonedDateTime
 import java.util.*
 import java.util.concurrent.TimeUnit
 import java.util.logging.Logger
@@ -527,11 +526,20 @@ class TransactionExpiredEventPublisherTests {
             baseDocuments.add(
                 TransactionActivated(
                     TransactionId(transactionId),
-                    emptyList(),
+                    listOf(
+                        PaymentNotice(
+                            PaymentToken("paymentToken"),
+                            RptId("77777777777111111111111111111"),
+                            TransactionAmount(100),
+                            TransactionDescription("description"),
+                            PaymentContextCode("paymentContextCode")
+                        )
+                    ),
                     TransactionTestUtils.EMAIL,
-                    null,
-                    null,
-                    ClientId.CHECKOUT
+                    "",
+                    "",
+                    ZonedDateTime.now(),
+                    Transaction.ClientId.CHECKOUT
                 )
             )
         }
