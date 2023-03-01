@@ -1,23 +1,23 @@
 microservice-chart:
-  namespace: "your-namespace" # TODO: set your AKS namespace
+  namespace: "ecommerce"
   nameOverride: ""
   fullnameOverride: ""
   image:
-    repository: pagopaucommonacr.azurecr.io/yourname # TODO
-    tag: "0.0.3"
+    repository: pagopaucommonacr.azurecr.io/pagopaecommercetransactionsschedulerservice
+    tag: "0.0.1" #improve
     pullPolicy: Always
   livenessProbe:
     httpGet:
       path: /actuator/health/liveness
       port: 8080
-    initialDelaySeconds: 90
+    initialDelaySeconds: 60
     failureThreshold: 6
     periodSeconds: 10
   readinessProbe:
     httpGet:
       path: /actuator/health/readiness
       port: 8080
-    initialDelaySeconds: 90
+    initialDelaySeconds: 60
     failureThreshold: 6
     periodSeconds: 10
   deployment:
@@ -25,16 +25,18 @@ microservice-chart:
   service:
     create: true
     type: ClusterIP
-    port: 8080
+    ports:
+      - 8080
   ingress:
     create: true
-    host: "your.host" # TODO: set the host
-    path: /your-path-here/(.*) # TODO: set your path
+    host: "weudev.ecommerce.internal.uat.platform.pagopa.it"
+    path: /pagopa-ecommerce-transactions-scheduler-service/(.*)
+    servicePort: 8080
   serviceAccount:
     create: false
-    annotations: { }
+    annotations: {}
     name: ""
-  podAnnotations: { }
+  podAnnotations: {}
   podSecurityContext:
     seccompProfile:
       type: RuntimeDefault
@@ -43,31 +45,57 @@ microservice-chart:
   resources:
     requests:
       memory: "512Mi"
-      cpu: "0.25"
+      cpu: "300m"
     limits:
       memory: "512Mi"
-      cpu: "0.25"
+      cpu: "300m"
   autoscaling:
-    enable: true
-    minReplica: 3
-    maxReplica: 10
-    pollingInterval: 10 # seconds
-    cooldownPeriod: 50 # seconds
+    enabled: false
+    minReplica: 1
+    maxReplica: 2
+    pollingInterval: 30 # seconds
+    cooldownPeriod: 300 # seconds
     triggers:
-      - type: cpu
+      - type: azure-monitor
         metadata:
-          # Required
-          type: Utilization # Allowed types are 'Utilization' or 'AverageValue'
-          value: "75"
+          tenantId: 7788edaf-0346-4068-9d79-c868aed15b3d
+          subscriptionId: bbe47ad4-08b3-4925-94c5-1278e5819b86
+          resourceGroupName: pagopa-u-ecommerce-sec-rg
+          resourceURI: Microsoft.KeyVault/vaults/pagopa-u-ecommerce-kv
+          metricName: ServiceApiHit
+          # metricNamespace: Microsoft.KeyVault/vaults
+          # metricFilter: namespace eq 'default'
+          # metricAggregationInterval: "-1:1:0"
+          metricAggregationType: Count
+          targetValue: "30"
   envConfig:
-    # TODO: set your name
-    WEBSITE_SITE_NAME: 'yourProjectName' # required to show cloud role name in application insights
+    MONGO_HOST: pagopa-u-weu-ecommerce-cosmos-account.mongo.cosmos.azure.com
+    MONGO_USERNAME: pagopa-u-weu-ecommerce-cosmos-account
+    MONGO_PORT: "10255"
+    MONGO_SSL_ENABLED: "true"
+    ECOMMERCE_DATABASE_NAME: "ecommerce"
+    TRANSACTION_EXPIRED_EVENTS_QUEUE_NAME: "pagopa-u-weu-ecommerce-expired-events-queue"
+    PENDING_TRANSACTIONS_SCHEDULE_CRON: "0 0 */1 * * *"
+    PENDING_TRANSACTIONS_WINDOWS_BATCH_EXECUTION_RATE_MULTIPLIER: "2"
+    PENDING_TRANSACTIONS_PARALLEL_EVENTS_TO_PROCESS: "1"
   envSecret:
-    # required
-    APPLICATIONINSIGHTS_CONNECTION_STRING: 'ai-u-connection-string'
+    MONGO_PASSWORD: mongo-ecommerce-password
+    QUEUE_CONNECTION_STRING: ecommerce-storage-connection-string
   keyvault:
-    name: "pagopa-u-afm-kv"
+    name: "pagopa-u-ecommerce-kv"
     tenantId: "7788edaf-0346-4068-9d79-c868aed15b3d"
-  nodeSelector: { }
-  tolerations: [ ]
-  affinity: { }
+  nodeSelector: {}
+  tolerations: []
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: node_type
+                operator: In
+                values:
+                  - user
+  canaryDelivery:
+    deployment:
+      image:
+        tag: ""

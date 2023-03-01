@@ -1,23 +1,37 @@
-#
-# Build
-#
-FROM maven:3.8.4-jdk-11-slim as buildtime
-WORKDIR /build
-COPY . .
-RUN mvn clean package
+FROM openjdk:17-jdk as build
+WORKDIR /workspace/app
 
+RUN microdnf install git
 
-FROM adoptopenjdk/openjdk11:alpine-jre as builder
-COPY --from=buildtime /build/target/*.jar application.jar
-RUN java -Djarmode=layertools -jar application.jar extract
+COPY mvnw .
+COPY .mvn .mvn
+COPY pom.xml .
+RUN ./mvnw validate -DskipTests
+RUN ./mvnw dependency:copy-dependencies
+# RUN ./mvnw dependency:go-offline
 
+COPY src src
+COPY eclipse-style.xml eclipse-style.xml
+RUN ./mvnw install -DskipTests # --offline
+RUN mkdir target/extracted && java -Djarmode=layertools -jar target/*.jar extract --destination target/extracted
 
-FROM ghcr.io/pagopa/docker-base-springboot-openjdk11:v1.0.1@sha256:bbbe948e91efa0a3e66d8f308047ec255f64898e7f9250bdb63985efd3a95dbf
-COPY --chown=spring:spring  --from=builder dependencies/ ./
-COPY --chown=spring:spring  --from=builder snapshot-dependencies/ ./
-# https://github.com/moby/moby/issues/37965#issuecomment-426853382
+FROM openjdk:17-slim
+
+RUN addgroup --system user && adduser --ingroup user --system user
+USER user:user
+
+WORKDIR /app/
+
+ARG EXTRACTED=/workspace/app/target/extracted
+
+COPY --from=build --chown=user ${EXTRACTED}/dependencies/ ./
 RUN true
-COPY --chown=spring:spring  --from=builder spring-boot-loader/ ./
-COPY --chown=spring:spring  --from=builder application/ ./
+COPY --from=build --chown=user ${EXTRACTED}/spring-boot-loader/ ./
+RUN true
+COPY --from=build --chown=user ${EXTRACTED}/snapshot-dependencies/ ./
+RUN true
+COPY --from=build --chown=user ${EXTRACTED}/application/ ./ 
+RUN true
 
-EXPOSE 8080
+
+ENTRYPOINT ["java","--enable-preview","org.springframework.boot.loader.JarLauncher"]
