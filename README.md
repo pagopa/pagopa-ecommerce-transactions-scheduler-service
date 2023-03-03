@@ -13,14 +13,19 @@ Here a description of when expiration event is sent based on the transaction sta
 | ACTIVATED               | ✅                     |
 | AUTHORIZATION_REQUESTED | ✅                     |
 | AUTHORIZATION_COMPLETED | ✅                     |
+| CANCELLATION_REQUESTED  | ✅                     |
 | CLOSURE_ERROR           | ✅                     |
 | CLOSED                  | ✅                     |
 | EXPIRED_NOT_AUTHORIZED  | ❌                     |
 | CANCELED                | ❌                     |
 | UNAUTHORIZED            | ❌                     |
-| NOTIFIED                | ❌                     |
+| NOTIFIED_OK             | ❌                     |
+| NOTIFIED_KO             | ❌                     |
 | EXPIRED                 | ❌                     |
+| REFUND_REQUESTED        | ❌                     |
+| REFUND_ERROR            | ❌                     |
 | REFUNDED                | ❌                     |
+| CANCELLATION_EXPIRED    | ❌                     |
 
 For each transaction found in one of those statuses  `TransactionExpiredEvent` and transaction view document status is
 updated to `EXPIRED`.

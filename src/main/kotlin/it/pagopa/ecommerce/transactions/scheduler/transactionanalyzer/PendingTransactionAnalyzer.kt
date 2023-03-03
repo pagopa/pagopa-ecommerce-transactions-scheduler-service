@@ -17,35 +17,44 @@ class PendingTransactionAnalyzer(
     private val logger: Logger = Logger.getGlobal(),
     @Autowired private val expiredTransactionEventPublisher: TransactionExpiredEventPublisher,
     @Autowired private val viewRepository: TransactionsViewRepository,
-    @Autowired private val eventStoreRepository: TransactionsEventStoreRepository<Any>
-) {
+    @Autowired private val eventStoreRepository: TransactionsEventStoreRepository<Any>,
     /*
      * Set of all transactions statuses that will not be considered during batch execution.
      * Those statuses are all the transaction final statuses and the expired status
      * for which no further elaboration is needed (avoid to re-process the same transaction
      * multiple times)
      */
-    private val transactionStatusesToExcludeFromView =
+    private val transactionStatusesToExcludeFromView: Set<TransactionStatusDto> =
         setOf(
             TransactionStatusDto.EXPIRED_NOT_AUTHORIZED,
             TransactionStatusDto.CANCELED,
             TransactionStatusDto.UNAUTHORIZED,
-            TransactionStatusDto.NOTIFIED,
+            TransactionStatusDto.NOTIFIED_OK,
             TransactionStatusDto.EXPIRED,
+            TransactionStatusDto.REFUND_REQUESTED,
+            TransactionStatusDto.REFUND_ERROR,
             TransactionStatusDto.REFUNDED,
-        )
-
+            TransactionStatusDto.CANCELLATION_EXPIRED,
+            // TODO dovrebbe essere considerato anche questo stato in realtà per l'expiration?
+            // Se si togliere questo evento
+            TransactionStatusDto.NOTIFIED_KO
+        ),
     /*
      * Set of all transaction statuses for which send expiry event
      */
-    private val transactionStatusesForSendExpiryEvent =
+    private val transactionStatusesForSendExpiryEvent: Set<TransactionStatusDto> =
         setOf(
             TransactionStatusDto.ACTIVATED,
             TransactionStatusDto.AUTHORIZATION_REQUESTED,
             TransactionStatusDto.AUTHORIZATION_COMPLETED,
+            TransactionStatusDto.CANCELLATION_REQUESTED,
             TransactionStatusDto.CLOSURE_ERROR,
             TransactionStatusDto.CLOSED,
-        )
+            // TODO aggiungere anche questo evento per cui inviare l'expiry? vedi sopra? se si
+            // decommentare questo evento
+            // TransactionStatusDto.NOTIFIED_KO
+            )
+) {
 
     fun searchPendingTransactions(
         lowerThreshold: LocalDateTime,
