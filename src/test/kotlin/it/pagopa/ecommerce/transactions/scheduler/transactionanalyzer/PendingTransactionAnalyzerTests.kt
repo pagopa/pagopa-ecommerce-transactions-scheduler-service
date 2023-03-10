@@ -41,12 +41,15 @@ class PendingTransactionAnalyzerTests {
 
     @Mock private lateinit var eventStoreRepository: TransactionsEventStoreRepository<Any>
 
-    @Mock private lateinit var transactionStatusesForSendExpiryEvent: Set<TransactionStatusDto>
+    @Mock
+    private lateinit var transactionStatusesForSendExpiryEventMocked: Set<TransactionStatusDto>
 
     @Captor
     private lateinit var transactionStatusArgumentCaptor: ArgumentCaptor<TransactionStatusDto>
 
     private lateinit var pendingTransactionAnalyzer: PendingTransactionAnalyzer
+
+    private lateinit var transactionStatusesForSendExpiryEventOriginal: Set<TransactionStatusDto>
 
     companion object {
         val testedStatuses: MutableSet<TransactionStatusDto> = HashSet()
@@ -78,8 +81,20 @@ class PendingTransactionAnalyzerTests {
                 expiredTransactionEventPublisher = transactionExpiredEventPublisher,
                 viewRepository = viewRepository,
                 eventStoreRepository = eventStoreRepository,
-                transactionStatusesForSendExpiryEvent = transactionStatusesForSendExpiryEvent
+                transactionStatusesForSendExpiryEvent = transactionStatusesForSendExpiryEventMocked
             )
+        /*
+         * This trick allow to capture the tested status using the real statuses set
+         * at test runtime for perform check and be sure that all statuses have been covered by tests
+         */
+        transactionStatusesForSendExpiryEventOriginal =
+            PendingTransactionAnalyzer(
+                    logger = Logger.getGlobal(),
+                    expiredTransactionEventPublisher = transactionExpiredEventPublisher,
+                    viewRepository = viewRepository,
+                    eventStoreRepository = eventStoreRepository
+                )
+                .transactionStatusesForSendExpiryEvent
     }
 
     @Test
@@ -230,7 +245,7 @@ class PendingTransactionAnalyzerTests {
     }
 
     @Test
-    fun `Should not send event for pending transaction in NOTIFIED_KO state`() {
+    fun `Should send event for pending transaction in NOTIFIED_KO state`() {
         // assertions
         val events =
             listOf(
@@ -246,7 +261,7 @@ class PendingTransactionAnalyzerTests {
             )
                 as List<TransactionEvent<Any>>
 
-        checkThatExpiryEventIsNotSent(events, TransactionStatusDto.NOTIFIED_KO)
+        checkThatExpiryEventIsSent(events, TransactionStatusDto.NOTIFIED_KO)
     }
 
     @Test
@@ -396,11 +411,11 @@ class PendingTransactionAnalyzerTests {
                 )
             )
         given(
-                transactionStatusesForSendExpiryEvent.contains(
+                transactionStatusesForSendExpiryEventMocked.contains(
                     transactionStatusArgumentCaptor.capture()
                 )
             )
-            .willReturn(true)
+            .willAnswer { transactionStatusesForSendExpiryEventOriginal.contains(it.arguments[0]) }
         given(viewRepository.findTransactionInTimeRangeWithExcludedStatuses(any(), any(), any()))
             .willReturn(Flux.just(*transactions.toTypedArray()))
         given(eventStoreRepository.findByTransactionId(any()))
@@ -439,16 +454,16 @@ class PendingTransactionAnalyzerTests {
         val transactions =
             listOf(
                 TransactionTestUtils.transactionDocument(
-                    reduceEvents(events).status,
+                    expectedTransactionStatus,
                     ZonedDateTime.now()
                 )
             )
         given(
-                transactionStatusesForSendExpiryEvent.contains(
+                transactionStatusesForSendExpiryEventMocked.contains(
                     transactionStatusArgumentCaptor.capture()
                 )
             )
-            .willReturn(false)
+            .willAnswer { transactionStatusesForSendExpiryEventOriginal.contains(it.arguments[0]) }
         given(viewRepository.findTransactionInTimeRangeWithExcludedStatuses(any(), any(), any()))
             .willReturn(Flux.just(*transactions.toTypedArray()))
         given(eventStoreRepository.findByTransactionId(any()))
