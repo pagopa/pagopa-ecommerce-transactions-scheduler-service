@@ -120,3 +120,12 @@ Helpful commands:
 mvn spotless:check # --> used to perform format checks
 mvn spotless:apply # --> used to format all misformatted files
 ```
+
+## Kubernetes deployment notes
+
+By conventions all module are deployed as <<repo-name>> without '-'
+Since for this module, applying the above rule, the name would result
+into `pagopaecommercetransactionsschedulerservice-microservice-chart` that would lead to
+a too long name with "beta-" prefix for blue deployments the full name has been overridden
+with the following `pagopaecommercetxschedulerservice-microservice-chart`.
+Any component such as deployment, pods, config maps, etc. can be searched with this reduced name

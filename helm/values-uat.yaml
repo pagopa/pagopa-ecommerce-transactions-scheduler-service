@@ -1,10 +1,37 @@
 microservice-chart:
   namespace: "ecommerce"
   nameOverride: ""
-  fullnameOverride: ""
+  fullnameOverride: "pagopaecommercetxschedulerservice-microservice-chart"
+  canaryDelivery:
+    create: false
+    ingress:
+      create: true
+      canary:
+        type: bluegreen
+    service:
+      create: true
+    deployment:
+      create: true
+      image:
+        repository: pagopaucommonacr.azurecr.io/pagopaecommercetransactionsschedulerservice
+        tag: "latest"
+        pullPolicy: Always
+    envConfig:
+      MONGO_HOST: pagopa-u-weu-ecommerce-cosmos-account.mongo.cosmos.azure.com
+      MONGO_USERNAME: pagopa-u-weu-ecommerce-cosmos-account
+      MONGO_PORT: "10255"
+      MONGO_SSL_ENABLED: "true"
+      ECOMMERCE_DATABASE_NAME: "ecommerce"
+      TRANSACTION_EXPIRED_EVENTS_QUEUE_NAME: "pagopa-u-weu-ecommerce-transactions-expiration-queue"
+      PENDING_TRANSACTIONS_SCHEDULE_CRON: "0 0 */1 * * *"
+      PENDING_TRANSACTIONS_WINDOWS_BATCH_EXECUTION_RATE_MULTIPLIER: "2"
+      PENDING_TRANSACTIONS_PARALLEL_EVENTS_TO_PROCESS: "1"
+    envSecret:
+      MONGO_PASSWORD: mongo-ecommerce-password
+      QUEUE_CONNECTION_STRING: ecommerce-storage-connection-string
   image:
     repository: pagopaucommonacr.azurecr.io/pagopaecommercetransactionsschedulerservice
-    tag: "0.0.4" #improve
+    tag: "0.0.4"
     pullPolicy: Always
   livenessProbe:
     httpGet:
@@ -34,9 +61,9 @@ microservice-chart:
     servicePort: 8080
   serviceAccount:
     create: false
-    annotations: {}
+    annotations: { }
     name: ""
-  podAnnotations: {}
+  podAnnotations: { }
   podSecurityContext:
     seccompProfile:
       type: RuntimeDefault
@@ -84,8 +111,8 @@ microservice-chart:
   keyvault:
     name: "pagopa-u-ecommerce-kv"
     tenantId: "7788edaf-0346-4068-9d79-c868aed15b3d"
-  nodeSelector: {}
-  tolerations: []
+  nodeSelector: { }
+  tolerations: [ ]
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
@@ -95,7 +122,3 @@ microservice-chart:
                 operator: In
                 values:
                   - user
-  canaryDelivery:
-    deployment:
-      image:
-        tag: ""
