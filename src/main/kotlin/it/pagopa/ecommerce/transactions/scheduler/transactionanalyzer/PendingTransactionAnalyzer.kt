@@ -24,7 +24,7 @@ class PendingTransactionAnalyzer(
      * for which no further elaboration is needed (avoid to re-process the same transaction
      * multiple times)
      */
-    private val transactionStatusesToExcludeFromView: Set<TransactionStatusDto> =
+    val transactionStatusesToExcludeFromView: Set<TransactionStatusDto> =
         setOf(
             TransactionStatusDto.EXPIRED_NOT_AUTHORIZED,
             TransactionStatusDto.CANCELED,
@@ -34,15 +34,12 @@ class PendingTransactionAnalyzer(
             TransactionStatusDto.REFUND_REQUESTED,
             TransactionStatusDto.REFUND_ERROR,
             TransactionStatusDto.REFUNDED,
-            TransactionStatusDto.CANCELLATION_EXPIRED,
-            // TODO dovrebbe essere considerato anche questo stato in realtà per l'expiration?
-            // Se si togliere questo evento
-            TransactionStatusDto.NOTIFIED_KO
+            TransactionStatusDto.CANCELLATION_EXPIRED
         ),
     /*
      * Set of all transaction statuses for which send expiry event
      */
-    private val transactionStatusesForSendExpiryEvent: Set<TransactionStatusDto> =
+    val transactionStatusesForSendExpiryEvent: Set<TransactionStatusDto> =
         setOf(
             TransactionStatusDto.ACTIVATED,
             TransactionStatusDto.AUTHORIZATION_REQUESTED,
@@ -50,10 +47,8 @@ class PendingTransactionAnalyzer(
             TransactionStatusDto.CANCELLATION_REQUESTED,
             TransactionStatusDto.CLOSURE_ERROR,
             TransactionStatusDto.CLOSED,
-            // TODO aggiungere anche questo evento per cui inviare l'expiry? vedi sopra? se si
-            // decommentare questo evento
-            // TransactionStatusDto.NOTIFIED_KO
-            )
+            TransactionStatusDto.NOTIFIED_KO
+        )
 ) {
 
     fun searchPendingTransactions(
@@ -95,7 +90,7 @@ class PendingTransactionAnalyzer(
             .flatMap {
                 val sendExpiryEvent = transactionStatusesForSendExpiryEvent.contains(it.status)
                 logger.info(
-                    "Transaction with id: [${it.transactionId}] state: [${it.status}], expired transaction statuses: $transactionStatusesForSendExpiryEvent. Send event: $sendExpiryEvent"
+                    "Transaction with id: [${it.transactionId}] state: [${it.status}], expired transaction statuses: ${transactionStatusesForSendExpiryEvent}. Send event: $sendExpiryEvent"
                 )
                 if (sendExpiryEvent) {
                     Mono.just(it)

@@ -16,11 +16,11 @@ Here a description of when expiration event is sent based on the transaction sta
 | CANCELLATION_REQUESTED  | ✅                     |
 | CLOSURE_ERROR           | ✅                     |
 | CLOSED                  | ✅                     |
+| NOTIFIED_KO             | ✅                     |
 | EXPIRED_NOT_AUTHORIZED  | ❌                     |
 | CANCELED                | ❌                     |
 | UNAUTHORIZED            | ❌                     |
 | NOTIFIED_OK             | ❌                     |
-| NOTIFIED_KO             | ❌                     |
 | EXPIRED                 | ❌                     |
 | REFUND_REQUESTED        | ❌                     |
 | REFUND_ERROR            | ❌                     |
