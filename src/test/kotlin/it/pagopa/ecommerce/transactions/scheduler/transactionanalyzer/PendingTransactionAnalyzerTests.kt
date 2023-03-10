@@ -84,7 +84,7 @@ class PendingTransactionAnalyzerTests {
                 transactionStatusesForSendExpiryEvent = transactionStatusesForSendExpiryEventMocked
             )
         /*
-         * This trick allow to capture the tested status use the real statuses set
+         * This trick allow to capture the tested status using the real statuses set
          * at test runtime for perform check and be sure that all statuses have been covered by tests
          */
         transactionStatusesForSendExpiryEventOriginal =
