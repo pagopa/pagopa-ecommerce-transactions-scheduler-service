@@ -34,7 +34,7 @@ class PendingTransactionAnalyzer(
             TransactionStatusDto.REFUND_REQUESTED,
             TransactionStatusDto.REFUND_ERROR,
             TransactionStatusDto.REFUNDED,
-            TransactionStatusDto.CANCELLATION_EXPIRED
+            TransactionStatusDto.CANCELLATION_EXPIRED,
         ),
     /*
      * Set of all transaction statuses for which send expiry event
@@ -47,7 +47,8 @@ class PendingTransactionAnalyzer(
             TransactionStatusDto.CANCELLATION_REQUESTED,
             TransactionStatusDto.CLOSURE_ERROR,
             TransactionStatusDto.CLOSED,
-            TransactionStatusDto.NOTIFIED_KO
+            TransactionStatusDto.NOTIFIED_KO,
+            TransactionStatusDto.NOTIFICATION_ERROR,
         )
 ) {
 

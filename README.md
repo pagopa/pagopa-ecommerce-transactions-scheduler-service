@@ -17,6 +17,7 @@ Here a description of when expiration event is sent based on the transaction sta
 | CLOSURE_ERROR           | ✅                     |
 | CLOSED                  | ✅                     |
 | NOTIFIED_KO             | ✅                     |
+| NOTIFICATION_ERROR      | ✅                     |
 | EXPIRED_NOT_AUTHORIZED  | ❌                     |
 | CANCELED                | ❌                     |
 | UNAUTHORIZED            | ❌                     |
