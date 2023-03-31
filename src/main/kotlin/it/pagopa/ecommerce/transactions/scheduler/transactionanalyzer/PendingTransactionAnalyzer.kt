@@ -48,6 +48,7 @@ class PendingTransactionAnalyzer(
             TransactionStatusDto.CLOSURE_ERROR,
             TransactionStatusDto.CLOSED,
             TransactionStatusDto.NOTIFIED_KO,
+            TransactionStatusDto.NOTIFICATION_REQUESTED,
             TransactionStatusDto.NOTIFICATION_ERROR,
         )
 ) {
