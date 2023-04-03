@@ -1,10 +1,7 @@
 package it.pagopa.ecommerce.transactions.scheduler.publishers
 
 import com.azure.storage.queue.QueueAsyncClient
-import it.pagopa.ecommerce.commons.documents.v1.PaymentNotice
-import it.pagopa.ecommerce.commons.documents.v1.Transaction
-import it.pagopa.ecommerce.commons.documents.v1.TransactionExpiredData
-import it.pagopa.ecommerce.commons.documents.v1.TransactionExpiredEvent
+import it.pagopa.ecommerce.commons.documents.v1.*
 import it.pagopa.ecommerce.commons.domain.v1.pojos.BaseTransaction
 import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
 import it.pagopa.ecommerce.commons.utils.v1.TransactionUtils
@@ -48,15 +45,25 @@ class TransactionExpiredEventPublisher(
                     .save(
                         Transaction(
                             transaction.transactionId.value.toString(),
-                            transaction.paymentNotices.map { notice ->
-                                PaymentNotice(
-                                    notice.paymentToken.value,
-                                    notice.rptId.value,
-                                    notice.transactionDescription.value,
-                                    notice.transactionAmount.value,
-                                    notice.paymentContextCode.value
-                                )
-                            },
+                            transaction.paymentNotices
+                                .map { notice ->
+                                    PaymentNotice(
+                                        notice.paymentToken.value,
+                                        notice.rptId.value,
+                                        notice.transactionDescription.value,
+                                        notice.transactionAmount.value,
+                                        notice.paymentContextCode.value,
+                                        notice.transferList.map { transferInfo ->
+                                            PaymentTransferInformation(
+                                                transferInfo.paFiscalCode,
+                                                transferInfo.digitalStamp,
+                                                transferInfo.transferAmount,
+                                                transferInfo.transferCategory
+                                            )
+                                        }
+                                    )
+                                }
+                                .toList(),
                             TransactionUtils.getTransactionFee(transaction).orElse(null),
                             transaction.email,
                             TransactionStatusDto.EXPIRED,

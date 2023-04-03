@@ -523,23 +523,17 @@ class TransactionExpiredEventPublisherTests {
     ): List<BaseTransaction> {
         val baseDocuments = ArrayList<BaseTransaction>()
         repeat(howMany) {
+            val transactionActivated =
+                TransactionTestUtils.transactionActivated(ZonedDateTime.now().toString())
             baseDocuments.add(
                 TransactionActivated(
                     TransactionId(transactionId),
-                    listOf(
-                        PaymentNotice(
-                            PaymentToken("paymentToken"),
-                            RptId("77777777777111111111111111111"),
-                            TransactionAmount(100),
-                            TransactionDescription("description"),
-                            PaymentContextCode("paymentContextCode")
-                        )
-                    ),
-                    TransactionTestUtils.EMAIL,
-                    "",
-                    "",
-                    ZonedDateTime.now(),
-                    Transaction.ClientId.CHECKOUT
+                    transactionActivated.paymentNotices,
+                    transactionActivated.email,
+                    transactionActivated.transactionActivatedData.faultCode,
+                    transactionActivated.transactionActivatedData.faultCodeString,
+                    transactionActivated.creationDate,
+                    transactionActivated.clientId
                 )
             )
         }

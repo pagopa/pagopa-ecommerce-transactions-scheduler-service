@@ -177,6 +177,96 @@ class PendingTransactionAnalyzerTests {
     }
 
     @Test
+    fun `Should send event for pending transaction in NOTIFICATION_ERROR user receipt OK state`() {
+        // assertions
+        val events =
+            listOf(
+                TransactionTestUtils.transactionActivateEvent(),
+                TransactionTestUtils.transactionAuthorizationRequestedEvent(),
+                TransactionTestUtils.transactionAuthorizationCompletedEvent(),
+                TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK),
+                TransactionTestUtils.transactionUserReceiptRequestedEvent(
+                    TransactionTestUtils.transactionUserReceiptData(
+                        TransactionUserReceiptData.Outcome.OK
+                    )
+                ),
+                TransactionTestUtils.transactionUserReceiptAddErrorEvent(
+                    TransactionTestUtils.transactionUserReceiptData(
+                        TransactionUserReceiptData.Outcome.OK
+                    )
+                )
+            )
+                as List<TransactionEvent<Any>>
+
+        checkThatExpiryEventIsSent(events, TransactionStatusDto.NOTIFICATION_ERROR)
+    }
+
+    @Test
+    fun `Should send event for pending transaction in NOTIFICATION_ERROR user receipt KO state`() {
+        // assertions
+        val events =
+            listOf(
+                TransactionTestUtils.transactionActivateEvent(),
+                TransactionTestUtils.transactionAuthorizationRequestedEvent(),
+                TransactionTestUtils.transactionAuthorizationCompletedEvent(),
+                TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK),
+                TransactionTestUtils.transactionUserReceiptRequestedEvent(
+                    TransactionTestUtils.transactionUserReceiptData(
+                        TransactionUserReceiptData.Outcome.KO
+                    )
+                ),
+                TransactionTestUtils.transactionUserReceiptAddErrorEvent(
+                    TransactionTestUtils.transactionUserReceiptData(
+                        TransactionUserReceiptData.Outcome.KO
+                    )
+                )
+            )
+                as List<TransactionEvent<Any>>
+
+        checkThatExpiryEventIsSent(events, TransactionStatusDto.NOTIFICATION_ERROR)
+    }
+
+    @Test
+    fun `Should send event for pending transaction in NOTIFICATION_REQUESTED user receipt OK state`() {
+        // assertions
+        val events =
+            listOf(
+                TransactionTestUtils.transactionActivateEvent(),
+                TransactionTestUtils.transactionAuthorizationRequestedEvent(),
+                TransactionTestUtils.transactionAuthorizationCompletedEvent(),
+                TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK),
+                TransactionTestUtils.transactionUserReceiptRequestedEvent(
+                    TransactionTestUtils.transactionUserReceiptData(
+                        TransactionUserReceiptData.Outcome.OK
+                    )
+                )
+            )
+                as List<TransactionEvent<Any>>
+
+        checkThatExpiryEventIsSent(events, TransactionStatusDto.NOTIFICATION_REQUESTED)
+    }
+
+    @Test
+    fun `Should send event for pending transaction in NOTIFICATION_REQUESTED user receipt KO state`() {
+        // assertions
+        val events =
+            listOf(
+                TransactionTestUtils.transactionActivateEvent(),
+                TransactionTestUtils.transactionAuthorizationRequestedEvent(),
+                TransactionTestUtils.transactionAuthorizationCompletedEvent(),
+                TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK),
+                TransactionTestUtils.transactionUserReceiptRequestedEvent(
+                    TransactionTestUtils.transactionUserReceiptData(
+                        TransactionUserReceiptData.Outcome.KO
+                    )
+                )
+            )
+                as List<TransactionEvent<Any>>
+
+        checkThatExpiryEventIsSent(events, TransactionStatusDto.NOTIFICATION_REQUESTED)
+    }
+
+    @Test
     fun `Should not send event for pending transaction in EXPIRED_NOT_AUTHORIZED state`() {
         // assertions
         val events =
@@ -235,8 +325,15 @@ class PendingTransactionAnalyzerTests {
                     AuthorizationResultDto.OK
                 ),
                 TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK),
+                TransactionTestUtils.transactionUserReceiptRequestedEvent(
+                    TransactionTestUtils.transactionUserReceiptData(
+                        TransactionUserReceiptData.Outcome.OK
+                    )
+                ),
                 TransactionTestUtils.transactionUserReceiptAddedEvent(
-                    TransactionUserReceiptData.Outcome.OK
+                    TransactionTestUtils.transactionUserReceiptData(
+                        TransactionUserReceiptData.Outcome.OK
+                    )
                 )
             )
                 as List<TransactionEvent<Any>>
@@ -255,8 +352,15 @@ class PendingTransactionAnalyzerTests {
                     AuthorizationResultDto.OK
                 ),
                 TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK),
+                TransactionTestUtils.transactionUserReceiptRequestedEvent(
+                    TransactionTestUtils.transactionUserReceiptData(
+                        TransactionUserReceiptData.Outcome.KO
+                    )
+                ),
                 TransactionTestUtils.transactionUserReceiptAddedEvent(
-                    TransactionUserReceiptData.Outcome.KO
+                    TransactionTestUtils.transactionUserReceiptData(
+                        TransactionUserReceiptData.Outcome.KO
+                    )
                 )
             )
                 as List<TransactionEvent<Any>>
