@@ -185,7 +185,7 @@ class PendingTransactionAnalyzerTests {
                 TransactionTestUtils.transactionAuthorizationRequestedEvent(),
                 TransactionTestUtils.transactionAuthorizationCompletedEvent(),
                 TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK),
-                TransactionTestUtils.transactionAddUserReceiptEvent(
+                TransactionTestUtils.transactionUserReceiptRequestedEvent(
                     TransactionTestUtils.transactionUserReceiptData(
                         TransactionUserReceiptData.Outcome.OK
                     )
@@ -210,7 +210,7 @@ class PendingTransactionAnalyzerTests {
                 TransactionTestUtils.transactionAuthorizationRequestedEvent(),
                 TransactionTestUtils.transactionAuthorizationCompletedEvent(),
                 TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK),
-                TransactionTestUtils.transactionAddUserReceiptEvent(
+                TransactionTestUtils.transactionUserReceiptRequestedEvent(
                     TransactionTestUtils.transactionUserReceiptData(
                         TransactionUserReceiptData.Outcome.KO
                     )
@@ -235,7 +235,7 @@ class PendingTransactionAnalyzerTests {
                 TransactionTestUtils.transactionAuthorizationRequestedEvent(),
                 TransactionTestUtils.transactionAuthorizationCompletedEvent(),
                 TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK),
-                TransactionTestUtils.transactionAddUserReceiptEvent(
+                TransactionTestUtils.transactionUserReceiptRequestedEvent(
                     TransactionTestUtils.transactionUserReceiptData(
                         TransactionUserReceiptData.Outcome.OK
                     )
@@ -255,7 +255,7 @@ class PendingTransactionAnalyzerTests {
                 TransactionTestUtils.transactionAuthorizationRequestedEvent(),
                 TransactionTestUtils.transactionAuthorizationCompletedEvent(),
                 TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK),
-                TransactionTestUtils.transactionAddUserReceiptEvent(
+                TransactionTestUtils.transactionUserReceiptRequestedEvent(
                     TransactionTestUtils.transactionUserReceiptData(
                         TransactionUserReceiptData.Outcome.KO
                     )
@@ -325,7 +325,7 @@ class PendingTransactionAnalyzerTests {
                     AuthorizationResultDto.OK
                 ),
                 TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK),
-                TransactionTestUtils.transactionAddUserReceiptEvent(
+                TransactionTestUtils.transactionUserReceiptRequestedEvent(
                     TransactionTestUtils.transactionUserReceiptData(
                         TransactionUserReceiptData.Outcome.OK
                     )
@@ -352,7 +352,7 @@ class PendingTransactionAnalyzerTests {
                     AuthorizationResultDto.OK
                 ),
                 TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK),
-                TransactionTestUtils.transactionAddUserReceiptEvent(
+                TransactionTestUtils.transactionUserReceiptRequestedEvent(
                     TransactionTestUtils.transactionUserReceiptData(
                         TransactionUserReceiptData.Outcome.KO
                     )
