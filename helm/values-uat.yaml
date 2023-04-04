@@ -31,7 +31,7 @@ microservice-chart:
       QUEUE_CONNECTION_STRING: ecommerce-storage-connection-string
   image:
     repository: pagopaucommonacr.azurecr.io/pagopaecommercetransactionsschedulerservice
-    tag: "0.0.5"
+    tag: "0.0.6"
     pullPolicy: Always
   livenessProbe:
     httpGet:
