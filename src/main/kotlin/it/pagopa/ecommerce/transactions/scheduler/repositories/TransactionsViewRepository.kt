@@ -6,6 +6,7 @@ import org.springframework.data.mongodb.repository.Query
 import org.springframework.data.repository.reactive.ReactiveCrudRepository
 import org.springframework.stereotype.Repository
 import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
 
 @Repository
 interface TransactionsViewRepository : ReactiveCrudRepository<Transaction, String> {
@@ -16,4 +17,6 @@ interface TransactionsViewRepository : ReactiveCrudRepository<Transaction, Strin
         to: String,
         excludedStatuses: Set<TransactionStatusDto>
     ): Flux<Transaction>
+
+    fun findByTransactionId(transactionId: String): Mono<Transaction>
 }

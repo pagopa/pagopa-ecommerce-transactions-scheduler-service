@@ -4,7 +4,6 @@ import com.azure.storage.queue.QueueAsyncClient
 import it.pagopa.ecommerce.commons.documents.v1.*
 import it.pagopa.ecommerce.commons.domain.v1.pojos.BaseTransaction
 import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
-import it.pagopa.ecommerce.commons.utils.v1.TransactionUtils
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsEventStoreRepository
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsViewRepository
 import java.util.logging.Logger
@@ -42,42 +41,18 @@ class TransactionExpiredEventPublisher(
             .flatMap { eventStoreRepository.save(it) }
             .flatMap { event ->
                 viewRepository
-                    .save(
-                        Transaction(
-                            transaction.transactionId.value.toString(),
-                            transaction.paymentNotices
-                                .map { notice ->
-                                    PaymentNotice(
-                                        notice.paymentToken.value,
-                                        notice.rptId.value,
-                                        notice.transactionDescription.value,
-                                        notice.transactionAmount.value,
-                                        notice.paymentContextCode.value,
-                                        notice.transferList.map { transferInfo ->
-                                            PaymentTransferInformation(
-                                                transferInfo.paFiscalCode,
-                                                transferInfo.digitalStamp,
-                                                transferInfo.transferAmount,
-                                                transferInfo.transferCategory
-                                            )
-                                        }
-                                    )
-                                }
-                                .toList(),
-                            TransactionUtils.getTransactionFee(transaction).orElse(null),
-                            transaction.email,
-                            TransactionStatusDto.EXPIRED,
-                            transaction.clientId,
-                            transaction.creationDate.toString()
-                        )
-                    )
+                    .findByTransactionId(transaction.transactionId.value())
+                    .flatMap {
+                        it.status = TransactionStatusDto.EXPIRED
+                        viewRepository.save(it)
+                    }
                     .flatMap { Mono.just(event) }
             }
 
     override fun toEvent(baseTrasaction: BaseTransaction): Mono<TransactionExpiredEvent> =
         Mono.just(
             TransactionExpiredEvent(
-                baseTrasaction.transactionId.value.toString(),
+                baseTrasaction.transactionId.value(),
                 TransactionExpiredData(baseTrasaction.status)
             )
         )
