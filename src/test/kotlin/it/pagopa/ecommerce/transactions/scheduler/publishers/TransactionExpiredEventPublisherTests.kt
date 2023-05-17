@@ -62,7 +62,11 @@ class TransactionExpiredEventPublisherTests {
     @Test
     fun `Should publish all events`() {
         // preconditions
-        val baseDocuments = generateTransactionBaseDocuments(howMany = 5, authRequested = false)
+        val baseDocuments =
+            generateTransactionBaseDocuments(
+                howMany = 5,
+                transactionType = TransactionType.ACTIVATED_ONLY
+            )
 
         val expectedGeneratedEvents =
             baseDocuments
@@ -196,7 +200,10 @@ class TransactionExpiredEventPublisherTests {
                         1
                     )
                     .publishExpiryEvents(
-                        generateTransactionBaseDocuments(howMany = 5, authRequested = false),
+                        generateTransactionBaseDocuments(
+                            howMany = 5,
+                            transactionType = TransactionType.ACTIVATED_ONLY
+                        ),
                         batchExecutionTimeWindow
                     )
             )
@@ -226,7 +233,10 @@ class TransactionExpiredEventPublisherTests {
                         1
                     )
                     .publishExpiryEvents(
-                        generateTransactionBaseDocuments(howMany = 5, authRequested = false),
+                        generateTransactionBaseDocuments(
+                            howMany = 5,
+                            transactionType = TransactionType.ACTIVATED_ONLY
+                        ),
                         batchExecutionTimeWindow
                     )
             )
@@ -241,7 +251,11 @@ class TransactionExpiredEventPublisherTests {
     @Test
     fun `Should fails all for error sending event to queue`() {
         // preconditions
-        val transactions = generateTransactionBaseDocuments(howMany = 5, authRequested = false)
+        val transactions =
+            generateTransactionBaseDocuments(
+                howMany = 5,
+                transactionType = TransactionType.ACTIVATED_ONLY
+            )
         val sendMessageResult = SendMessageResult()
         sendMessageResult.messageId = "msgId"
         sendMessageResult.timeNextVisible = OffsetDateTime.now()
@@ -289,12 +303,16 @@ class TransactionExpiredEventPublisherTests {
         // preconditions
         val errorTransactionId = TransactionId(UUID.randomUUID())
 
-        val okTransactions = generateTransactionBaseDocuments(howMany = 5, authRequested = false)
+        val okTransactions =
+            generateTransactionBaseDocuments(
+                howMany = 5,
+                transactionType = TransactionType.ACTIVATED_ONLY
+            )
         val koTransactions =
             generateTransactionBaseDocuments(
                 howMany = 1,
                 transactionId = errorTransactionId.uuid,
-                authRequested = false
+                transactionType = TransactionType.ACTIVATED_ONLY
             )
         val allTransactions = koTransactions.plus(okTransactions)
 
@@ -411,12 +429,16 @@ class TransactionExpiredEventPublisherTests {
     fun `Should continue processing transactions for error saving view`() {
         // preconditions
         val errorTransactionId = TransactionId(UUID.randomUUID())
-        val okTransactions = generateTransactionBaseDocuments(howMany = 5, authRequested = false)
+        val okTransactions =
+            generateTransactionBaseDocuments(
+                howMany = 5,
+                transactionType = TransactionType.ACTIVATED_ONLY
+            )
         val koTransactions =
             generateTransactionBaseDocuments(
                 howMany = 1,
                 transactionId = errorTransactionId.uuid,
-                authRequested = false
+                transactionType = TransactionType.ACTIVATED_ONLY
             )
         val allTransactions = koTransactions.plus(okTransactions)
 
@@ -527,12 +549,16 @@ class TransactionExpiredEventPublisherTests {
     fun `Should continue processing transactions for error sending event to queue`() {
         // preconditions
         val errorTransactionId = TransactionId(UUID.randomUUID())
-        val okTransactions = generateTransactionBaseDocuments(howMany = 5, authRequested = false)
+        val okTransactions =
+            generateTransactionBaseDocuments(
+                howMany = 5,
+                transactionType = TransactionType.ACTIVATED_ONLY
+            )
         val koTransactions =
             generateTransactionBaseDocuments(
                 howMany = 1,
                 transactionId = errorTransactionId.uuid,
-                authRequested = false
+                transactionType = TransactionType.ACTIVATED_ONLY
             )
         val allTransactions = koTransactions.plus(okTransactions)
 
@@ -646,16 +672,23 @@ class TransactionExpiredEventPublisherTests {
         verify(queueAsyncClient, times(6)).sendMessageWithResponse(any<BinaryData>(), any(), any())
     }
 
+    enum class TransactionType {
+        ACTIVATED_ONLY,
+        AUTH_REQUESTED,
+        CANCELED_BY_USER,
+        CANCELED_BY_USER_CLOSURE_ERROR
+    }
+
     private fun generateTransactionBaseDocuments(
         howMany: Int,
         transactionId: UUID? = null,
-        authRequested: Boolean
+        transactionType: TransactionType
     ): List<BaseTransaction> {
         val baseDocuments = ArrayList<BaseTransaction>()
         val transactionActivated =
             TransactionTestUtils.transactionActivated(ZonedDateTime.now().toString())
         repeat(howMany) {
-            val transactionActivated =
+            val transactionActivatedWithCustomUUID =
                 TransactionActivated(
                     TransactionId(transactionId ?: UUID.randomUUID()),
                     transactionActivated.paymentNotices,
@@ -667,13 +700,26 @@ class TransactionExpiredEventPublisherTests {
                     "idCart"
                 )
             baseDocuments.add(
-                if (!authRequested) {
-                    transactionActivated
-                } else {
-                    TransactionTestUtils.transactionWithRequestedAuthorization(
-                        TransactionTestUtils.transactionAuthorizationRequestedEvent(),
-                        transactionActivated
-                    )
+                when (transactionType) {
+                    TransactionType.ACTIVATED_ONLY -> transactionActivatedWithCustomUUID
+                    TransactionType.CANCELED_BY_USER ->
+                        TransactionTestUtils.transactionWithCancellationRequested(
+                            transactionActivatedWithCustomUUID,
+                            TransactionTestUtils.transactionUserCanceledEvent()
+                        )
+                    TransactionType.CANCELED_BY_USER_CLOSURE_ERROR ->
+                        TransactionTestUtils.transactionWithClosureError(
+                            TransactionTestUtils.transactionClosureErrorEvent(),
+                            TransactionTestUtils.transactionWithCancellationRequested(
+                                transactionActivatedWithCustomUUID,
+                                TransactionTestUtils.transactionUserCanceledEvent()
+                            )
+                        )
+                    TransactionType.AUTH_REQUESTED ->
+                        TransactionTestUtils.transactionWithRequestedAuthorization(
+                            TransactionTestUtils.transactionAuthorizationRequestedEvent(),
+                            transactionActivatedWithCustomUUID
+                        )
                 }
             )
         }
@@ -683,7 +729,11 @@ class TransactionExpiredEventPublisherTests {
     @Test
     fun `Should publish event for transactions with authorization requested`() {
         // preconditions
-        val baseDocuments = generateTransactionBaseDocuments(howMany = 5, authRequested = true)
+        val baseDocuments =
+            generateTransactionBaseDocuments(
+                howMany = 5,
+                transactionType = TransactionType.AUTH_REQUESTED
+            )
 
         val expectedGeneratedEvents =
             baseDocuments
@@ -786,9 +836,15 @@ class TransactionExpiredEventPublisherTests {
     fun `Should publish event for both transactions with authorization requested and transactions only activated`() {
         // preconditions
         val transactionOnlyActivatedDocuments =
-            generateTransactionBaseDocuments(howMany = 5, authRequested = false)
+            generateTransactionBaseDocuments(
+                howMany = 5,
+                transactionType = TransactionType.ACTIVATED_ONLY
+            )
         val transactionWithRequestedAuthorizationDocuments =
-            generateTransactionBaseDocuments(howMany = 5, authRequested = true)
+            generateTransactionBaseDocuments(
+                howMany = 5,
+                transactionType = TransactionType.AUTH_REQUESTED
+            )
         val baseDocuments =
             transactionOnlyActivatedDocuments.plus(transactionWithRequestedAuthorizationDocuments)
         val expectedTransactionStatusMap =
@@ -901,6 +957,218 @@ class TransactionExpiredEventPublisherTests {
         verify(queueAsyncClient, times(10)).sendMessageWithResponse(any<BinaryData>(), any(), any())
         verify(eventStoreRepository, times(10)).save(any())
         verify(viewRepository, times(10)).save(any())
+    }
+
+    @Test
+    fun `Should publish event for transactions with cancellation requested updating transaction to CANCELLATION_EXPIRED`() {
+        // preconditions
+        val baseDocuments =
+            generateTransactionBaseDocuments(
+                howMany = 5,
+                transactionType = TransactionType.CANCELED_BY_USER
+            )
+
+        val expectedGeneratedEvents =
+            baseDocuments
+                .map { baseTransactionToExpiryEvent(it) }
+                .toList()
+                .sortedBy { it.transactionId }
+        val sendMessageResult = SendMessageResult()
+        sendMessageResult.messageId = "msgId"
+        sendMessageResult.timeNextVisible = OffsetDateTime.now()
+        val queueAsyncClientResponse: Mono<Response<SendMessageResult>> =
+            Mono.just(ResponseBase(null, 200, null, sendMessageResult, null))
+        given(
+                queueAsyncClient.sendMessageWithResponse(
+                    queueArgumentCaptor.capture(),
+                    eventsVisibilityTimeoutCaptor.capture(),
+                    any()
+                )
+            )
+            .willReturn(queueAsyncClientResponse)
+        given(eventStoreRepository.save(eventStoreCaptor.capture())).willAnswer {
+            Mono.just(it.arguments[0])
+        }
+        given(viewRepository.findByTransactionId(org.mockito.kotlin.any())).willAnswer {
+            val transaction =
+                TransactionTestUtils.transactionDocument(
+                    TransactionStatusDto.ACTIVATED,
+                    ZonedDateTime.now()
+                )
+            transaction.transactionId = it.arguments[0].toString()
+            mono { transaction }
+        }
+        given(viewRepository.save(viewArgumentCaptor.capture())).willAnswer {
+            Mono.just(it.arguments[0])
+        }
+
+        val batchExecutionTimeWindow = TimeUnit.HOURS.toMillis(1)
+        // test
+        StepVerifier.create(
+                TransactionExpiredEventPublisher(
+                        logger = Logger.getGlobal(),
+                        expiredEventQueueAsyncClient = queueAsyncClient,
+                        viewRepository = viewRepository,
+                        eventStoreRepository = eventStoreRepository,
+                        1
+                    )
+                    .publishExpiryEvents(baseDocuments, batchExecutionTimeWindow)
+            )
+            .expectNext(true)
+            .verifyComplete()
+        // assertions
+
+        val viewCapturedArguments = viewArgumentCaptor.allValues
+        viewCapturedArguments.sortBy { it.transactionId }
+        val eventCapturedArguments = eventStoreCaptor.allValues
+        eventCapturedArguments.sortBy { it.transactionId }
+        val queueCapturedArguments = queueArgumentCaptor.allValues
+        queueCapturedArguments.sortBy {
+            val event = it.toObject(TransactionExpiredEvent::class.java)
+            event.transactionId
+        }
+        for ((idx, expectedGeneratedEvent) in expectedGeneratedEvents.withIndex()) {
+            /*
+             * verify that event stored into event store collection and sent on the queue are the expected ones.
+             * since some event fields such id and creation timestamp are created automatically in constructor
+             * equality is verified field by field here
+             */
+            equalityAssertionsOnEventStore(expectedGeneratedEvent, eventCapturedArguments[idx], idx)
+            equalityAssertionsOnView(
+                expectedGeneratedEvent,
+                viewCapturedArguments[idx],
+                idx,
+                TransactionStatusDto.CANCELLATION_EXPIRED
+            )
+            equalityAssertionsOnSentEvent(expectedGeneratedEvent, queueCapturedArguments[idx], idx)
+        }
+
+        val expectedEventsIntertime = batchExecutionTimeWindow / expectedGeneratedEvents.size
+        val eventsVisibilityTimeouts = eventsVisibilityTimeoutCaptor.allValues
+        var currentIdx = eventsVisibilityTimeoutCaptor.allValues.size - 1
+        eventsVisibilityTimeouts.sort()
+        var visibilityTimeoutIntertime: Long
+        while (currentIdx > 0) {
+            visibilityTimeoutIntertime =
+                eventsVisibilityTimeouts[currentIdx]
+                    .minus(eventsVisibilityTimeouts[currentIdx - 1])
+                    .toMillis()
+            assertEquals(
+                expectedEventsIntertime,
+                visibilityTimeoutIntertime,
+                "Testing event visibility timeout interleave. event[$currentIdx] - event[$currentIdx-1]"
+            )
+            currentIdx--
+        }
+        verify(queueAsyncClient, times(5)).sendMessageWithResponse(any<BinaryData>(), any(), any())
+        verify(eventStoreRepository, times(5)).save(any())
+        verify(viewRepository, times(5)).save(any())
+    }
+
+    @Test
+    fun `Should publish event for transactions with cancellation requested in CLOSURE_ERROR state updating status to CANCELLATION_EXPIRED`() {
+        // preconditions
+        val baseDocuments =
+            generateTransactionBaseDocuments(
+                howMany = 5,
+                transactionType = TransactionType.CANCELED_BY_USER_CLOSURE_ERROR
+            )
+
+        val expectedGeneratedEvents =
+            baseDocuments
+                .map { baseTransactionToExpiryEvent(it) }
+                .toList()
+                .sortedBy { it.transactionId }
+        val sendMessageResult = SendMessageResult()
+        sendMessageResult.messageId = "msgId"
+        sendMessageResult.timeNextVisible = OffsetDateTime.now()
+        val queueAsyncClientResponse: Mono<Response<SendMessageResult>> =
+            Mono.just(ResponseBase(null, 200, null, sendMessageResult, null))
+        given(
+                queueAsyncClient.sendMessageWithResponse(
+                    queueArgumentCaptor.capture(),
+                    eventsVisibilityTimeoutCaptor.capture(),
+                    any()
+                )
+            )
+            .willReturn(queueAsyncClientResponse)
+        given(eventStoreRepository.save(eventStoreCaptor.capture())).willAnswer {
+            Mono.just(it.arguments[0])
+        }
+        given(viewRepository.findByTransactionId(org.mockito.kotlin.any())).willAnswer {
+            val transaction =
+                TransactionTestUtils.transactionDocument(
+                    TransactionStatusDto.ACTIVATED,
+                    ZonedDateTime.now()
+                )
+            transaction.transactionId = it.arguments[0].toString()
+            mono { transaction }
+        }
+        given(viewRepository.save(viewArgumentCaptor.capture())).willAnswer {
+            Mono.just(it.arguments[0])
+        }
+
+        val batchExecutionTimeWindow = TimeUnit.HOURS.toMillis(1)
+        // test
+        StepVerifier.create(
+                TransactionExpiredEventPublisher(
+                        logger = Logger.getGlobal(),
+                        expiredEventQueueAsyncClient = queueAsyncClient,
+                        viewRepository = viewRepository,
+                        eventStoreRepository = eventStoreRepository,
+                        1
+                    )
+                    .publishExpiryEvents(baseDocuments, batchExecutionTimeWindow)
+            )
+            .expectNext(true)
+            .verifyComplete()
+        // assertions
+
+        val viewCapturedArguments = viewArgumentCaptor.allValues
+        viewCapturedArguments.sortBy { it.transactionId }
+        val eventCapturedArguments = eventStoreCaptor.allValues
+        eventCapturedArguments.sortBy { it.transactionId }
+        val queueCapturedArguments = queueArgumentCaptor.allValues
+        queueCapturedArguments.sortBy {
+            val event = it.toObject(TransactionExpiredEvent::class.java)
+            event.transactionId
+        }
+        for ((idx, expectedGeneratedEvent) in expectedGeneratedEvents.withIndex()) {
+            /*
+             * verify that event stored into event store collection and sent on the queue are the expected ones.
+             * since some event fields such id and creation timestamp are created automatically in constructor
+             * equality is verified field by field here
+             */
+            equalityAssertionsOnEventStore(expectedGeneratedEvent, eventCapturedArguments[idx], idx)
+            equalityAssertionsOnView(
+                expectedGeneratedEvent,
+                viewCapturedArguments[idx],
+                idx,
+                TransactionStatusDto.CANCELLATION_EXPIRED
+            )
+            equalityAssertionsOnSentEvent(expectedGeneratedEvent, queueCapturedArguments[idx], idx)
+        }
+
+        val expectedEventsIntertime = batchExecutionTimeWindow / expectedGeneratedEvents.size
+        val eventsVisibilityTimeouts = eventsVisibilityTimeoutCaptor.allValues
+        var currentIdx = eventsVisibilityTimeoutCaptor.allValues.size - 1
+        eventsVisibilityTimeouts.sort()
+        var visibilityTimeoutIntertime: Long
+        while (currentIdx > 0) {
+            visibilityTimeoutIntertime =
+                eventsVisibilityTimeouts[currentIdx]
+                    .minus(eventsVisibilityTimeouts[currentIdx - 1])
+                    .toMillis()
+            assertEquals(
+                expectedEventsIntertime,
+                visibilityTimeoutIntertime,
+                "Testing event visibility timeout interleave. event[$currentIdx] - event[$currentIdx-1]"
+            )
+            currentIdx--
+        }
+        verify(queueAsyncClient, times(5)).sendMessageWithResponse(any<BinaryData>(), any(), any())
+        verify(eventStoreRepository, times(5)).save(any())
+        verify(viewRepository, times(5)).save(any())
     }
 
     private fun baseTransactionToExpiryEvent(transaction: BaseTransaction) =
