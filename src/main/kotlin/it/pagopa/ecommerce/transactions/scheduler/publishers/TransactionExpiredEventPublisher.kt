@@ -8,7 +8,6 @@ import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsEventStoreRepository
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsViewRepository
 import java.util.logging.Logger
-import java.util.stream.Collectors
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
@@ -36,12 +35,8 @@ class TransactionExpiredEventPublisher(
     ): Mono<Boolean> {
         // split expired transaction in two lists: one for transactions without requested
         // authorization and one with requested authorization
-        val splittedTransactions: Map<Boolean, List<BaseTransaction>> =
-            baseTransactions
-                .stream()
-                .collect(Collectors.groupingBy { it is BaseTransactionWithRequestedAuthorization })
-        val baseTransactionsWithRequestedAuthorization = splittedTransactions[true] ?: emptyList()
-        val baseTransactionsActivatedOnly = splittedTransactions[false] ?: emptyList()
+        val (baseTransactionsWithRequestedAuthorization, baseTransactionsActivatedOnly) =
+            baseTransactions.partition { it is BaseTransactionWithRequestedAuthorization }
         val mergedTransactions =
             baseTransactionsWithRequestedAuthorization
                 .map { Pair(it, TransactionStatusDto.EXPIRED) }

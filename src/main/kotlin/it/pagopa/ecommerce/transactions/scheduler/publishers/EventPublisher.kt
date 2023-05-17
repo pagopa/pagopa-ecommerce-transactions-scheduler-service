@@ -69,7 +69,9 @@ abstract class EventPublisher<E>(
         return Flux.fromIterable(transactions)
             .parallel(parallelEventsToProcess)
             .runOn(Schedulers.parallel())
-            .flatMap { publishEvent(it.first, it.second, eventOffset.addAndGet(offsetIncrement)) }
+            .flatMap { (transaction, status) ->
+                publishEvent(transaction, status, eventOffset.addAndGet(offsetIncrement))
+            }
             .sequential()
             .collectList()
             .map { it.none { eventSent -> !eventSent } }
