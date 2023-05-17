@@ -58,11 +58,10 @@ abstract class EventPublisher<E>(
         newStatus: TransactionStatusDto
     ): Mono<E>
 
-    abstract fun toEvent(baseTrasaction: BaseTransaction): Mono<E>
+    abstract fun toEvent(baseTransaction: BaseTransaction): Mono<E>
 
     protected fun publishAllEvents(
-        transactions: List<BaseTransaction>,
-        newStatus: TransactionStatusDto,
+        transactions: List<Pair<BaseTransaction, TransactionStatusDto>>,
         batchExecutionWindowMillis: Long
     ): Mono<Boolean> {
         val eventOffset = AtomicLong(0L)
@@ -70,7 +69,9 @@ abstract class EventPublisher<E>(
         return Flux.fromIterable(transactions)
             .parallel(parallelEventsToProcess)
             .runOn(Schedulers.parallel())
-            .flatMap { publishEvent(it, newStatus, eventOffset.addAndGet(offsetIncrement)) }
+            .flatMap { (transaction, status) ->
+                publishEvent(transaction, status, eventOffset.addAndGet(offsetIncrement))
+            }
             .sequential()
             .collectList()
             .map { it.none { eventSent -> !eventSent } }

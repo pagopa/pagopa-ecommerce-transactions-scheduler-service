@@ -3,6 +3,7 @@ package it.pagopa.ecommerce.transactions.scheduler.publishers
 import com.azure.storage.queue.QueueAsyncClient
 import it.pagopa.ecommerce.commons.documents.v1.*
 import it.pagopa.ecommerce.commons.domain.v1.pojos.BaseTransaction
+import it.pagopa.ecommerce.commons.domain.v1.pojos.BaseTransactionWithRequestedAuthorization
 import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsEventStoreRepository
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsViewRepository
@@ -14,7 +15,7 @@ import reactor.core.publisher.Mono
 
 @Component
 class TransactionExpiredEventPublisher(
-    logger: Logger = Logger.getGlobal(),
+    private val logger: Logger = Logger.getGlobal(),
     @Autowired private val expiredEventQueueAsyncClient: QueueAsyncClient,
     @Autowired private val viewRepository: TransactionsViewRepository,
     @Autowired
@@ -31,7 +32,24 @@ class TransactionExpiredEventPublisher(
     fun publishExpiryEvents(
         baseTransactions: List<BaseTransaction>,
         batchExecutionTimeWindow: Long
-    ) = publishAllEvents(baseTransactions, TransactionStatusDto.EXPIRED, batchExecutionTimeWindow)
+    ): Mono<Boolean> {
+        // split expired transaction in two lists: one for transactions without requested
+        // authorization and one with requested authorization
+        val (baseTransactionsWithRequestedAuthorization, baseTransactionsActivatedOnly) =
+            baseTransactions.partition { it is BaseTransactionWithRequestedAuthorization }
+        val mergedTransactions =
+            baseTransactionsWithRequestedAuthorization
+                .map { Pair(it, TransactionStatusDto.EXPIRED) }
+                .plus(
+                    baseTransactionsActivatedOnly.map {
+                        Pair(it, TransactionStatusDto.EXPIRED_NOT_AUTHORIZED)
+                    }
+                )
+        logger.info(
+            "Total expired transactions: [${mergedTransactions.size}], of which [${baseTransactionsWithRequestedAuthorization.size}] with requested authorization and [${baseTransactionsActivatedOnly.size}] activated only"
+        )
+        return publishAllEvents(mergedTransactions, batchExecutionTimeWindow)
+    }
 
     override fun storeEventAndUpdateView(
         transaction: BaseTransaction,
@@ -43,7 +61,7 @@ class TransactionExpiredEventPublisher(
                 viewRepository
                     .findByTransactionId(transaction.transactionId.value())
                     .flatMap {
-                        it.status = TransactionStatusDto.EXPIRED
+                        it.status = newStatus
                         viewRepository.save(it)
                     }
                     .flatMap { Mono.just(event) }
