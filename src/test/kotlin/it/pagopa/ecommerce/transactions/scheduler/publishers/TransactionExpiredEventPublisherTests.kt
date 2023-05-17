@@ -12,7 +12,6 @@ import it.pagopa.ecommerce.commons.documents.v1.TransactionExpiredData
 import it.pagopa.ecommerce.commons.documents.v1.TransactionExpiredEvent
 import it.pagopa.ecommerce.commons.domain.v1.*
 import it.pagopa.ecommerce.commons.domain.v1.pojos.BaseTransaction
-import it.pagopa.ecommerce.commons.domain.v1.pojos.BaseTransactionWithRequestedAuthorization
 import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
 import it.pagopa.ecommerce.commons.v1.TransactionTestUtils
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsEventStoreRepository
@@ -23,7 +22,6 @@ import java.time.ZonedDateTime
 import java.util.*
 import java.util.concurrent.TimeUnit
 import java.util.logging.Logger
-import java.util.stream.Collectors
 import kotlinx.coroutines.reactor.mono
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -833,7 +831,7 @@ class TransactionExpiredEventPublisherTests {
     }
 
     @Test
-    fun `Should publish event for both transactions with authorization requested and transactions only activated`() {
+    fun `Should publish event for all type of transactions`() {
         // preconditions
         val transactionOnlyActivatedDocuments =
             generateTransactionBaseDocuments(
@@ -845,21 +843,43 @@ class TransactionExpiredEventPublisherTests {
                 howMany = 5,
                 transactionType = TransactionType.AUTH_REQUESTED
             )
+        val transactionCanceledByUser =
+            generateTransactionBaseDocuments(
+                howMany = 5,
+                transactionType = TransactionType.CANCELED_BY_USER
+            )
+        val transactionCanceledByUserWithClosureError =
+            generateTransactionBaseDocuments(
+                howMany = 5,
+                transactionType = TransactionType.CANCELED_BY_USER_CLOSURE_ERROR
+            )
         val baseDocuments =
-            transactionOnlyActivatedDocuments.plus(transactionWithRequestedAuthorizationDocuments)
+            transactionOnlyActivatedDocuments
+                .plus(transactionWithRequestedAuthorizationDocuments)
+                .plus(transactionCanceledByUser)
+                .plus(transactionCanceledByUserWithClosureError)
         val expectedTransactionStatusMap =
-            baseDocuments
-                .stream()
-                .collect(
-                    Collectors.toMap(
+            transactionOnlyActivatedDocuments
+                .groupBy(
+                    { it.transactionId.value() },
+                    { TransactionStatusDto.EXPIRED_NOT_AUTHORIZED }
+                )
+                .plus(
+                    transactionWithRequestedAuthorizationDocuments.groupBy(
                         { it.transactionId.value() },
-                        {
-                            if (it is BaseTransactionWithRequestedAuthorization) {
-                                TransactionStatusDto.EXPIRED
-                            } else {
-                                TransactionStatusDto.EXPIRED_NOT_AUTHORIZED
-                            }
-                        }
+                        { TransactionStatusDto.EXPIRED }
+                    )
+                )
+                .plus(
+                    transactionCanceledByUser.groupBy(
+                        { it.transactionId.value() },
+                        { TransactionStatusDto.CANCELLATION_EXPIRED }
+                    )
+                )
+                .plus(
+                    transactionCanceledByUserWithClosureError.groupBy(
+                        { it.transactionId.value() },
+                        { TransactionStatusDto.CANCELLATION_EXPIRED }
                     )
                 )
         val expectedGeneratedEvents =
@@ -932,7 +952,7 @@ class TransactionExpiredEventPublisherTests {
                 expectedGeneratedEvent,
                 viewCapturedArguments[idx],
                 idx,
-                expectedTransactionStatusMap[expectedGeneratedEvent.transactionId]!!
+                expectedTransactionStatusMap[expectedGeneratedEvent.transactionId]!![0]
             )
             equalityAssertionsOnSentEvent(expectedGeneratedEvent, queueCapturedArguments[idx], idx)
         }
@@ -954,9 +974,9 @@ class TransactionExpiredEventPublisherTests {
             )
             currentIdx--
         }
-        verify(queueAsyncClient, times(10)).sendMessageWithResponse(any<BinaryData>(), any(), any())
-        verify(eventStoreRepository, times(10)).save(any())
-        verify(viewRepository, times(10)).save(any())
+        verify(queueAsyncClient, times(20)).sendMessageWithResponse(any<BinaryData>(), any(), any())
+        verify(eventStoreRepository, times(20)).save(any())
+        verify(viewRepository, times(20)).save(any())
     }
 
     @Test
