@@ -69,12 +69,12 @@ class PendingTransactionAnalyzer(
                 analyzeTransaction(it.transactionId)
             }
             .collectList()
-            .flatMap {
-                if (it.isEmpty()) {
+            .flatMap { expiredTransactions ->
+                if (expiredTransactions.isEmpty()) {
                     Mono.just(true)
                 } else {
                     expiredTransactionEventPublisher.publishExpiryEvents(
-                        it,
+                        expiredTransactions,
                         batchExecutionIntertime
                     )
                 }
