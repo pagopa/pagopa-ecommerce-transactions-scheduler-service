@@ -38,7 +38,13 @@ class TransactionExpiredEventPublisher(
         // split expired transaction in two lists: one for transactions without requested
         // authorization and one with requested authorization
         val (baseTransactionsWithRequestedAuthorization, baseTransactionsNotActivated) =
-            baseTransactions.partition { it is BaseTransactionWithRequestedAuthorization }
+            baseTransactions.partition {
+                it is BaseTransactionWithRequestedAuthorization ||
+                    it is TransactionWithClosureError &&
+                        it.transactionAtPreviousState()
+                            .map { txAtPrevStep -> txAtPrevStep.isRight }
+                            .orElse(false)
+            }
         // taking transaction for which no authorization was performed another split is done between
         // transactions with canceled by user and not
         val (baseTransactionUserCanceled, baseTransactionActivatedOnly) =
