@@ -50,7 +50,7 @@ class TransactionExpiredEventPublisher(
                     // transaction at previous step type
                     (it is TransactionWithClosureError &&
                         it.transactionAtPreviousState()
-                            .map { txAtPreviousStep -> txAtPreviousStep.fold({ true }, { false }) }
+                            .map { txAtPreviousStep -> txAtPreviousStep.isLeft }
                             .orElse(false))
             }
         val mergedTransactions =
