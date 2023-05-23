@@ -1,0 +1,134 @@
+microservice-chart:
+  namespace: "ecommerce"
+  nameOverride: ""
+  fullnameOverride: "pagopaecommercetxschedulerservice-microservice-chart"
+  canaryDelivery:
+    create: false
+    ingress:
+      create: true
+      canary:
+        type: bluegreen
+    service:
+      create: true
+    deployment:
+      create: true
+      image:
+        repository: pagopapcommonacr.azurecr.io/pagopaecommercetransactionsschedulerservice
+        tag: "latest"
+        pullPolicy: Always
+    envConfig:
+      MONGO_HOST: pagopa-p-weu-ecommerce-cosmos-account.mongo.cosmos.azure.com
+      MONGO_USERNAME: pagopa-p-weu-ecommerce-cosmos-account
+      MONGO_PORT: "10255"
+      MONGO_SSL_ENABLED: "true"
+      ECOMMERCE_DATABASE_NAME: "ecommerce"
+      TRANSACTION_EXPIRED_EVENTS_QUEUE_NAME: "pagopa-p-weu-ecommerce-transactions-expiration-queue"
+      PENDING_TRANSACTIONS_SCHEDULE_CRON: "0 0 */1 * * *"
+      PENDING_TRANSACTIONS_WINDOWS_BATCH_EXECUTION_RATE_MULTIPLIER: "2"
+      PENDING_TRANSACTIONS_PARALLEL_EVENTS_TO_PROCESS: "1"
+      ELASTIC_APM_SERVICE_NAME: pagopa-ecommerce-transactions-scheduler-service-blue
+      ELASTIC_APM_APPLICATION_PACKAGES: it.pagopa.ecommerce.transactions.scheduler
+      ELASTIC_APM_SERVER_URL: http://quickstart-apm-http.elastic-system.svc:8200
+      ELASTIC_APM_LOG_SENDING: "true"
+    envSecret:
+      MONGO_PASSWORD: mongo-ecommerce-password
+      QUEUE_CONNECTION_STRING: ecommerce-storage-connection-string
+      ELASTIC_APM_SECRET_TOKEN: elastic-apm-secret-token
+  image:
+    repository: pagopapcommonacr.azurecr.io/pagopaecommercetransactionsschedulerservice
+    tag: "0.1.10"
+    pullPolicy: Always
+  livenessProbe:
+    httpGet:
+      path: /actuator/health/liveness
+      port: 8080
+    initialDelaySeconds: 60
+    failureThreshold: 6
+    periodSeconds: 10
+  readinessProbe:
+    httpGet:
+      path: /actuator/health/readiness
+      port: 8080
+    initialDelaySeconds: 60
+    failureThreshold: 6
+    periodSeconds: 10
+  deployment:
+    create: true
+  service:
+    create: true
+    type: ClusterIP
+    ports:
+      - 8080
+  ingress:
+    create: true
+    host: "weuprod.ecommerce.internal.platform.pagopa.it"
+    path: /pagopa-ecommerce-transactions-scheduler-service/(.*)
+    servicePort: 8080
+  serviceAccount:
+    create: false
+    annotations: {}
+    name: ""
+  podAnnotations: {}
+  podSecurityContext:
+    seccompProfile:
+      type: RuntimeDefault
+  securityContext:
+    allowPrivilegeEscalation: false
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "300m"
+    limits:
+      memory: "512Mi"
+      cpu: "300m"
+  autoscaling:
+    enabled: false
+    minReplica: 1
+    maxReplica: 2
+    pollingInterval: 30 # seconds
+    cooldownPeriod: 300 # seconds
+    triggers:
+      - type: azure-monitor
+        metadata:
+          tenantId: 7788edaf-0346-4068-9d79-c868aed15b3d
+          subscriptionId: bbe47ad4-08b3-4925-94c5-1278e5819b86
+          resourceGroupName: pagopa-p-ecommerce-sec-rg
+          resourceURI: Microsoft.KeyVault/vaults/pagopa-p-ecommerce-kv
+          metricName: ServiceApiHit
+          # metricNamespace: Microsoft.KeyVault/vaults
+          # metricFilter: namespace eq 'default'
+          # metricAggregationInterval: "-1:1:0"
+          metricAggregationType: Count
+          targetValue: "30"
+  envConfig:
+    MONGO_HOST: pagopa-p-weu-ecommerce-cosmos-account.mongo.cosmos.azure.com
+    MONGO_USERNAME: pagopa-p-weu-ecommerce-cosmos-account
+    MONGO_PORT: "10255"
+    MONGO_SSL_ENABLED: "true"
+    ECOMMERCE_DATABASE_NAME: "ecommerce"
+    TRANSACTION_EXPIRED_EVENTS_QUEUE_NAME: "pagopa-p-weu-ecommerce-transactions-expiration-queue"
+    PENDING_TRANSACTIONS_SCHEDULE_CRON: "0 0 */1 * * *"
+    PENDING_TRANSACTIONS_WINDOWS_BATCH_EXECUTION_RATE_MULTIPLIER: "2"
+    PENDING_TRANSACTIONS_PARALLEL_EVENTS_TO_PROCESS: "1"
+    ELASTIC_APM_SERVICE_NAME: pagopa-ecommerce-transactions-scheduler-service
+    ELASTIC_APM_APPLICATION_PACKAGES: it.pagopa.ecommerce.transactions.scheduler
+    ELASTIC_APM_SERVER_URL: http://quickstart-apm-http.elastic-system.svc:8200
+    ELASTIC_APM_LOG_SENDING: "true"
+  envSecret:
+    MONGO_PASSWORD: mongo-ecommerce-password
+    QUEUE_CONNECTION_STRING: ecommerce-storage-connection-string
+    ELASTIC_APM_SECRET_TOKEN: elastic-apm-secret-token
+  keyvault:
+    name: "pagopa-p-ecommerce-kv"
+    tenantId: "7788edaf-0346-4068-9d79-c868aed15b3d"
+  nodeSelector: {}
+  tolerations: []
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: node_type
+                operator: In
+                values:
+                  - user
