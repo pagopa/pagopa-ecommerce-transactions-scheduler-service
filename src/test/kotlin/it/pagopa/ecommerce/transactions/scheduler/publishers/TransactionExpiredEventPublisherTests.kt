@@ -1340,7 +1340,8 @@ class TransactionExpiredEventPublisherTests {
                     transactionActivated.transactionActivatedData.faultCodeString,
                     transactionActivated.creationDate,
                     transactionActivated.clientId,
-                    "idCart"
+                    transactionActivated.transactionActivatedData.idCart,
+                    transactionActivated.transactionActivatedData.paymentTokenValiditySeconds
                 )
             baseDocuments.add(
                 when (transactionType) {
