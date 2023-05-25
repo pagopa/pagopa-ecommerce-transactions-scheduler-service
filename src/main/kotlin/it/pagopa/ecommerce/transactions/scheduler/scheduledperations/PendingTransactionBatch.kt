@@ -1,6 +1,7 @@
 package it.pagopa.ecommerce.transactions.scheduler.scheduledperations
 
 import it.pagopa.ecommerce.transactions.scheduler.transactionanalyzer.PendingTransactionAnalyzer
+import java.time.Duration
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import org.slf4j.Logger
@@ -17,7 +18,8 @@ class PendingTransactionBatch(
     @Value("\${pendingTransactions.batch.scheduledChron}") val chronExpression: String,
     @Value("\${pendingTransactions.batch.transactionsAnalyzer.executionRateMultiplier}")
     val executionRateMultiplier: Int,
-    val logger: Logger = LoggerFactory.getLogger(PendingTransactionBatch::class.java)
+    val logger: Logger = LoggerFactory.getLogger(PendingTransactionBatch::class.java),
+    @Value("\${pendingTransactions.batch.maxDurationSeconds}") val batchMaxDurationSeconds: Int
 ) {
 
     @Scheduled(cron = "\${pendingTransactions.batch.scheduledChron}")
@@ -27,9 +29,13 @@ class PendingTransactionBatch(
 
         val (lowerThreshold, upperThreshold) =
             getTransactionAnalyzerTimeWindow(executionInterleaveMillis, executionRateMultiplier)
+
+        val maxBatchExecutionTime =
+            getMaxDuration(executionInterleaveMillis, batchMaxDurationSeconds)
         logger.info(
-            "Executions chron expression: [$chronExpression], executions interleave time: [$executionInterleaveMillis] ms. Transaction analysis offset: $lowerThreshold - $upperThreshold"
+            "Executions chron expression: [$chronExpression], executions interleave time: [$executionInterleaveMillis] ms. Transaction analysis offset: [$lowerThreshold - $upperThreshold]. Max execution duration: $maxBatchExecutionTime"
         )
+
         var isOk = false
         runCatching {
                 pendingTransactionAnalyzer
@@ -39,7 +45,7 @@ class PendingTransactionBatch(
                         executionInterleaveMillis
                     )
                     .elapsed()
-                    .block()!!
+                    .block(maxBatchExecutionTime)!!
             }
             .onSuccess {
                 logger.info(
@@ -49,9 +55,19 @@ class PendingTransactionBatch(
             }
             .onFailure {
                 logger.error("Error executing batch", it)
-                throw it
+                // throw it
             }
         return isOk
+    }
+
+    fun getMaxDuration(executionInterleaveMillis: Long, batchMaxDurationSeconds: Int): Duration {
+        val maxDuration =
+            if (batchMaxDurationSeconds > 0) {
+                Duration.ofSeconds(batchMaxDurationSeconds.toLong())
+            } else {
+                Duration.ofMillis(executionInterleaveMillis).dividedBy(2)
+            }
+        return maxDuration
     }
 
     fun getExecutionsInterleaveTimeMillis(chronExpression: String): Long {
