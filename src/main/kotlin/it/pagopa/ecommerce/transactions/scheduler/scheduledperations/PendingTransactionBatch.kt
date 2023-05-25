@@ -53,10 +53,7 @@ class PendingTransactionBatch(
                 )
                 isOk = true
             }
-            .onFailure {
-                logger.error("Error executing batch", it)
-                // throw it
-            }
+            .onFailure { logger.error("Error executing batch", it) }
         return isOk
     }
 
