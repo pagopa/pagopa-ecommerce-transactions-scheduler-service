@@ -136,6 +136,6 @@ class PendingTransactionBatchTests {
                 }
                 .toJavaDuration()
         assertTrue(duration < pendingTransactionBatchTaskDuration)
-        assertTrue(duration.seconds.toInt() == pendingTransactionBatch.batchMaxDurationSeconds)
+        assertEquals(pendingTransactionBatch.batchMaxDurationSeconds, duration.seconds.toInt())
     }
 }
