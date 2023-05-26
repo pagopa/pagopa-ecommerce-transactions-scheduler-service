@@ -522,7 +522,7 @@ class PendingTransactionAnalyzerTests {
             .willAnswer { transactionStatusesForSendExpiryEventOriginal.contains(it.arguments[0]) }
         given(viewRepository.findTransactionInTimeRangeWithExcludedStatuses(any(), any(), any()))
             .willReturn(Flux.just(*transactions.toTypedArray()))
-        given(eventStoreRepository.findByTransactionId(any()))
+        given(eventStoreRepository.findByTransactionIdOrderByCreationDateAsc(any()))
             .willReturn(Flux.just(*events.toTypedArray()))
         given(transactionExpiredEventPublisher.publishExpiryEvents(any(), any()))
             .willReturn(Mono.just(true))
@@ -570,7 +570,7 @@ class PendingTransactionAnalyzerTests {
             .willAnswer { transactionStatusesForSendExpiryEventOriginal.contains(it.arguments[0]) }
         given(viewRepository.findTransactionInTimeRangeWithExcludedStatuses(any(), any(), any()))
             .willReturn(Flux.just(*transactions.toTypedArray()))
-        given(eventStoreRepository.findByTransactionId(any()))
+        given(eventStoreRepository.findByTransactionIdOrderByCreationDateAsc(any()))
             .willReturn(Flux.just(*events.toTypedArray()))
         // test
         StepVerifier.create(
