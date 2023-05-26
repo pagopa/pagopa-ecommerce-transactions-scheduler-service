@@ -23,7 +23,7 @@ class PendingTransactionBatch(
 ) {
 
     @Scheduled(cron = "\${pendingTransactions.batch.scheduledChron}")
-    fun execute(): Boolean {
+    fun execute() {
 
         val executionInterleaveMillis = getExecutionsInterleaveTimeMillis(chronExpression)
 
@@ -35,26 +35,18 @@ class PendingTransactionBatch(
         logger.info(
             "Executions chron expression: [$chronExpression], executions interleave time: [$executionInterleaveMillis] ms. Transaction analysis offset: [$lowerThreshold - $upperThreshold]. Max execution duration: $maxBatchExecutionTime"
         )
-
-        var isOk = false
-        runCatching {
-                pendingTransactionAnalyzer
-                    .searchPendingTransactions(
-                        lowerThreshold,
-                        upperThreshold,
-                        executionInterleaveMillis
+        pendingTransactionAnalyzer
+            .searchPendingTransactions(lowerThreshold, upperThreshold, executionInterleaveMillis)
+            .elapsed()
+            .timeout(maxBatchExecutionTime)
+            .subscribe(
+                {
+                    logger.info(
+                        "Batch pending transaction analysis end. Is process ok: [${it.t2}] Elapsed time: [${it.t1}] ms "
                     )
-                    .elapsed()
-                    .block(maxBatchExecutionTime)!!
-            }
-            .onSuccess {
-                logger.info(
-                    "Batch pending transaction analysis end. Is process ok: [${it.t2}] Elapsed time: [${it.t1}] ms "
-                )
-                isOk = true
-            }
-            .onFailure { logger.error("Error executing batch", it) }
-        return isOk
+                },
+                { logger.error("Error executing batch", it) }
+            )
     }
 
     fun getMaxDuration(executionInterleaveMillis: Long, batchMaxDurationSeconds: Int): Duration {
@@ -62,6 +54,12 @@ class PendingTransactionBatch(
             if (batchMaxDurationSeconds > 0) {
                 Duration.ofSeconds(batchMaxDurationSeconds.toLong())
             } else {
+                /*
+                 * Batch max duration set to batch execution interleave divided by 2.
+                 * The only constraint here is that the batch max execution time is lesser than
+                 * the batch execution interleave in order to avoid one execution to be skipped
+                 * because of the previous batch execution still running
+                 */
                 Duration.ofMillis(executionInterleaveMillis).dividedBy(2)
             }
         return maxDuration
