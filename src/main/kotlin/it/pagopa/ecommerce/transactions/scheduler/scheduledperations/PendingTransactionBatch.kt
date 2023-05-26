@@ -11,6 +11,8 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.scheduling.support.CronExpression
 import org.springframework.stereotype.Component
+import reactor.core.publisher.Mono
+import reactor.util.function.Tuple2
 
 @Component
 class PendingTransactionBatch(
@@ -24,7 +26,18 @@ class PendingTransactionBatch(
 
     @Scheduled(cron = "\${pendingTransactions.batch.scheduledChron}")
     fun execute() {
+        pendingTransactionAnalyzerPipeline()
+            .subscribe(
+                {
+                    logger.info(
+                        "Batch pending transaction analysis end. Is process ok: [${it.t2}] Elapsed time: [${it.t1}] ms "
+                    )
+                },
+                { logger.error("Error executing batch", it) }
+            )
+    }
 
+    fun pendingTransactionAnalyzerPipeline(): Mono<Tuple2<Long, Boolean>> {
         val executionInterleaveMillis = getExecutionsInterleaveTimeMillis(chronExpression)
 
         val (lowerThreshold, upperThreshold) =
@@ -35,18 +48,10 @@ class PendingTransactionBatch(
         logger.info(
             "Executions chron expression: [$chronExpression], executions interleave time: [$executionInterleaveMillis] ms. Transaction analysis offset: [$lowerThreshold - $upperThreshold]. Max execution duration: $maxBatchExecutionTime"
         )
-        pendingTransactionAnalyzer
+        return pendingTransactionAnalyzer
             .searchPendingTransactions(lowerThreshold, upperThreshold, executionInterleaveMillis)
             .elapsed()
             .timeout(maxBatchExecutionTime)
-            .subscribe(
-                {
-                    logger.info(
-                        "Batch pending transaction analysis end. Is process ok: [${it.t2}] Elapsed time: [${it.t1}] ms "
-                    )
-                },
-                { logger.error("Error executing batch", it) }
-            )
     }
 
     fun getMaxDuration(executionInterleaveMillis: Long, batchMaxDurationSeconds: Int): Duration {
