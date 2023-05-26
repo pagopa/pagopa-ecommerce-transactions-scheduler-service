@@ -1,6 +1,7 @@
 package it.pagopa.ecommerce.transactions.scheduler.scheduledperations
 
 import it.pagopa.ecommerce.transactions.scheduler.transactionanalyzer.PendingTransactionAnalyzer
+import java.time.Duration
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import org.slf4j.Logger
@@ -10,6 +11,8 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.scheduling.support.CronExpression
 import org.springframework.stereotype.Component
+import reactor.core.publisher.Mono
+import reactor.util.function.Tuple2
 
 @Component
 class PendingTransactionBatch(
@@ -17,41 +20,54 @@ class PendingTransactionBatch(
     @Value("\${pendingTransactions.batch.scheduledChron}") val chronExpression: String,
     @Value("\${pendingTransactions.batch.transactionsAnalyzer.executionRateMultiplier}")
     val executionRateMultiplier: Int,
-    val logger: Logger = LoggerFactory.getLogger(PendingTransactionBatch::class.java)
+    val logger: Logger = LoggerFactory.getLogger(PendingTransactionBatch::class.java),
+    @Value("\${pendingTransactions.batch.maxDurationSeconds}") val batchMaxDurationSeconds: Int
 ) {
 
     @Scheduled(cron = "\${pendingTransactions.batch.scheduledChron}")
-    fun execute(): Boolean {
+    fun execute() {
+        pendingTransactionAnalyzerPipeline()
+            .subscribe(
+                {
+                    logger.info(
+                        "Batch pending transaction analysis end. Is process ok: [${it.t2}] Elapsed time: [${it.t1}] ms "
+                    )
+                },
+                { logger.error("Error executing batch", it) }
+            )
+    }
 
+    fun pendingTransactionAnalyzerPipeline(): Mono<Tuple2<Long, Boolean>> {
         val executionInterleaveMillis = getExecutionsInterleaveTimeMillis(chronExpression)
 
         val (lowerThreshold, upperThreshold) =
             getTransactionAnalyzerTimeWindow(executionInterleaveMillis, executionRateMultiplier)
+
+        val maxBatchExecutionTime =
+            getMaxDuration(executionInterleaveMillis, batchMaxDurationSeconds)
         logger.info(
-            "Executions chron expression: [$chronExpression], executions interleave time: [$executionInterleaveMillis] ms. Transaction analysis offset: $lowerThreshold - $upperThreshold"
+            "Executions chron expression: [$chronExpression], executions interleave time: [$executionInterleaveMillis] ms. Transaction analysis offset: [$lowerThreshold - $upperThreshold]. Max execution duration: $maxBatchExecutionTime"
         )
-        var isOk = false
-        runCatching {
-                pendingTransactionAnalyzer
-                    .searchPendingTransactions(
-                        lowerThreshold,
-                        upperThreshold,
-                        executionInterleaveMillis
-                    )
-                    .elapsed()
-                    .block()!!
+        return pendingTransactionAnalyzer
+            .searchPendingTransactions(lowerThreshold, upperThreshold, executionInterleaveMillis)
+            .elapsed()
+            .timeout(maxBatchExecutionTime)
+    }
+
+    fun getMaxDuration(executionInterleaveMillis: Long, batchMaxDurationSeconds: Int): Duration {
+        val maxDuration =
+            if (batchMaxDurationSeconds > 0) {
+                Duration.ofSeconds(batchMaxDurationSeconds.toLong())
+            } else {
+                /*
+                 * Batch max duration set to batch execution interleave divided by 2.
+                 * The only constraint here is that the batch max execution time is less than
+                 * the batch execution interleave in order to avoid one execution to be skipped
+                 * because of the previous batch execution still running
+                 */
+                Duration.ofMillis(executionInterleaveMillis).dividedBy(2)
             }
-            .onSuccess {
-                logger.info(
-                    "Batch pending transaction analysis end. Is process ok: [${it.t2}] Elapsed time: [${it.t1}] ms "
-                )
-                isOk = true
-            }
-            .onFailure {
-                logger.error("Error executing batch", it)
-                throw it
-            }
-        return isOk
+        return maxDuration
     }
 
     fun getExecutionsInterleaveTimeMillis(chronExpression: String): Long {

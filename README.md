@@ -48,6 +48,8 @@ timeout inter-time of 12 minutes, so:
 
 This mechanism prevents the module that read those events to be flooded in case of too many events to send.
 
+### Transactions to analyze time window
+
 Once started the batch analyze all transactions in a given time windows calculated from the batch execution rate and the
 value of the `PENDING_TRANSACTIONS_WINDOWS_BATCH_EXECUTION_RATE_MULTIPLIER` parameter.
 
@@ -68,15 +70,32 @@ the previous time slot.
 
 ---
 
+## Configuration
+
+### Environment variables
+
+These are all environment variables needed by the application:
+
+| Variable name                                                | Description                                                                                                                                                                                                                                                                  | type    | default |
+|--------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|---------|
+| MONGO_HOST                                                   | Mongo hostname                                                                                                                                                                                                                                                               | string  |         |
+| MONGO_USERNAME                                               | Mongo username                                                                                                                                                                                                                                                               | string  |         |
+| MONGO_PORT                                                   | Mongo port                                                                                                                                                                                                                                                                   | int     |         |
+| MONGO_SSL_ENABLED                                            | Mongo SSL enabled                                                                                                                                                                                                                                                            | boolean |         |
+| ECOMMERCE_DATABASE_NAME                                      | Mongo ecommerce database name                                                                                                                                                                                                                                                | string  |         |
+| TRANSACTION_EXPIRED_EVENTS_QUEUE_NAME                        | Transaction expired event queue name. This is the queue where transaction expired events will be sent                                                                                                                                                                        | string  |         |
+| PENDING_TRANSACTIONS_SCHEDULE_CRON                           | Pending transactions batch execution chron expression                                                                                                                                                                                                                        | string  |         |
+| PENDING_TRANSACTIONS_WINDOWS_BATCH_EXECUTION_RATE_MULTIPLIER | Pending transactions execution rate multiplier (used for calculate transactions window, see [Transactions to analyze time window](#Transactions-to-analyze-time-window)                                                                                                      | int     |         |
+| PENDING_TRANSACTIONS_PARALLEL_EVENTS_TO_PROCESS              | Pending transactions parallel events to be processed                                                                                                                                                                                                                         | int     |         |
+| PENDING_TRANSACTIONS_MAX_DURATION_SECONDS                    | Single batch max duration in seconds. Indicate the max time to wait for a single batch iteration to be completed. If negative the execution-rate-inter-time/2 will be used (Ex: if batch is configured to be executed every 10 minutes max duration will be set to 5 minutes | int     | -1      |
+
+---
+
 ## Run locally with Docker
 
 `docker build -t pagopa-ecommerce-transactions-scheduler-service .`
 
-`docker run -p 8999:80 pagopa-ecommerce-transactions-scheduler-service`
-
-### Test
-
-`curl http://localhost:8999/example`
+`docker run -p 8999:8080 pagopa-ecommerce-transactions-scheduler-service`
 
 ## Run locally with Maven
 
@@ -84,7 +103,7 @@ the previous time slot.
 
 `mvn clean spring-boot:run` build and run service with spring locally
 
-For testing purpose the commons reference can be change from a specific release to a branch by changing the following
+For testing purpose the commons reference can be changed from a specific release to a branch by changing the following
 configurations tags inside `pom.xml`:
 
 FROM:
