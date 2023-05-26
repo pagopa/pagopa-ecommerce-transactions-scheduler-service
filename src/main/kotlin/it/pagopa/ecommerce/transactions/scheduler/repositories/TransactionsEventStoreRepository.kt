@@ -8,5 +8,5 @@ import reactor.core.publisher.Flux
 @Repository
 interface TransactionsEventStoreRepository<T> :
     ReactiveCrudRepository<TransactionEvent<T>, String> {
-    fun findByTransactionId(idTransaction: String): Flux<TransactionEvent<T>>
+    fun findByTransactionIdOrderByCreationDateAsc(idTransaction: String): Flux<TransactionEvent<T>>
 }

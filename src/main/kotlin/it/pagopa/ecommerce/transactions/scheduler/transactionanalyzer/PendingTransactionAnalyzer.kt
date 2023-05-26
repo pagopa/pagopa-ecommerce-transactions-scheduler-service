@@ -83,7 +83,7 @@ class PendingTransactionAnalyzer(
 
     private fun analyzeTransaction(transactionId: String): Mono<BaseTransaction> {
         return eventStoreRepository
-            .findByTransactionId(transactionId)
+            .findByTransactionIdOrderByCreationDateAsc(transactionId)
             .reduce(
                 EmptyTransaction(),
                 it.pagopa.ecommerce.commons.domain.v1.Transaction::applyEvent
