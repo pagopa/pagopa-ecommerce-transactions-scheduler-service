@@ -7,14 +7,18 @@ import it.pagopa.ecommerce.transactions.scheduler.publishers.TransactionExpiredE
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsEventStoreRepository
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsViewRepository
 import java.time.LocalDateTime
-import java.util.logging.Logger
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Pageable
+import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 
 @Service
 class PendingTransactionAnalyzer(
-    private val logger: Logger = Logger.getGlobal(),
+    private val logger: Logger = LoggerFactory.getLogger(PendingTransactionAnalyzer::class.java),
     @Autowired private val expiredTransactionEventPublisher: TransactionExpiredEventPublisher,
     @Autowired private val viewRepository: TransactionsViewRepository,
     @Autowired private val eventStoreRepository: TransactionsEventStoreRepository<Any>,
@@ -56,13 +60,18 @@ class PendingTransactionAnalyzer(
     fun searchPendingTransactions(
         lowerThreshold: LocalDateTime,
         upperThreshold: LocalDateTime,
-        batchExecutionIntertime: Long
+        batchExecutionIntertime: Long,
+        page: Pageable
     ): Mono<Boolean> {
+        val pageRequest =
+            PageRequest.of(page.pageNumber, page.pageSize, Sort.by("creationDate").ascending())
+        logger.info("Searching for transaction with page request: {}", pageRequest)
         return viewRepository
-            .findTransactionInTimeRangeWithExcludedStatuses(
+            .findTransactionInTimeRangeWithExcludedStatusesPaginated(
                 lowerThreshold.toString(),
                 upperThreshold.toString(),
-                transactionStatusesToExcludeFromView
+                transactionStatusesToExcludeFromView,
+                PageRequest.of(page.pageNumber, page.pageSize, Sort.by("creationDate").ascending()),
             )
             .flatMap {
                 logger.info("Analyzing transaction: $it")
@@ -80,6 +89,16 @@ class PendingTransactionAnalyzer(
                 }
             }
     }
+
+    fun getTotalTransactionCount(
+        lowerThreshold: LocalDateTime,
+        upperThreshold: LocalDateTime,
+    ) =
+        viewRepository.countTransactionInTimeRangeWithExcludedStatusesPaginated(
+            lowerThreshold.toString(),
+            upperThreshold.toString(),
+            transactionStatusesToExcludeFromView
+        )
 
     private fun analyzeTransaction(transactionId: String): Mono<BaseTransaction> {
         return eventStoreRepository

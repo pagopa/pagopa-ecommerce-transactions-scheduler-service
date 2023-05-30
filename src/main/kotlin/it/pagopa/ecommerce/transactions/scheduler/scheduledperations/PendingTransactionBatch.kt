@@ -4,15 +4,17 @@ import it.pagopa.ecommerce.transactions.scheduler.transactionanalyzer.PendingTra
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
+import java.util.stream.IntStream
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.data.domain.PageRequest
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.scheduling.support.CronExpression
 import org.springframework.stereotype.Component
+import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
-import reactor.util.function.Tuple2
 
 @Component
 class PendingTransactionBatch(
@@ -21,38 +23,77 @@ class PendingTransactionBatch(
     @Value("\${pendingTransactions.batch.transactionsAnalyzer.executionRateMultiplier}")
     val executionRateMultiplier: Int,
     val logger: Logger = LoggerFactory.getLogger(PendingTransactionBatch::class.java),
-    @Value("\${pendingTransactions.batch.maxDurationSeconds}") val batchMaxDurationSeconds: Int
+    @Value("\${pendingTransactions.batch.maxDurationSeconds}") val batchMaxDurationSeconds: Int,
+    @Value("\${pendingTransactions.batch.maxTransactionPerPage}") val maxTransactionPerPage: Int
 ) {
 
     @Scheduled(cron = "\${pendingTransactions.batch.scheduledChron}")
     fun execute() {
-        pendingTransactionAnalyzerPipeline()
-            .subscribe(
-                {
-                    logger.info(
-                        "Batch pending transaction analysis end. Is process ok: [${it.t2}] Elapsed time: [${it.t1}] ms "
-                    )
-                },
-                { logger.error("Error executing batch", it) }
-            )
-    }
-
-    fun pendingTransactionAnalyzerPipeline(): Mono<Tuple2<Long, Boolean>> {
         val executionInterleaveMillis = getExecutionsInterleaveTimeMillis(chronExpression)
-
         val (lowerThreshold, upperThreshold) =
             getTransactionAnalyzerTimeWindow(executionInterleaveMillis, executionRateMultiplier)
 
         val maxBatchExecutionTime =
             getMaxDuration(executionInterleaveMillis, batchMaxDurationSeconds)
         logger.info(
-            "Executions chron expression: [$chronExpression], executions interleave time: [$executionInterleaveMillis] ms. Transaction analysis offset: [$lowerThreshold - $upperThreshold]. Max execution duration: $maxBatchExecutionTime"
+            "Executions chron expression: [$chronExpression], executions interleave time: [$executionInterleaveMillis] ms.  Max execution duration: $maxBatchExecutionTime seconds"
         )
-        return pendingTransactionAnalyzer
-            .searchPendingTransactions(lowerThreshold, upperThreshold, executionInterleaveMillis)
+        val startTime = System.currentTimeMillis()
+        pendingTransactionAnalyzer
+            .getTotalTransactionCount(lowerThreshold, upperThreshold)
+            .map { totalCount ->
+                val pages =
+                    if ((totalCount.toInt() % maxTransactionPerPage) == 0) {
+                        totalCount / maxTransactionPerPage
+                    } else {
+                        (totalCount / maxTransactionPerPage) + 1
+                    }
+                logger.info(
+                    "Transaction analysis offset: [$lowerThreshold - $upperThreshold]. Total transactions found: [$totalCount], max transaction per page: [$maxTransactionPerPage], total pages: [$pages]"
+                )
+                pages.toInt()
+            }
+            .flatMapMany { pages -> Flux.fromStream(IntStream.range(0, pages).boxed()) }
+            .flatMap { page ->
+                pendingTransactionAnalyzerPipeline(
+                        pageNumber = page,
+                        lowerThreshold = lowerThreshold,
+                        upperThreshold = upperThreshold,
+                        executionInterleaveMillis = executionInterleaveMillis
+                    )
+                    .map { Pair(it, page) }
+            }
             .elapsed()
             .timeout(maxBatchExecutionTime)
+            .subscribe(
+                { pageResult ->
+                    val elapsedTime = pageResult.t1
+                    val (executionResult, pageCount) = pageResult.t2
+                    logger.info(
+                        "Process page $pageCount ok: [$executionResult], elapsed time: [$elapsedTime] ms "
+                    )
+                },
+                { logger.error("Error executing batch", it) },
+                {
+                    logger.info(
+                        "Overall execution time: [${System.currentTimeMillis() - startTime}] ms"
+                    )
+                }
+            )
     }
+
+    fun pendingTransactionAnalyzerPipeline(
+        pageNumber: Int,
+        lowerThreshold: LocalDateTime,
+        upperThreshold: LocalDateTime,
+        executionInterleaveMillis: Long
+    ): Mono<Boolean> =
+        pendingTransactionAnalyzer.searchPendingTransactions(
+            lowerThreshold,
+            upperThreshold,
+            executionInterleaveMillis,
+            PageRequest.of(pageNumber, maxTransactionPerPage)
+        )
 
     fun getMaxDuration(executionInterleaveMillis: Long, batchMaxDurationSeconds: Int): Duration {
         val maxDuration =
