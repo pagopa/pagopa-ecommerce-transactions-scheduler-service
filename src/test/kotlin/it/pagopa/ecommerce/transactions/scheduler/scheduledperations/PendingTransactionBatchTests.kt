@@ -12,7 +12,6 @@ import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.extension.ExtendWith
-import org.mockito.BDDMockito
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
@@ -42,14 +41,17 @@ class PendingTransactionBatchTests {
                 pendingTransactionAnalyzer = pendingTransactionAnalyzer,
                 chronExpression = cronExecutionString,
                 executionRateMultiplier = executionRateMultiplier,
-                batchMaxDurationSeconds = maxDurationSeconds
+                batchMaxDurationSeconds = maxDurationSeconds,
+                maxTransactionPerPage = 1000,
             )
     }
 
     @Test
     fun `Should execute successfully`() {
         // assertions
-        BDDMockito.given(pendingTransactionAnalyzer.searchPendingTransactions(any(), any(), any()))
+        given(pendingTransactionAnalyzer.getTotalTransactionCount(any(), any()))
+            .willReturn(Mono.just(1L))
+        given(pendingTransactionAnalyzer.searchPendingTransactions(any(), any(), any(), any()))
             .willReturn(Mono.just(true))
         assertDoesNotThrow { pendingTransactionBatch.execute() }
     }
@@ -58,7 +60,7 @@ class PendingTransactionBatchTests {
     fun `Should get batch intertime executions correctly`() {
         val intertime =
             pendingTransactionBatch.getExecutionsInterleaveTimeMillis(cronExecutionString)
-        Assertions.assertEquals(10000, intertime)
+        assertEquals(10000, intertime)
     }
 
     @Test
@@ -70,7 +72,7 @@ class PendingTransactionBatchTests {
             )
         // assert that the time difference between lower and upper time window is 2 hours = 2 times
         // the execution window
-        Assertions.assertEquals(2, lower.until(upper, ChronoUnit.HOURS))
+        assertEquals(2, lower.until(upper, ChronoUnit.HOURS))
     }
 
     @Test
@@ -101,7 +103,9 @@ class PendingTransactionBatchTests {
     @Test
     fun `Should handle batch execution error without throwing exception`() {
         // assertions
-        BDDMockito.given(pendingTransactionAnalyzer.searchPendingTransactions(any(), any(), any()))
+        given(pendingTransactionAnalyzer.getTotalTransactionCount(any(), any()))
+            .willReturn(Mono.just(1L))
+        given(pendingTransactionAnalyzer.searchPendingTransactions(any(), any(), any(), any()))
             .willReturn(Mono.error(RuntimeException("Error executing batch")))
         assertDoesNotThrow { pendingTransactionBatch.execute() }
     }
@@ -114,7 +118,8 @@ class PendingTransactionBatchTests {
                 pendingTransactionAnalyzer = pendingTransactionAnalyzer,
                 chronExpression = cronExecutionString,
                 executionRateMultiplier = executionRateMultiplier,
-                batchMaxDurationSeconds = 1
+                batchMaxDurationSeconds = 1,
+                maxTransactionPerPage = 100
             )
         val maxExecutionTime =
             pendingTransactionBatch.getMaxDuration(
@@ -124,14 +129,18 @@ class PendingTransactionBatchTests {
                 pendingTransactionBatch.batchMaxDurationSeconds
             )
         val pendingTransactionBatchTaskDuration = maxExecutionTime.multipliedBy(100)
-        given { pendingTransactionAnalyzer.searchPendingTransactions(any(), any(), any()) }
+        given(pendingTransactionAnalyzer.getTotalTransactionCount(any(), any()))
+            .willReturn(Mono.just(1L))
+        given(pendingTransactionAnalyzer.searchPendingTransactions(any(), any(), any(), any()))
             .willReturn(Mono.just(true).delayElement(pendingTransactionBatchTaskDuration))
 
         val duration =
             measureTime {
                     val exception =
                         assertThrows<Exception> {
-                            pendingTransactionBatch.pendingTransactionAnalyzerPipeline().block()
+                            pendingTransactionBatch
+                                .pendingTransactionAnalyzerPaginatedPipeline()
+                                .block()
                         }
                     assertTrue(exception.cause is TimeoutException)
                 }

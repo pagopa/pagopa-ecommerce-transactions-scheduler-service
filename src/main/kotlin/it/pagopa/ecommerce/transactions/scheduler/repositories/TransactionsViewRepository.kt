@@ -13,13 +13,6 @@ import reactor.core.publisher.Mono
 interface TransactionsViewRepository : ReactiveCrudRepository<Transaction, String> {
 
     @Query("{'creationDate': {'\$gte': '?0','\$lte': '?1'}, 'status':{'\$nin':?2}}")
-    fun findTransactionInTimeRangeWithExcludedStatuses(
-        from: String,
-        to: String,
-        excludedStatuses: Set<TransactionStatusDto>
-    ): Flux<Transaction>
-
-    @Query("{'creationDate': {'\$gte': '?0','\$lte': '?1'}, 'status':{'\$nin':?2}}")
     fun findTransactionInTimeRangeWithExcludedStatusesPaginated(
         from: String,
         to: String,

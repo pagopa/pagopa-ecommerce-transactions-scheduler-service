@@ -14,7 +14,6 @@ import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsViewR
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
 import java.util.*
-import java.util.logging.Logger
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -28,6 +27,8 @@ import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
+import org.slf4j.LoggerFactory
+import org.springframework.data.domain.Pageable
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
@@ -77,7 +78,7 @@ class PendingTransactionAnalyzerTests {
     fun `init`() {
         pendingTransactionAnalyzer =
             PendingTransactionAnalyzer(
-                logger = Logger.getGlobal(),
+                logger = LoggerFactory.getLogger(PendingTransactionAnalyzerTests::class.java),
                 expiredTransactionEventPublisher = transactionExpiredEventPublisher,
                 viewRepository = viewRepository,
                 eventStoreRepository = eventStoreRepository,
@@ -89,7 +90,7 @@ class PendingTransactionAnalyzerTests {
          */
         transactionStatusesForSendExpiryEventOriginal =
             PendingTransactionAnalyzer(
-                    logger = Logger.getGlobal(),
+                    logger = LoggerFactory.getLogger(PendingTransactionAnalyzerTests::class.java),
                     expiredTransactionEventPublisher = transactionExpiredEventPublisher,
                     viewRepository = viewRepository,
                     eventStoreRepository = eventStoreRepository
@@ -520,7 +521,14 @@ class PendingTransactionAnalyzerTests {
                 )
             )
             .willAnswer { transactionStatusesForSendExpiryEventOriginal.contains(it.arguments[0]) }
-        given(viewRepository.findTransactionInTimeRangeWithExcludedStatuses(any(), any(), any()))
+        given(
+                viewRepository.findTransactionInTimeRangeWithExcludedStatusesPaginated(
+                    any(),
+                    any(),
+                    any(),
+                    any()
+                )
+            )
             .willReturn(Flux.just(*transactions.toTypedArray()))
         given(eventStoreRepository.findByTransactionIdOrderByCreationDateAsc(any()))
             .willReturn(Flux.just(*events.toTypedArray()))
@@ -531,7 +539,8 @@ class PendingTransactionAnalyzerTests {
                 pendingTransactionAnalyzer.searchPendingTransactions(
                     LocalDateTime.now(),
                     LocalDateTime.now(),
-                    1000
+                    1000,
+                    Pageable.ofSize(1000)
                 )
             )
             .expectNext(true)
@@ -568,7 +577,14 @@ class PendingTransactionAnalyzerTests {
                 )
             )
             .willAnswer { transactionStatusesForSendExpiryEventOriginal.contains(it.arguments[0]) }
-        given(viewRepository.findTransactionInTimeRangeWithExcludedStatuses(any(), any(), any()))
+        given(
+                viewRepository.findTransactionInTimeRangeWithExcludedStatusesPaginated(
+                    any(),
+                    any(),
+                    any(),
+                    any()
+                )
+            )
             .willReturn(Flux.just(*transactions.toTypedArray()))
         given(eventStoreRepository.findByTransactionIdOrderByCreationDateAsc(any()))
             .willReturn(Flux.just(*events.toTypedArray()))
@@ -577,7 +593,8 @@ class PendingTransactionAnalyzerTests {
                 pendingTransactionAnalyzer.searchPendingTransactions(
                     LocalDateTime.now(),
                     LocalDateTime.now(),
-                    1000
+                    1000,
+                    Pageable.ofSize(1000)
                 )
             )
             .expectNext(true)
