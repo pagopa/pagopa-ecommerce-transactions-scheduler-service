@@ -25,7 +25,7 @@ class PendingTransactionBatch(
     val executionRateMultiplier: Int,
     val logger: Logger = LoggerFactory.getLogger(PendingTransactionBatch::class.java),
     @Value("\${pendingTransactions.batch.maxDurationSeconds}") val batchMaxDurationSeconds: Int,
-    @Value("\${pendingTransactions.batch.maxTransactionPerPage}") val maxTransactionPerPage: Int
+    @Value("\${pendingTransactions.batch.maxTransactionsPerPage}") val maxTransactionPerPage: Int
 ) {
 
     @Scheduled(cron = "\${pendingTransactions.batch.scheduledChron}")
