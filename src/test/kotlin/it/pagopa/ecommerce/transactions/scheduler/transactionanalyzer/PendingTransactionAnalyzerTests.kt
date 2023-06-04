@@ -532,7 +532,7 @@ class PendingTransactionAnalyzerTests {
             .willReturn(Flux.just(*transactions.toTypedArray()))
         given(eventStoreRepository.findByTransactionIdOrderByCreationDateAsc(any()))
             .willReturn(Flux.just(*events.toTypedArray()))
-        given(transactionExpiredEventPublisher.publishExpiryEvents(any(), any()))
+        given(transactionExpiredEventPublisher.publishExpiryEvents(any(), any(), any(), any()))
             .willReturn(Mono.just(true))
         // test
         StepVerifier.create(
@@ -540,12 +540,14 @@ class PendingTransactionAnalyzerTests {
                     LocalDateTime.now(),
                     LocalDateTime.now(),
                     1000,
+                    transactions.size.toLong(),
                     Pageable.ofSize(1000)
                 )
             )
             .expectNext(true)
             .verifyComplete()
-        verify(transactionExpiredEventPublisher, times(1)).publishExpiryEvents(any(), any())
+        verify(transactionExpiredEventPublisher, times(1))
+            .publishExpiryEvents(any(), any(), any(), any())
         // This check has the purpose of check that the test list of events effectively cover the
         // wanted scenario.
         // The wanted scenario, in fact, is taken as input parameter by this method so developer
@@ -594,12 +596,14 @@ class PendingTransactionAnalyzerTests {
                     LocalDateTime.now(),
                     LocalDateTime.now(),
                     1000,
+                    transactions.size.toLong(),
                     Pageable.ofSize(1000)
                 )
             )
             .expectNext(true)
             .verifyComplete()
-        verify(transactionExpiredEventPublisher, times(0)).publishExpiryEvents(any(), any())
+        verify(transactionExpiredEventPublisher, times(0))
+            .publishExpiryEvents(any(), any(), any(), any())
         // This check has the purpose of check that the test list of events effectively cover the
         // wanted scenario.
         // The wanted scenario, in fact, is taken as input parameter by this method so developer

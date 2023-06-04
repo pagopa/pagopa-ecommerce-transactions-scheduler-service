@@ -51,7 +51,15 @@ class PendingTransactionBatchTests {
         // assertions
         given(pendingTransactionAnalyzer.getTotalTransactionCount(any(), any()))
             .willReturn(Mono.just(1L))
-        given(pendingTransactionAnalyzer.searchPendingTransactions(any(), any(), any(), any()))
+        given(
+                pendingTransactionAnalyzer.searchPendingTransactions(
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any()
+                )
+            )
             .willReturn(Mono.just(true))
         assertDoesNotThrow { pendingTransactionBatch.execute() }
     }
@@ -105,7 +113,15 @@ class PendingTransactionBatchTests {
         // assertions
         given(pendingTransactionAnalyzer.getTotalTransactionCount(any(), any()))
             .willReturn(Mono.just(1L))
-        given(pendingTransactionAnalyzer.searchPendingTransactions(any(), any(), any(), any()))
+        given(
+                pendingTransactionAnalyzer.searchPendingTransactions(
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any()
+                )
+            )
             .willReturn(Mono.error(RuntimeException("Error executing batch")))
         assertDoesNotThrow { pendingTransactionBatch.execute() }
     }
@@ -131,7 +147,15 @@ class PendingTransactionBatchTests {
         val pendingTransactionBatchTaskDuration = maxExecutionTime.multipliedBy(100)
         given(pendingTransactionAnalyzer.getTotalTransactionCount(any(), any()))
             .willReturn(Mono.just(1L))
-        given(pendingTransactionAnalyzer.searchPendingTransactions(any(), any(), any(), any()))
+        given(
+                pendingTransactionAnalyzer.searchPendingTransactions(
+                    any(),
+                    any(),
+                    any(),
+                    any(),
+                    any()
+                )
+            )
             .willReturn(Mono.just(true).delayElement(pendingTransactionBatchTaskDuration))
 
         val duration =

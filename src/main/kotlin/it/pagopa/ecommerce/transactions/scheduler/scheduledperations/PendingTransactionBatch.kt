@@ -74,15 +74,18 @@ class PendingTransactionBatch(
                 logger.info(
                     "Transaction analysis offset: [$lowerThreshold - $upperThreshold]. Total transactions found: [$totalCount], max transaction per page: [$maxTransactionPerPage], total pages: [$pages]"
                 )
-                pages.toInt()
+                Pair(pages.toInt(), totalCount)
             }
-            .flatMapMany { pages -> Flux.fromStream(IntStream.range(0, pages).boxed()) }
-            .flatMap { page ->
+            .flatMapMany { (pages, totalCount) ->
+                Flux.fromStream(IntStream.range(0, pages).boxed().map { Pair(it, totalCount) })
+            }
+            .flatMap { (page, totalCount) ->
                 pendingTransactionAnalyzer
                     .searchPendingTransactions(
                         lowerThreshold,
                         upperThreshold,
                         executionInterleaveMillis,
+                        totalCount,
                         PageRequest.of(page, maxTransactionPerPage)
                     )
                     .map { Pair(it, page) }

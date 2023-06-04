@@ -60,7 +60,8 @@ class PendingTransactionAnalyzer(
     fun searchPendingTransactions(
         lowerThreshold: LocalDateTime,
         upperThreshold: LocalDateTime,
-        batchExecutionIntertime: Long,
+        batchExecutionInterTime: Long,
+        totalRecordFound: Long,
         page: Pageable
     ): Mono<Boolean> {
         val pageRequest =
@@ -71,7 +72,7 @@ class PendingTransactionAnalyzer(
                 lowerThreshold.toString(),
                 upperThreshold.toString(),
                 transactionStatusesToExcludeFromView,
-                PageRequest.of(page.pageNumber, page.pageSize, Sort.by("creationDate").ascending()),
+                pageRequest,
             )
             .flatMap {
                 logger.info("Analyzing transaction: $it")
@@ -84,7 +85,9 @@ class PendingTransactionAnalyzer(
                 } else {
                     expiredTransactionEventPublisher.publishExpiryEvents(
                         expiredTransactions,
-                        batchExecutionIntertime
+                        batchExecutionInterTime,
+                        totalRecordFound,
+                        pageRequest
                     )
                 }
             }
