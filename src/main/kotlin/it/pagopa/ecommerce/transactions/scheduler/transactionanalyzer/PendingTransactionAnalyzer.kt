@@ -12,7 +12,6 @@ import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsViewR
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
-import kotlinx.coroutines.reactor.mono
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -120,9 +119,9 @@ class PendingTransactionAnalyzer(
                                 )
                                 return@map timeLeft >= Duration.ZERO
                             }
-                            .switchIfEmpty(mono { false })
+                            .switchIfEmpty(Mono.just(false))
                     } else {
-                        mono { false }
+                        Mono.just(false)
                     }
                 skipEvent.map {
                     val sendExpiryEvent =
