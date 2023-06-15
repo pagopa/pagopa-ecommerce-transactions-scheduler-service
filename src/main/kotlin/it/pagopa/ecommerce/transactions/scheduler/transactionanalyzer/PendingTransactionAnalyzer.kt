@@ -9,6 +9,9 @@ import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
 import it.pagopa.ecommerce.transactions.scheduler.publishers.TransactionExpiredEventPublisher
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsEventStoreRepository
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsViewRepository
+import java.time.Duration
+import java.time.LocalDateTime
+import java.time.ZonedDateTime
 import kotlinx.coroutines.reactor.mono
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -16,9 +19,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
-import java.time.Duration
-import java.time.LocalDateTime
-import java.time.ZonedDateTime
 
 @Service
 class PendingTransactionAnalyzer(
@@ -105,7 +105,7 @@ class PendingTransactionAnalyzer(
                         events
                             .filter {
                                 it.eventCode == TransactionEventCode.TRANSACTION_CLOSED_EVENT &&
-                                        (it as TransactionClosedEvent).data.responseOutcome ==
+                                    (it as TransactionClosedEvent).data.responseOutcome ==
                                         TransactionClosureData.Outcome.OK
                             }
                             .next()
@@ -119,7 +119,8 @@ class PendingTransactionAnalyzer(
                                     "Transaction close payment done at: $closePaymentDate, time left: $timeLeft"
                                 )
                                 return@map timeLeft >= Duration.ZERO
-                            }.switchIfEmpty(mono { false })
+                            }
+                            .switchIfEmpty(mono { false })
                     } else {
                         mono { false }
                     }
