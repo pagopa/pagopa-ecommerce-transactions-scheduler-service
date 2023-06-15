@@ -99,7 +99,7 @@ class PendingTransactionAnalyzer(
             )
             .cast(BaseTransaction::class.java)
             .filterWhen { baseTransaction ->
-                val skipEvent =
+                val skipTransaction =
                     if (baseTransaction.status == TransactionStatusDto.CLOSED) {
                         events
                             .filter {
@@ -123,11 +123,11 @@ class PendingTransactionAnalyzer(
                     } else {
                         Mono.just(false)
                     }
-                skipEvent.map {
+                skipTransaction.map {
                     val sendExpiryEvent =
                         transactionStatusesForSendExpiryEvent.contains(baseTransaction.status)
                     logger.info(
-                        "Transaction with id: [${baseTransaction.transactionId}] state: [${baseTransaction.status}], expired transaction statuses: ${transactionStatusesForSendExpiryEvent}. Send event: $sendExpiryEvent, Skip event: $it"
+                        "Transaction with id: [${baseTransaction.transactionId}] state: [${baseTransaction.status}], expired transaction statuses: ${transactionStatusesForSendExpiryEvent}. Send event: $sendExpiryEvent, Skip transaction: $it"
                     )
                     sendExpiryEvent && !it
                 }
