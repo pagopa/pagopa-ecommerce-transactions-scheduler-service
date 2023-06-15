@@ -1,20 +1,27 @@
 package it.pagopa.ecommerce.transactions.scheduler.transactionanalyzer
 
+import it.pagopa.ecommerce.commons.documents.v1.TransactionClosedEvent
+import it.pagopa.ecommerce.commons.documents.v1.TransactionClosureData
 import it.pagopa.ecommerce.commons.domain.v1.EmptyTransaction
+import it.pagopa.ecommerce.commons.domain.v1.TransactionEventCode
 import it.pagopa.ecommerce.commons.domain.v1.pojos.BaseTransaction
 import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
 import it.pagopa.ecommerce.transactions.scheduler.publishers.TransactionExpiredEventPublisher
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsEventStoreRepository
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsViewRepository
+import java.time.Duration
 import java.time.LocalDateTime
-import java.util.logging.Logger
+import java.time.ZonedDateTime
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 
 @Service
 class PendingTransactionAnalyzer(
-    private val logger: Logger = Logger.getGlobal(),
+    private val logger: Logger = LoggerFactory.getLogger(PendingTransactionAnalyzer::class.java),
     @Autowired private val expiredTransactionEventPublisher: TransactionExpiredEventPublisher,
     @Autowired private val viewRepository: TransactionsViewRepository,
     @Autowired private val eventStoreRepository: TransactionsEventStoreRepository<Any>,
@@ -50,7 +57,9 @@ class PendingTransactionAnalyzer(
             TransactionStatusDto.NOTIFIED_KO,
             TransactionStatusDto.NOTIFICATION_REQUESTED,
             TransactionStatusDto.NOTIFICATION_ERROR,
-        )
+        ),
+    @Value("\${pendingTransactions.batch.sendPaymentResultTimeout}")
+    private val sendPaymentResultTimeoutSeconds: Int,
 ) {
 
     fun searchPendingTransactions(
@@ -82,22 +91,45 @@ class PendingTransactionAnalyzer(
     }
 
     private fun analyzeTransaction(transactionId: String): Mono<BaseTransaction> {
-        return eventStoreRepository
-            .findByTransactionIdOrderByCreationDateAsc(transactionId)
+        val events = eventStoreRepository.findByTransactionIdOrderByCreationDateAsc(transactionId)
+        return events
             .reduce(
                 EmptyTransaction(),
                 it.pagopa.ecommerce.commons.domain.v1.Transaction::applyEvent
             )
             .cast(BaseTransaction::class.java)
-            .flatMap {
-                val sendExpiryEvent = transactionStatusesForSendExpiryEvent.contains(it.status)
-                logger.info(
-                    "Transaction with id: [${it.transactionId}] state: [${it.status}], expired transaction statuses: ${transactionStatusesForSendExpiryEvent}. Send event: $sendExpiryEvent"
-                )
-                if (sendExpiryEvent) {
-                    Mono.just(it)
-                } else {
-                    Mono.empty()
+            .filterWhen { baseTransaction ->
+                val skipTransaction =
+                    if (baseTransaction.status == TransactionStatusDto.CLOSED) {
+                        events
+                            .filter {
+                                it.eventCode == TransactionEventCode.TRANSACTION_CLOSED_EVENT &&
+                                    (it as TransactionClosedEvent).data.responseOutcome ==
+                                        TransactionClosureData.Outcome.OK
+                            }
+                            .next()
+                            .map {
+                                val timeout =
+                                    Duration.ofSeconds(sendPaymentResultTimeoutSeconds.toLong())
+                                val closePaymentDate = ZonedDateTime.parse(it.creationDate)
+                                val now = ZonedDateTime.now()
+                                val timeLeft = Duration.between(now, closePaymentDate.plus(timeout))
+                                logger.info(
+                                    "Transaction close payment done at: $closePaymentDate, time left: $timeLeft"
+                                )
+                                return@map timeLeft >= Duration.ZERO
+                            }
+                            .switchIfEmpty(Mono.just(false))
+                    } else {
+                        Mono.just(false)
+                    }
+                skipTransaction.map {
+                    val sendExpiryEvent =
+                        transactionStatusesForSendExpiryEvent.contains(baseTransaction.status)
+                    logger.info(
+                        "Transaction with id: [${baseTransaction.transactionId}] state: [${baseTransaction.status}], expired transaction statuses: ${transactionStatusesForSendExpiryEvent}. Send event: $sendExpiryEvent, Skip transaction: $it"
+                    )
+                    sendExpiryEvent && !it
                 }
             }
     }

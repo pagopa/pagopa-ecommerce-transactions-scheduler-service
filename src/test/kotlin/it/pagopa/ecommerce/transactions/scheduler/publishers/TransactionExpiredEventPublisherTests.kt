@@ -21,7 +21,6 @@ import java.time.OffsetDateTime
 import java.time.ZonedDateTime
 import java.util.*
 import java.util.concurrent.TimeUnit
-import java.util.logging.Logger
 import kotlinx.coroutines.reactor.mono
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -104,11 +103,10 @@ class TransactionExpiredEventPublisherTests {
         // test
         StepVerifier.create(
                 TransactionExpiredEventPublisher(
-                        logger = Logger.getGlobal(),
                         expiredEventQueueAsyncClient = queueAsyncClient,
                         viewRepository = viewRepository,
                         eventStoreRepository = eventStoreRepository,
-                        1
+                        parallelEventToProcess = 1
                     )
                     .publishExpiryEvents(baseDocuments, batchExecutionTimeWindow)
             )
@@ -191,11 +189,10 @@ class TransactionExpiredEventPublisherTests {
 
         StepVerifier.create(
                 TransactionExpiredEventPublisher(
-                        logger = Logger.getGlobal(),
                         expiredEventQueueAsyncClient = queueAsyncClient,
                         viewRepository = viewRepository,
                         eventStoreRepository = eventStoreRepository,
-                        1
+                        parallelEventToProcess = 1
                     )
                     .publishExpiryEvents(
                         generateTransactionBaseDocuments(
@@ -224,11 +221,10 @@ class TransactionExpiredEventPublisherTests {
         // test
         StepVerifier.create(
                 TransactionExpiredEventPublisher(
-                        logger = Logger.getGlobal(),
                         expiredEventQueueAsyncClient = queueAsyncClient,
                         viewRepository = viewRepository,
                         eventStoreRepository = eventStoreRepository,
-                        1
+                        parallelEventToProcess = 1
                     )
                     .publishExpiryEvents(
                         generateTransactionBaseDocuments(
@@ -280,11 +276,10 @@ class TransactionExpiredEventPublisherTests {
         // test
         StepVerifier.create(
                 TransactionExpiredEventPublisher(
-                        logger = Logger.getGlobal(),
                         expiredEventQueueAsyncClient = queueAsyncClient,
                         viewRepository = viewRepository,
                         eventStoreRepository = eventStoreRepository,
-                        1
+                        parallelEventToProcess = 1
                     )
                     .publishExpiryEvents(transactions, batchExecutionTimeWindow)
             )
@@ -363,11 +358,10 @@ class TransactionExpiredEventPublisherTests {
         // test
         StepVerifier.create(
                 TransactionExpiredEventPublisher(
-                        logger = Logger.getGlobal(),
                         expiredEventQueueAsyncClient = queueAsyncClient,
                         viewRepository = viewRepository,
                         eventStoreRepository = eventStoreRepository,
-                        1
+                        parallelEventToProcess = 1
                     )
                     .publishExpiryEvents(allTransactions, batchExecutionTimeWindow)
             )
@@ -484,11 +478,10 @@ class TransactionExpiredEventPublisherTests {
         // test
         StepVerifier.create(
                 TransactionExpiredEventPublisher(
-                        logger = Logger.getGlobal(),
                         expiredEventQueueAsyncClient = queueAsyncClient,
                         viewRepository = viewRepository,
                         eventStoreRepository = eventStoreRepository,
-                        1
+                        parallelEventToProcess = 1
                     )
                     .publishExpiryEvents(allTransactions, batchExecutionTimeWindow)
             )
@@ -611,11 +604,10 @@ class TransactionExpiredEventPublisherTests {
         // test
         StepVerifier.create(
                 TransactionExpiredEventPublisher(
-                        logger = Logger.getGlobal(),
                         expiredEventQueueAsyncClient = queueAsyncClient,
                         viewRepository = viewRepository,
                         eventStoreRepository = eventStoreRepository,
-                        1
+                        parallelEventToProcess = 1
                     )
                     .publishExpiryEvents(allTransactions, batchExecutionTimeWindow)
             )
@@ -717,11 +709,10 @@ class TransactionExpiredEventPublisherTests {
         // test
         StepVerifier.create(
                 TransactionExpiredEventPublisher(
-                        logger = Logger.getGlobal(),
                         expiredEventQueueAsyncClient = queueAsyncClient,
                         viewRepository = viewRepository,
                         eventStoreRepository = eventStoreRepository,
-                        1
+                        parallelEventToProcess = 1
                     )
                     .publishExpiryEvents(baseDocuments, batchExecutionTimeWindow)
             )
@@ -879,11 +870,10 @@ class TransactionExpiredEventPublisherTests {
         // test
         StepVerifier.create(
                 TransactionExpiredEventPublisher(
-                        logger = Logger.getGlobal(),
                         expiredEventQueueAsyncClient = queueAsyncClient,
                         viewRepository = viewRepository,
                         eventStoreRepository = eventStoreRepository,
-                        1
+                        parallelEventToProcess = 1
                     )
                     .publishExpiryEvents(baseDocuments, batchExecutionTimeWindow)
             )
@@ -985,11 +975,10 @@ class TransactionExpiredEventPublisherTests {
         // test
         StepVerifier.create(
                 TransactionExpiredEventPublisher(
-                        logger = Logger.getGlobal(),
                         expiredEventQueueAsyncClient = queueAsyncClient,
                         viewRepository = viewRepository,
                         eventStoreRepository = eventStoreRepository,
-                        1
+                        parallelEventToProcess = 1
                     )
                     .publishExpiryEvents(baseDocuments, batchExecutionTimeWindow)
             )
@@ -1091,11 +1080,10 @@ class TransactionExpiredEventPublisherTests {
         // test
         StepVerifier.create(
                 TransactionExpiredEventPublisher(
-                        logger = Logger.getGlobal(),
                         expiredEventQueueAsyncClient = queueAsyncClient,
                         viewRepository = viewRepository,
                         eventStoreRepository = eventStoreRepository,
-                        1
+                        parallelEventToProcess = 1
                     )
                     .publishExpiryEvents(baseDocuments, batchExecutionTimeWindow)
             )
@@ -1197,11 +1185,10 @@ class TransactionExpiredEventPublisherTests {
         // test
         StepVerifier.create(
                 TransactionExpiredEventPublisher(
-                        logger = Logger.getGlobal(),
                         expiredEventQueueAsyncClient = queueAsyncClient,
                         viewRepository = viewRepository,
                         eventStoreRepository = eventStoreRepository,
-                        1
+                        parallelEventToProcess = 1
                     )
                     .publishExpiryEvents(baseDocuments, batchExecutionTimeWindow)
             )

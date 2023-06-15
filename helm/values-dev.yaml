@@ -34,9 +34,9 @@ microservice-chart:
     servicePort: 8080
   serviceAccount:
     create: false
-    annotations: {}
+    annotations: { }
     name: ""
-  podAnnotations: {}
+  podAnnotations: { }
   podSecurityContext:
     seccompProfile:
       type: RuntimeDefault
@@ -82,6 +82,7 @@ microservice-chart:
     ELASTIC_APM_APPLICATION_PACKAGES: it.pagopa.ecommerce.transactions.scheduler
     ELASTIC_APM_SERVER_URL: http://quickstart-apm-http.elastic-system.svc:8200
     ELASTIC_APM_LOG_SENDING: "true"
+    PENDING_TRANSACTIONS_SEND_PAYMENT_RESULT_TIMEOUT_SECONDS: "3900"
   envSecret:
     MONGO_PASSWORD: mongo-ecommerce-password
     QUEUE_CONNECTION_STRING: ecommerce-storage-connection-string
@@ -89,8 +90,8 @@ microservice-chart:
   keyvault:
     name: "pagopa-d-ecommerce-kv"
     tenantId: "7788edaf-0346-4068-9d79-c868aed15b3d"
-  nodeSelector: {}
-  tolerations: []
+  nodeSelector: { }
+  tolerations: [ ]
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:

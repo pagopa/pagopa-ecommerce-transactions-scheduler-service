@@ -7,8 +7,7 @@ import it.pagopa.ecommerce.commons.domain.v1.pojos.BaseTransaction
 import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
 import java.time.Duration
 import java.util.concurrent.atomic.AtomicLong
-import java.util.logging.Level
-import java.util.logging.Logger
+import org.slf4j.Logger
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Schedulers
@@ -34,18 +33,17 @@ abstract class EventPublisher<E>(
                         null
                     )
                     .flatMap {
-                        logger.info {
+                        logger.info(
                             "Event: [$event] successfully sent with visibility timeout: [${it.value.timeNextVisible}] ms to queue: [${queueAsyncClient.queueName}]"
-                        }
+                        )
                         Mono.just(true)
                     }
                     .doOnError { exception ->
-                        logger.log(Level.SEVERE, "Error sending event: [${event}].", exception)
+                        logger.error("Error sending event: [${event}].", exception)
                     }
             }
             .onErrorResume {
-                logger.log(
-                    Level.SEVERE,
+                logger.error(
                     "Error processing transaction with id: [${baseTransaction.transactionId}]",
                     it
                 )
