@@ -14,7 +14,6 @@ import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsViewR
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
 import java.util.*
-import java.util.logging.Logger
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -51,6 +50,8 @@ class PendingTransactionAnalyzerTests {
 
     private lateinit var transactionStatusesForSendExpiryEventOriginal: Set<TransactionStatusDto>
 
+    private val sendPaymentResultTimeout = 120
+
     companion object {
         val testedStatuses: MutableSet<TransactionStatusDto> = HashSet()
 
@@ -77,11 +78,11 @@ class PendingTransactionAnalyzerTests {
     fun `init`() {
         pendingTransactionAnalyzer =
             PendingTransactionAnalyzer(
-                logger = Logger.getGlobal(),
                 expiredTransactionEventPublisher = transactionExpiredEventPublisher,
                 viewRepository = viewRepository,
                 eventStoreRepository = eventStoreRepository,
-                transactionStatusesForSendExpiryEvent = transactionStatusesForSendExpiryEventMocked
+                transactionStatusesForSendExpiryEvent = transactionStatusesForSendExpiryEventMocked,
+                sendPaymentResultTimeoutSeconds = sendPaymentResultTimeout
             )
         /*
          * This trick allow to capture the tested status using the real statuses set
@@ -89,10 +90,10 @@ class PendingTransactionAnalyzerTests {
          */
         transactionStatusesForSendExpiryEventOriginal =
             PendingTransactionAnalyzer(
-                    logger = Logger.getGlobal(),
                     expiredTransactionEventPublisher = transactionExpiredEventPublisher,
                     viewRepository = viewRepository,
-                    eventStoreRepository = eventStoreRepository
+                    eventStoreRepository = eventStoreRepository,
+                    sendPaymentResultTimeoutSeconds = sendPaymentResultTimeout
                 )
                 .transactionStatusesForSendExpiryEvent
     }
