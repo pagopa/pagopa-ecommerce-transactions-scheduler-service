@@ -4,7 +4,7 @@ microservice-chart:
   fullnameOverride: "pagopaecommercetxschedulerservice-microservice-chart"
   image:
     repository: pagopadcommonacr.azurecr.io/pagopaecommercetransactionsschedulerservice
-    tag: "0.1.12"
+    tag: "0.2.3"
     pullPolicy: Always
   livenessProbe:
     httpGet:
@@ -83,6 +83,7 @@ microservice-chart:
     ELASTIC_APM_APPLICATION_PACKAGES: it.pagopa.ecommerce.transactions.scheduler
     ELASTIC_APM_SERVER_URL: http://quickstart-apm-http.elastic-system.svc:8200
     ELASTIC_APM_LOG_SENDING: "true"
+    PENDING_TRANSACTIONS_SEND_PAYMENT_RESULT_TIMEOUT_SECONDS: "3900"
   envSecret:
     MONGO_PASSWORD: mongo-ecommerce-password
     QUEUE_CONNECTION_STRING: ecommerce-storage-connection-string
