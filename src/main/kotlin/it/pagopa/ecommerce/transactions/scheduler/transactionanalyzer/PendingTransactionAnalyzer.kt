@@ -105,7 +105,7 @@ class PendingTransactionAnalyzer(
         lowerThreshold: LocalDateTime,
         upperThreshold: LocalDateTime,
     ) =
-        viewRepository.countTransactionInTimeRangeWithExcludedStatusesPaginated(
+        viewRepository.countTransactionInTimeRangeWithExcludedStatuses(
             lowerThreshold.toString(),
             upperThreshold.toString(),
             transactionStatusesToExcludeFromView

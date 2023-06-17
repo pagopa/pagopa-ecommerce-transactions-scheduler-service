@@ -21,7 +21,7 @@ interface TransactionsViewRepository : ReactiveCrudRepository<Transaction, Strin
     ): Flux<Transaction>
 
     @Query("{'creationDate': {'\$gte': '?0','\$lte': '?1'}, 'status':{'\$nin':?2}}", count = true)
-    fun countTransactionInTimeRangeWithExcludedStatusesPaginated(
+    fun countTransactionInTimeRangeWithExcludedStatuses(
         from: String,
         to: String,
         excludedStatuses: Set<TransactionStatusDto>
