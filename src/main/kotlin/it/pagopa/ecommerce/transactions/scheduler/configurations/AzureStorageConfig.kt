@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Configuration
 class AzureStorageConfig {
     @Bean
     fun expiredEventQueueAsyncClient(
-        @Value("\${azurestorage.connectionstring}") storageConnectionString: String,
+        @Value("\${azurestorage.transient.connectionstring}") storageConnectionString: String,
         @Value("\${azurestorage.queues.transactionexpired.name}") queueEventInitName: String,
     ): QueueAsyncClient {
         val queueAsyncClient =
