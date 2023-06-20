@@ -113,9 +113,9 @@ FROM:
 ```xml
 
 <configuration>
-    ...
-    <scmVersionType>tag</scmVersionType>
-    <scmVersion>${pagopa-ecommerce-commons.version}</scmVersion>
+	...
+	<scmVersionType>tag</scmVersionType>
+	<scmVersion>${pagopa-ecommerce-commons.version}</scmVersion>
 </configuration>
 ```
 
@@ -124,9 +124,9 @@ TO:
 ```xml
 
 <configuration>
-    ...
-    <scmVersionType>branch</scmVersionType>
-    <scmVersion>name-of-a-specific-branch-to-link</scmVersion>
+	...
+	<scmVersionType>branch</scmVersionType>
+	<scmVersion>name-of-a-specific-branch-to-link</scmVersion>
 </configuration>
 ```
 
