@@ -31,6 +31,8 @@ microservice-chart:
       ELASTIC_APM_SERVER_URL: http://quickstart-apm-http.elastic-system.svc:8200
       ELASTIC_APM_LOG_SENDING: "false"
       PENDING_TRANSACTIONS_SEND_PAYMENT_RESULT_TIMEOUT_SECONDS: "3900"
+      ECS_SERVICE_NAME: pagopa-ecommerce-transactions-scheduler-service-blue
+      ECS_SERVICE_ENVIRONMENT: "uat"
     envSecret:
       MONGO_PASSWORD: mongo-ecommerce-password
       QUEUE_CONNECTION_STRING: ecommerce-storage-connection-string
@@ -116,6 +118,8 @@ microservice-chart:
     ELASTIC_APM_SERVER_URL: http://quickstart-apm-http.elastic-system.svc:8200
     ELASTIC_APM_LOG_SENDING: "false"
     PENDING_TRANSACTIONS_SEND_PAYMENT_RESULT_TIMEOUT_SECONDS: "3900"
+    ECS_SERVICE_NAME: pagopa-ecommerce-transactions-scheduler-service
+    ECS_SERVICE_ENVIRONMENT: "uat"
   envSecret:
     MONGO_PASSWORD: mongo-ecommerce-password
     QUEUE_CONNECTION_STRING: ecommerce-storage-connection-string
