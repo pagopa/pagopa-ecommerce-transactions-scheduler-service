@@ -35,7 +35,7 @@ microservice-chart:
       ECS_SERVICE_ENVIRONMENT: "uat"
     envSecret:
       MONGO_PASSWORD: mongo-ecommerce-password
-      QUEUE_CONNECTION_STRING: ecommerce-storage-connection-string
+      QUEUE_TRANSIENT_CONNECTION_STRING: ecommerce-storage-transient-connection-string
       ELASTIC_APM_SECRET_TOKEN: elastic-apm-secret-token
   image:
     repository: pagopaucommonacr.azurecr.io/pagopaecommercetransactionsschedulerservice
@@ -122,7 +122,7 @@ microservice-chart:
     ECS_SERVICE_ENVIRONMENT: "uat"
   envSecret:
     MONGO_PASSWORD: mongo-ecommerce-password
-    QUEUE_CONNECTION_STRING: ecommerce-storage-connection-string
+    QUEUE_TRANSIENT_CONNECTION_STRING: ecommerce-storage-transient-connection-string
     ELASTIC_APM_SECRET_TOKEN: elastic-apm-secret-token
   keyvault:
     name: "pagopa-u-ecommerce-kv"
