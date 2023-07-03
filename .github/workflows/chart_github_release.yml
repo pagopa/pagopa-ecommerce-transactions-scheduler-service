@@ -1,21 +1,12 @@
 name: Make release
 
-#on:
-#  pull_request:
-#    branches:
-#      - main
-#    types: [ closed ]
-on: #TODO to remove
+on:
   pull_request:
     branches:
       - main
-    types:
-      - opened
-      - synchronize
-      - labeled
-      - unlabeled
-      - reopened
-      - edited
+      - CHK-1667-trigger-deploy-on-merge #TODO to be removed
+    types: [ closed ]
+
 
   workflow_dispatch:
 
