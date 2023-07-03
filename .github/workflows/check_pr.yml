@@ -41,13 +41,15 @@ jobs:
       - name: Verify PR Labels
         uses: actions/github-script@v6.3.3
         env:
-          VALID_LABELS: patch-release, minor-release, major-release, ignore-for-release
+          VALID_APP_VERSION_LABELS: patch, minor, major, ignore-for-release
+          VALID_CHART_VERSION_LABELS: chart-patch, chart-minor, chart-major, ignore-for-release
           PR_LABELS: github.event.pull_request.labels.*.name
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const { VALID_LABELS } = process.env
-            const validLabels = VALID_LABELS.trim().split(',').map(word => word.trim()).filter(word => word.length > 0);
+            const { VALID_APP_VERSION_LABELS, VALID_CHART_VERSION_LABELS } = process.env
+            const validLabelsSemver = VALID_APP_VERSION_LABELS.trim().split(',').map(word => word.trim()).filter(word => word.length > 0);
+            const validLabelsChartSemver = VALID_CHART_VERSION_LABELS.trim().split(',').map(word => word.trim()).filter(word => word.length > 0);
             var labelsQuery = await github.rest.issues.listLabelsOnIssue({
                 issue_number: context.issue.number,
                 owner: context.repo.owner,
@@ -55,23 +57,31 @@ jobs:
               });
             var prLabels = labelsQuery.data.map(label => label.name);
             core.info(`PR labels: ${prLabels}`);
-            core.info(`Valid labels: ${validLabels}`);
-            var matchedLabels = [];
+            core.info(`Valid labels semver: ${validLabelsSemver}`);
+            core.info(`Valid labels chart semver: ${validLabelsChartSemver}`);
+            var matchedLabelsSemver = [];
+            var matchedLabelsChartSemver = [];
             prLabels.forEach(label => {
               core.info(`Analyzing label: ${label}`)
-               if(validLabels.includes(label)) {
-                matchedLabels.push(label)
+               if(validLabelsSemver.includes(label)) {
+                matchedLabelsSemver.push(label)
+               }
+               if(validLabelsChartSemver.includes(label)) {
+                matchedLabelsChartSemver.push(label)
                }
               }
             );
-            core.info(`Matched labels: ${matchedLabels}`)
+            core.info(
+            `Matched labels semver: ${matchedLabelsSemver}
+            chart semver: ${matchedLabelsChartSemver}`
+            )
             var comments = await github.rest.issues.listComments({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo
             });
             for (const comment of comments.data) {
-              if (comment.body.includes('This pull request does not contain a valid label')) {
+              if (comment.body.includes('Pull request label validation error!')) {
                 github.rest.issues.deleteComment({
                   issue_number: context.issue.number,
                   owner: context.repo.owner,
@@ -81,8 +91,16 @@ jobs:
               }
             }
             
-            if (matchedLabels.length != 1) {
-            const errorMessage = `Pull request must contains only one of the following labels \`${process.env.VALID_LABELS}\`. Found labels: \`${matchedLabels}\``
+            if (matchedLabelsSemver.length != 1 || matchedLabelsChartSemver.length != 1) {
+              const errorMessage = `Pull request label validation error!
+              Required label for app version: ${validLabelsSemver.map(label => `\`${label}\``).join()}
+              Required label for chart version: ${validLabelsChartSemver.map(label => `\`${label}\``).join()}.
+            
+              Found labels on PR...
+            
+              app version: ${matchedLabelsSemver.map(label => `\`${label}\``).join()}
+              chart version: ${matchedLabelsChartSemver.map(label => `\`${label}\``).join()}
+              `
               github.rest.issues.createComment({
                 issue_number: context.issue.number,
                 owner: context.repo.owner,
