@@ -26,9 +26,13 @@ jobs:
   read_semver:
     name: Read semver labels
     runs-on: ubuntu-latest
+    outputs:
+      semver_app: ${{ steps.semver_labels.outputs.semver_app }}
+      semver_chart: ${{ steps.semver_labels.outputs.semver_chart }}
     steps:
       - uses: actions/checkout@v1
       - uses: ./.github/actions/check-pr-semver-labels
+        id: semver_labels
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
   maven-chart-release:
