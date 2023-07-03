@@ -49,8 +49,9 @@ jobs:
         shell: bash
 
       - name: Git setup
+        #${{ github.ref_name }} TODO restore below branch
         run: |
-          git checkout ${{ github.ref_name}}
+          git checkout CHK-1667-trigger-deploy-on-merge
           git config --global user.email "github-bot@pagopa.it" && git config --global user.name "github-bot@pagopa.it"
         shell: bash
 
@@ -149,14 +150,13 @@ jobs:
           git commit -m "Bump version [skip ci]"
           git push origin ${{ github.ref_name}}
 
-      - name: Create Release
-        if: ${{ inputs.semver != 'skip' }}
-        uses: ncipollo/release-action@v1.12.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.github_token }}
-        with:
-          commit: ${{ github.ref_name }}
-          tag: $NEXT_VERSION
-          name: Release ${{ steps.semver.outputs.version }}
-          makeLatest: latest
-          generateReleaseNotes: true
+      #- name: Create Release
+      #  uses: ncipollo/release-action@v1.12.0
+      #  env:
+      #    GITHUB_TOKEN: ${{ secrets.github_token }}
+      #  with:
+      #    commit: ${{ github.ref_name }}
+      #    tag: $NEXT_VERSION
+      #    name: Release ${{ steps.semver.outputs.version }}
+      #    makeLatest: latest
+      #    generateReleaseNotes: true
