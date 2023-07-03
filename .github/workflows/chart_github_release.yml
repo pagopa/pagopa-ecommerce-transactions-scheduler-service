@@ -30,7 +30,9 @@ jobs:
       semver_app: ${{ steps.semver_labels.outputs.semver_app }}
       semver_chart: ${{ steps.semver_labels.outputs.semver_chart }}
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.github_token }}
       - uses: ./.github/actions/check-pr-semver-labels
         id: semver_labels
         with:
@@ -40,6 +42,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: semver_labels
     steps:
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.github_token }}
       - name: Log inputs
         run: |
           echo "📝 Inputs"
