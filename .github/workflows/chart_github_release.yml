@@ -19,7 +19,8 @@ on: #TODO to remove
 
   workflow_dispatch:
 
-permissions: { }
+permissions:
+  pull-requests: write
 
 jobs:
   read_semver:
