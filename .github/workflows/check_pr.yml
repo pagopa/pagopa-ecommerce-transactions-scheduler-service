@@ -11,6 +11,8 @@ on:
 permissions:
   pull-requests: write
 
+env:
+  RELEASE_TAGS: fromJSON('["patch-release", "minor-release", "major-release", "ignore-for-release"]')
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -36,18 +38,24 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       - name: Verify PR Labels
-        if: ${{ !contains(github.event.pull_request.labels.*.name, 'breaking-change') && !contains(github.event.pull_request.labels.*.name, 'enhancement') && !contains(github.event.pull_request.labels.*.name, 'bug') && !contains(github.event.pull_request.labels.*.name, 'ignore-for-release') }}
         uses: actions/github-script@v6.3.3
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
+            var matches = 0;
+            var validTags = process.env.RELEASE_TAGS;
+            var prTags = github.event.pull_request.labels.*.name;
+            console.log(`PR tags: ${prTags}`);
+            console.log(`Valid tags: ${validTags}`);
+            prTags.forEach(tag => matches += validTags.contains(tag) ? 1 : 0);
+            
             var comments = await github.rest.issues.listComments({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo
             });
             for (const comment of comments.data) {
-              if (comment.body.includes('This pull request does not contain a valid label')){
+              if (comment.body.includes('This pull request does not contain a valid label')) {
                 github.rest.issues.deleteComment({
                   issue_number: context.issue.number,
                   owner: context.repo.owner,
@@ -56,14 +64,16 @@ jobs:
                 })
               }
             }
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: 'This pull request does not contain a valid label. Please add one of the following labels: `[bug, enhancement, breaking-change, ignore-for-release]`'
-            })
-            core.setFailed('Missing required labels')
-
+            if (matches != 1) {
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: 'This pull request does not contain a valid label. Please add only one of the following labels: `[bug, enhancement, breaking-change, ignore-for-release]`'
+              })
+              core.setFailed('Missing required labels')
+            }
+            
   check_size:
     runs-on: ubuntu-latest
     name: Check Size
