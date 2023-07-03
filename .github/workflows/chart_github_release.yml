@@ -23,7 +23,7 @@ permissions:
   pull-requests: write
 
 jobs:
-  read_semver:
+  semver_labels:
     name: Read semver labels
     runs-on: ubuntu-latest
     outputs:
@@ -38,13 +38,125 @@ jobs:
   maven-chart-release:
     name: Maven chart release
     runs-on: ubuntu-latest
-    needs: read_semver
+    needs: semver_labels
     steps:
-      - run: |
+      - name: Log inputs
+        run: |
           echo "📝 Inputs"
           echo "pull request merged: ${{ github.event.pull_request.merged}}"
-          echo "Semver app: ${{ needs.read_semver.outputs.semver_app}}"
-          echo "Semver chart: ${{ needs.read_semver.outputs.semver_chart}}"
+          echo "Semver app: ${{ needs.semver_labels.outputs.semver_app}}"
+          echo "Semver chart: ${{ needs.semver_labels.outputs.semver_chart}}"
         shell: bash
 
+      - name: Git setup
+        run: |
+          git checkout ${{ github.ref_name}}
+          git config --global user.email "github-bot@pagopa.it" && git config --global user.name "github-bot@pagopa.it"
+        shell: bash
 
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: 17
+
+      - name: Set up Maven
+        uses: stCarolas/setup-maven@v4.5
+        with:
+          maven-version: 3.8.2
+
+      - name: Cache Maven packages
+        uses: actions/cache@v1
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+      - name: Bump app major version
+        run: |
+          mvn build-helper:parse-version versions:set -DnewVersion='${parsedVersion.nextMajorVersion}.0.0'
+        if: ${{ needs.semver_labels.outputs.semver_app == 'major' }}
+        shell: bash
+
+      - name: Bump app minor version
+        run: |
+          mvn build-helper:parse-version versions:set -DnewVersion='${parsedVersion.majorVersion}.${parsedVersion.nextMinorVersion}.0
+        if: ${{ needs.semver_labels.outputs.semver_app == 'minor' }}
+        shell: bash
+
+      - name: Bump app patch version
+        run: |
+          mvn build-helper:parse-version versions:set -DnewVersion='${parsedVersion.majorVersion}.${parsedVersion.minorVersion}.${parsedVersion.nextIncrementalVersion}'
+        if: ${{ needs.semver_labels.outputs.semver_app == 'patch' }}
+        shell: bash
+
+      - name: New app version
+        id: get_app_version
+        run: |
+          app_version=$(mvn -f pom.xml help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo $app_version >> $GITHUB_OUTPUT
+          echo "New app version: $app_version"
+          git add pom.xml
+        shell: bash
+
+      - name: Update app version into helm values files
+        shell: bash
+        run: |
+          echo "Bump Helm app version to ${{ steps.get_app_version.outputs.app_version }}"
+          for i in helm/values-*.yaml; do
+              [ -f "$i" ] || break
+              yq -i ".microservice-chart.image.tag = \"$(next_version_app.value)\"" "$i"
+              git add "$i"
+          done
+
+      - name: Update Version into microservice chart
+        shell: bash
+        run: |
+          echo "Bump microservice chart app version to ${{ steps.get_app_version.outputs.app_version }}"
+          CHART_FILE="helm/Chart.yaml"
+          NEXT_VERSION_APP= ${{ steps.get_app_version.outputs.app_version }}
+            if [[ -f "$CHART_FILE" ]]; then
+              yq -i ".appVersion = \"$(NEXT_VERSION_APP)\"" "$CHART_FILE"
+              git add "$CHART_FILE"
+            fi
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Setup semver utility
+        uses: borales/actions-yarn@v4
+        with:
+          cmd: global add semver
+
+      - name: Update Version into microservice chart
+        id: update_chart_version
+        shell: bash
+        run: |
+          echo "Bump microservice chart version to ${{ steps.get_app_version.outputs.chart_version }}"
+          RELEASE_CHART_SEMVER=${{ steps.get_app_version.outputs.chart_version }}
+          CHART_FILE="helm/Chart.yaml"
+          CURRENT_CHART_VERSION=$(yq -r '.version' $CHART_FILE)
+          NEXT_CHART_VERSION=$(semver $CURRENT_CHART_VERSION -i $RELEASE_CHART_SEMVER )
+          echo "Old chart version: $CURRENT_CHART_VERSION, new version $NEXT_CHART_VERSION"
+          if [[ -f "$CHART_FILE" ]]; then
+          yq -i ".version = \"$NEXT_CHART_VERSION\"" "$CHART_FILE"
+          git add "$CHART_FILE"
+          fi
+          echo $NEXT_VERSION >> $GITHUB_OUTPUT
+
+      - name: Commit and push version update
+        shell: bash
+        run: |
+          git commit -m "Bump version [skip ci]"
+          git push origin ${{ github.ref_name}}
+
+      - name: Create Release
+        if: ${{ inputs.semver != 'skip' }}
+        uses: ncipollo/release-action@v1.12.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.github_token }}
+        with:
+          commit: ${{ github.ref_name }}
+          tag: $NEXT_VERSION
+          name: Release ${{ steps.semver.outputs.version }}
+          makeLatest: latest
+          generateReleaseNotes: true
