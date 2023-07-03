@@ -5,14 +5,17 @@ on:
   pull_request:
     branches:
       - main
-    types: [ opened, synchronize, labeled, unlabeled, reopened, edited ]
-
+    types:
+      - opened
+      - synchronize
+      - labeled
+      - unlabeled
+      - reopened
+      - edited
 
 permissions:
   pull-requests: write
 
-env:
-  RELEASE_TAGS: fromJSON('["patch-release", "minor-release", "major-release", "ignore-for-release"]')
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -39,16 +42,31 @@ jobs:
     steps:
       - name: Verify PR Labels
         uses: actions/github-script@v6.3.3
+        env:
+          VALID_LABELS: patch-release, minor-release, major-release, ignore-for-release
+          PR_LABELS: github.event.pull_request.labels.*.name
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            var matches = 0;
-            var validTags = process.env.RELEASE_TAGS;
-            var prTags = github.event.pull_request.labels.*.name;
-            console.log(`PR tags: ${prTags}`);
-            console.log(`Valid tags: ${validTags}`);
-            prTags.forEach(tag => matches += validTags.contains(tag) ? 1 : 0);
-            
+            const { VALID_LABELS } = process.env
+            const validLabels = VALID_LABELS.trim().split(',').map(word => word.trim()).filter(word => word.length > 0);
+            var labelsQuery = await github.rest.issues.listLabelsOnIssue({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo
+              });
+            var prLabels = labelsQuery.data.map(label => label.name);
+            core.info(`PR labels: ${prLabels}`);
+            core.info(`Valid labels: ${validLabels}`);
+            var matchedLabels = [];
+            prLabels.forEach(label => {
+              core.info(`Analyzing label: ${label}`)
+               if(validLabels.includes(label)) {
+                matchedLabels.push(label)
+               }
+              }
+            );
+            core.info(`Matched labels: ${matchedLabels}`)
             var comments = await github.rest.issues.listComments({
               issue_number: context.issue.number,
               owner: context.repo.owner,
@@ -64,22 +82,23 @@ jobs:
                 })
               }
             }
-            if (matches != 1) {
+            
+            if (matchedLabels.length != 1) {
+            const errorMessage = `Pull request must contains only one of the following labels \`${process.env.VALID_LABELS}\`. Found labels: \`${matchedLabels}\``
               github.rest.issues.createComment({
                 issue_number: context.issue.number,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                body: 'This pull request does not contain a valid label. Please add only one of the following labels: `[bug, enhancement, breaking-change, ignore-for-release]`'
+                body: errorMessage
               })
               core.setFailed('Missing required labels')
             }
-            
+
   check_size:
     runs-on: ubuntu-latest
     name: Check Size
     steps:
       - uses: actions/checkout@v3
-
       - name: Check Size
         uses: actions/github-script@v6.3.3
         env:
