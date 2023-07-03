@@ -5,7 +5,7 @@ name: Make release
 #    branches:
 #      - main
 #    types: [ closed ]
-on:                  #TODO to remove
+on: #TODO to remove
   pull_request:
     branches:
       - main
@@ -19,9 +19,7 @@ on:                  #TODO to remove
 
   workflow_dispatch:
 
-permissions:
-  contents: write
-  id-token: read
+permissions: { }
 
 jobs:
   read_semver:
