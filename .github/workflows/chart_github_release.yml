@@ -51,7 +51,7 @@ jobs:
       - name: Git setup
         #${{ github.ref_name }} TODO restore below branch
         run: |
-          git checkout CHK-1667-trigger-deploy-on-merge
+          checkout -b CHK-1667-trigger-deploy-on-merge
           git config --global user.email "github-bot@pagopa.it" && git config --global user.name "github-bot@pagopa.it"
         shell: bash
 
