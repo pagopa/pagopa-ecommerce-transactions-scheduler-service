@@ -105,7 +105,7 @@ jobs:
       - name: Update app version into helm values files
         shell: bash
         run: |
-          NEXT_VERSION_APP= ${{ steps.get_app_version.outputs.app_next_version }}
+          NEXT_VERSION_APP=${{ steps.get_app_version.outputs.app_next_version }}
           echo "Bump Helm app version to $NEXT_VERSION_APP"
           for i in helm/values-*.yaml; do
               [ -f "$i" ] || break
@@ -116,7 +116,7 @@ jobs:
       - name: Update app version into microservice chart
         shell: bash
         run: |
-          NEXT_VERSION_APP= ${{ steps.get_app_version.outputs.app_next_version }}
+          NEXT_VERSION_APP=${{ steps.get_app_version.outputs.app_next_version }}
           echo "Bump microservice chart app version to $NEXT_VERSION_APP"
           CHART_FILE="helm/Chart.yaml"
           
