@@ -33,134 +33,40 @@ jobs:
       - uses: actions/checkout@v3
         with:
           token: ${{ secrets.github_token }}
-          #ref: 'main'
       - uses: ./.github/actions/check-pr-semver-labels
         id: semver_labels
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-  maven-chart-release:
-    name: Maven chart release
+  azure-devops-deploy-pipeline:
+    name: Trigger azure devops deploy pipeline
     runs-on: ubuntu-latest
     needs: semver_labels
     steps:
-      - uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.github_token }}
-          ref: 'main'
-      - name: Log inputs
+      - name: Configure pipeline parameters
+        id: configure_pipeline_parameters
         run: |
           echo "📝 Inputs"
           echo "pull request merged: ${{ github.event.pull_request.merged}}"
           echo "Semver app: ${{ needs.semver_labels.outputs.semver_app}}"
           echo "Semver chart: ${{ needs.semver_labels.outputs.semver_chart}}"
+          semverApp=${{ needs.semver_labels.outputs.semver_app}}
+          semverChart=$(echo ${{ needs.semver_labels.outputs.semver_chart }} |  cut -d'-' -f2)
+          echo "DEV_DEPLOY=True" >> $GITHUB_OUTPUT
+          echo "UAT_PROD_DEPLOY=True" >> $GITHUB_OUTPUT
+          echo "RELEASE_SEMVER=semverApp" >> $GITHUB_OUTPUT
+          echo "RELEASE_CHART_SEMVER=semverChart" >> $GITHUB_OUTPUT
+          echo "FORCE_REPLACE_DOCKER_IMAGE=False" >> $GITHUB_OUTPUT
+          echo "SKIP_RELEASE=False" >> $GITHUB_OUTPUT
+          echo "UAT_SKIP_BLUE_DEPLOYMENT=False" >> $GITHUB_OUTPUT
+          echo "UAT_SKIP_MANUAL_APPROVAL=False" >> $GITHUB_OUTPUT
+          echo "PROD_SKIP_BLUE_DEPLOYMENT=False" >> $GITHUB_OUTPUT
+          echo "🪛 Deploy pipeline parameters"
+          echo "$GITHUB_OUTPUT"
         shell: bash
-
-      - name: Git setup
-        run: |
-          git config --global user.email "github-bot@pagopa.it" && git config --global user.name "github-bot@pagopa.it"
-        shell: bash
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
+      - name: Azure Pipelines Action
+        uses: Azure/pipelines@v1.2
         with:
-          java-version: 17
-          distribution: temurin
-
-      - name: Set up Maven
-        uses: stCarolas/setup-maven@v4.5
-        with:
-          maven-version: 3.8.2
-
-      - name: Cache Maven packages
-        uses: actions/cache@v1
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
-      - name: Bump app major version
-        run: |
-          mvn build-helper:parse-version versions:set -DnewVersion='${parsedVersion.nextMajorVersion}.0.0'
-        if: ${{ needs.semver_labels.outputs.semver_app == 'major' }}
-        shell: bash
-
-      - name: Bump app minor version
-        run: |
-          mvn build-helper:parse-version versions:set -DnewVersion='${parsedVersion.majorVersion}.${parsedVersion.nextMinorVersion}.0
-        if: ${{ needs.semver_labels.outputs.semver_app == 'minor' }}
-        shell: bash
-
-      - name: Bump app patch version
-        run: |
-          mvn build-helper:parse-version versions:set -DnewVersion='${parsedVersion.majorVersion}.${parsedVersion.minorVersion}.${parsedVersion.nextIncrementalVersion}'
-        if: ${{ needs.semver_labels.outputs.semver_app == 'patch' }}
-        shell: bash
-
-      - name: New app version
-        id: get_app_version
-        run: |
-          app_next_version=$(mvn -f pom.xml help:evaluate -Dexpression=project.version -q -DforceStdout)
-          echo "app_next_version=$app_next_version" >> $GITHUB_OUTPUT
-          echo "New app version: $app_next_version"
-          git add pom.xml
-        shell: bash
-
-      - name: Update app version into helm values files
-        shell: bash
-        run: |
-          echo "Bump Helm app version to ${{ steps.get_app_version.outputs.app_next_version }}"
-          for i in helm/values-*.yaml; do
-              [ -f "$i" ] || break
-              yq -i ".microservice-chart.image.tag = \"${{ steps.get_app_version.outputs.app_next_version }}\"" "$i"
-              git add "$i"
-          done
-
-      - name: Update app version into microservice chart
-        shell: bash
-        run: |
-          echo "Bump microservice chart app version to ${{ steps.get_app_version.outputs.app_next_version }}"
-          CHART_FILE="helm/Chart.yaml"
-            if [[ -f "$CHART_FILE" ]]; then
-              yq -i ".appVersion = \"${{ steps.get_app_version.outputs.app_next_version }}\"" "$CHART_FILE"
-              git add "$CHART_FILE"
-            fi
-
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 18
-
-      - name: Setup semver utility
-        uses: borales/actions-yarn@v4
-        with:
-          cmd: global add semver
-
-      - name: Update Version into microservice chart
-        id: update_chart_version
-        shell: bash
-        run: |
-          RELEASE_CHART_SEMVER=$(echo ${{ needs.semver_labels.outputs.semver_chart }} |  cut -d'-' -f2)
-          CHART_FILE="helm/Chart.yaml"
-          CURRENT_CHART_VERSION=$(yq -r '.version' $CHART_FILE)
-          NEXT_CHART_VERSION=$(semver $CURRENT_CHART_VERSION -i $RELEASE_CHART_SEMVER )
-          echo "Bump microservice chart version from $CURRENT_CHART_VERSION to $NEXT_CHART_VERSION"
-          if [[ -f "$CHART_FILE" ]]; then
-          yq -i ".version = \"$NEXT_CHART_VERSION\"" "$CHART_FILE"
-          git add "$CHART_FILE"
-          fi
-          echo "chart_next_version=$NEXT_VERSION" >> $GITHUB_OUTPUT
-
-      - name: Commit and push version update
-        shell: bash
-        run: |
-          git commit -m "Bump version [skip ci]"
-          git push origin ${{ github.ref_name}}
-
-      - name: Create Release
-        uses: ncipollo/release-action@v1.12.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.github_token }}
-        with:
-          commit: ${{ github.ref_name }}
-          tag: $NEXT_VERSION
-          name: Release ${{ steps.semver.outputs.chart_next_version }}
-          makeLatest: latest
-          generateReleaseNotes: true
+          azure-devops-project-url: https://dev.azure.com/pagopaspa/pagoPA-projects
+          azure-pipeline-name: 'pagopa-ecommerce-transactions-scheduler-service.deploy'
+          azure-devops-token: ${{ secrets.AZURE_DEVOPS_TOKEN }}
+          azure-pipeline-variables: '{"DEV_DEPLOY": "${{ steps.configure_pipeline_parameters.outputs.DEV_DEPLOY }}", "UAT_PROD_DEPLOY": "${{ steps.configure_pipeline_parameters.outputs.UAT_PROD_DEPLOY }}", "RELEASE_SEMVER": "${{ steps.configure_pipeline_parameters.outputs.RELEASE_SEMVER }}", "RELEASE_CHART_SEMVER": "${{ steps.configure_pipeline_parameters.outputs.RELEASE_CHART_SEMVER }}", "FORCE_REPLACE_DOCKER_IMAGE": "${{ steps.configure_pipeline_parameters.outputs.FORCE_REPLACE_DOCKER_IMAGE }}", "SKIP_RELEASE": "${{ steps.configure_pipeline_parameters.outputs.SKIP_RELEASE }}", "UAT_SKIP_BLUE_DEPLOYMENT": "${{ steps.configure_pipeline_parameters.outputs.UAT_SKIP_BLUE_DEPLOYMENT }}", "UAT_SKIP_MANUAL_APPROVAL": "${{ steps.configure_pipeline_parameters.outputs.UAT_SKIP_MANUAL_APPROVAL }}", "PROD_SKIP_BLUE_DEPLOYMENT": "${{ steps.configure_pipeline_parameters.outputs.PROD_SKIP_BLUE_DEPLOYMENT }}"}'
