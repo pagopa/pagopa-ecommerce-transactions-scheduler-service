@@ -96,16 +96,16 @@ jobs:
       - name: New app version
         id: get_app_version
         run: |
-          app_version=$(mvn -f pom.xml help:evaluate -Dexpression=project.version -q -DforceStdout)
-          echo $app_version >> $GITHUB_OUTPUT
-          echo "New app version: $app_version"
+          app_next_version=$(mvn -f pom.xml help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo app_next_version=$app_next_version >> $GITHUB_OUTPUT
+          echo "New app version: $app_next_version"
           git add pom.xml
         shell: bash
 
       - name: Update app version into helm values files
         shell: bash
         run: |
-          echo "Bump Helm app version to ${{ steps.get_app_version.outputs.app_version }}"
+          echo "Bump Helm app version to ${{ steps.get_app_version.outputs.app_next_version }}"
           for i in helm/values-*.yaml; do
               [ -f "$i" ] || break
               yq -i ".microservice-chart.image.tag = \"$(next_version_app.value)\"" "$i"
@@ -146,7 +146,7 @@ jobs:
           yq -i ".version = \"$NEXT_CHART_VERSION\"" "$CHART_FILE"
           git add "$CHART_FILE"
           fi
-          echo $NEXT_VERSION >> $GITHUB_OUTPUT
+          echo chart_next_version=$NEXT_VERSION >> $GITHUB_OUTPUT
 
       - name: Commit and push version update
         shell: bash
@@ -161,6 +161,6 @@ jobs:
       #  with:
       #    commit: ${{ github.ref_name }}
       #    tag: $NEXT_VERSION
-      #    name: Release ${{ steps.semver.outputs.version }}
+      #    name: Release ${{ steps.semver.outputs.chart_next_version }}
       #    makeLatest: latest
       #    generateReleaseNotes: true
