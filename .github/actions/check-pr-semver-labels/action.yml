@@ -28,7 +28,7 @@ runs:
       with:
         github-token: ${{ inputs.github_token }}
         script: |
-          const { VALID_APP_VERSION_LABELS, VALID_CHART_VERSION_LABELS } = process.env
+          const { VALID_APP_VERSION_LABELS, VALID_CHART_VERSION_LABELS, SKIP_RELEASE_LABEL } = process.env
           const validLabelsSemver = VALID_APP_VERSION_LABELS.trim().split(',').map(word => word.trim()).filter(word => word.length > 0);
           const validLabelsChartSemver = VALID_CHART_VERSION_LABELS.trim().split(',').map(word => word.trim()).filter(word => word.length > 0);
           const skipReleaseLabel = SKIP_RELEASE_LABEL;
