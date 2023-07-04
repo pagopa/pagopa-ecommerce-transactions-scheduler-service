@@ -97,7 +97,7 @@ jobs:
         id: get_app_version
         run: |
           app_next_version=$(mvn -f pom.xml help:evaluate -Dexpression=project.version -q -DforceStdout)
-          echo app_next_version=$app_next_version >> $GITHUB_OUTPUT
+          echo "app_next_version=$app_next_version" >> $GITHUB_OUTPUT
           echo "New app version: $app_next_version"
           git add pom.xml
         shell: bash
@@ -105,23 +105,20 @@ jobs:
       - name: Update app version into helm values files
         shell: bash
         run: |
-          NEXT_VERSION_APP=${{ steps.get_app_version.outputs.app_next_version }}
-          echo "Bump Helm app version to $NEXT_VERSION_APP"
+          echo "Bump Helm app version to ${{ steps.get_app_version.outputs.app_next_version }}"
           for i in helm/values-*.yaml; do
               [ -f "$i" ] || break
-              yq -i ".microservice-chart.image.tag = \"$NEXT_VERSION_APP\"" "$i"
+              yq -i ".microservice-chart.image.tag = \"${{ steps.get_app_version.outputs.app_next_version }}\"" "$i"
               git add "$i"
           done
 
       - name: Update app version into microservice chart
         shell: bash
         run: |
-          NEXT_VERSION_APP=${{ steps.get_app_version.outputs.app_next_version }}
-          echo "Bump microservice chart app version to $NEXT_VERSION_APP"
+          echo "Bump microservice chart app version to ${{ steps.get_app_version.outputs.app_next_version }}"
           CHART_FILE="helm/Chart.yaml"
-          
             if [[ -f "$CHART_FILE" ]]; then
-              yq -i ".appVersion = \"$(NEXT_VERSION_APP)\"" "$CHART_FILE"
+              yq -i ".appVersion = \"${{ steps.get_app_version.outputs.app_next_version }}\"" "$CHART_FILE"
               git add "$CHART_FILE"
             fi
 
@@ -147,7 +144,7 @@ jobs:
           yq -i ".version = \"$NEXT_CHART_VERSION\"" "$CHART_FILE"
           git add "$CHART_FILE"
           fi
-          echo chart_next_version=$NEXT_VERSION >> $GITHUB_OUTPUT
+          echo "chart_next_version=$NEXT_VERSION" >> $GITHUB_OUTPUT
 
       - name: Commit and push version update
         shell: bash
