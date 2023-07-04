@@ -33,16 +33,18 @@ runs:
           const { VALID_APP_VERSION_LABELS, VALID_CHART_VERSION_LABELS, SKIP_RELEASE_LABEL } = process.env
           const validLabelsSemver = VALID_APP_VERSION_LABELS.trim().split(',').map(word => word.trim()).filter(word => word.length > 0);
           const validLabelsChartSemver = VALID_CHART_VERSION_LABELS.trim().split(',').map(word => word.trim()).filter(word => word.length > 0);
-          const skipReleaseLabel = SKIP_RELEASE_LABEL;
+          const skipReleaseLabel = SKIP_RELEASE_LABEL.trim();
           var labelsQuery = await github.rest.issues.listLabelsOnIssue({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo
             });
           var prLabels = labelsQuery.data.map(label => label.name);
-          core.info(`PR labels: ${prLabels}`);
-          core.info(`Valid labels semver: ${validLabelsSemver}`);
-          core.info(`Valid labels chart semver: ${validLabelsChartSemver}`);
+          core.info(`PR labels: ${prLabels}
+          Valid labels semver: ${validLabelsSemver}
+          Valid labels chart semver: ${validLabelsChartSemver}
+          Skip release label: ${skipReleaseLabel}`
+          );
           var matchedLabelsSemver = [];
           var matchedLabelsChartSemver = [];
           var skipRelease = false;
