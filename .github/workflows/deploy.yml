@@ -1,10 +1,21 @@
 name: Trigger pipeline deploy
 
-on:
+#on:
+#  pull_request:
+#    branches:
+#      - main
+#    types: [ closed ]
+on: #TODO to remove
   pull_request:
     branches:
       - main
-    types: [ closed ]
+    types:
+      - opened
+      - synchronize
+      - labeled
+      - unlabeled
+      - reopened
+      - edited
 
   workflow_dispatch:
 
