@@ -87,7 +87,7 @@ runs:
             app version: ${matchedLabelsSemver.map(label => `\`${label}\``).join()}
             chart version: ${matchedLabelsChartSemver.map(label => `\`${label}\``).join()}
           
-            If you want to skip release for this PR add ${skipReleaseLabel}
+            If you want to skip release for this PR add \`${skipReleaseLabel}\` label
             `
             github.rest.issues.createComment({
               issue_number: context.issue.number,
