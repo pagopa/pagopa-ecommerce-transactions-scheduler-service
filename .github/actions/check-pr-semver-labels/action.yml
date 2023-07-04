@@ -59,7 +59,6 @@ runs:
             if(label == skipReleaseLabel){
               skipRelease = true;
             }
-            core.info(`Analyzing label: ${label}, skip release: ${skipRelease}`);
             }
           );
           core.info(
