@@ -49,7 +49,7 @@ runs:
           var matchedLabelsChartSemver = [];
           var skipRelease = false;
           prLabels.forEach(label => {
-            core.info(`Analyzing label: ${label}`)
+            core.info(`Analyzing label: ${label}`);
              if(validLabelsSemver.includes(label)) {
               matchedLabelsSemver.push(label)
              }
@@ -59,6 +59,7 @@ runs:
             if(label == skipReleaseLabel){
               skipRelease = true;
             }
+            core.info(`Analyzing label: ${label}, skip release: ${skipRelease});
             }
           );
           core.info(
@@ -101,9 +102,13 @@ runs:
             })
             core.setFailed('Missing required labels')
           } else {
-            var semverAppVersion = matchedLabelsSemver.length==1?matchedLabelsSemver[0]:"none";
-            var semverChartVersion = matchedLabelsChartSemver.length==1?matchedLabelsChartSemver[0]:"none";
-            core.setOutput("semver_app", semverAppVersion);
-            core.setOutput("semver_chart", semverChartVersion);
-            core.setOutput("skip_release", skipRelease);
+            if(skipRelease){
+                core.setOutput("semver_app", "none");
+                core.setOutput("semver_chart", "none");
+                core.setOutput("skip_release", "true");
+            } else {
+                core.setOutput("semver_app", matchedLabelsSemver[0]);
+                core.setOutput("semver_chart", matchedLabelsChartSemver[0]);
+                core.setOutput("skip_release", false);
+            }
           }
