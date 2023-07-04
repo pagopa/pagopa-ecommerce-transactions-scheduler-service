@@ -26,7 +26,8 @@ jobs:
   semver_labels:
     name: Read semver labels from merged PR
     runs-on: ubuntu-latest
-    if: github.event.pull_request.merged == true
+    #TODO remove this comment
+    #if: github.event.pull_request.merged == true
     outputs:
       semver_app: ${{ steps.semver_labels.outputs.semver_app }}
       semver_chart: ${{ steps.semver_labels.outputs.semver_chart }}
