@@ -43,6 +43,7 @@ jobs:
     name: Trigger azure devops deploy pipeline
     runs-on: ubuntu-latest
     needs: semver_labels
+    environment: prod
     steps:
       - name: Configure pipeline parameters
         id: configure_pipeline_parameters
