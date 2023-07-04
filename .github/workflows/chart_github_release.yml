@@ -135,7 +135,7 @@ jobs:
         id: update_chart_version
         shell: bash
         run: |
-          RELEASE_CHART_SEMVER=${{ steps.get_app_version.outputs.chart_version }}
+          RELEASE_CHART_SEMVER=${{ needs.semver_labels.outputs.semver_chart }}
           CHART_FILE="helm/Chart.yaml"
           CURRENT_CHART_VERSION=$(yq -r '.version' $CHART_FILE)
           NEXT_CHART_VERSION=$(semver $CURRENT_CHART_VERSION -i $RELEASE_CHART_SEMVER )
