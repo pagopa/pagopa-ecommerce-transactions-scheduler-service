@@ -4,7 +4,6 @@ description: "Check semantic versioning labels"
 inputs:
   github_token:
     required: true
-    type: string
     description: The github token used to read PR metadata
 
 outputs:
@@ -97,6 +96,9 @@ runs:
             })
             core.setFailed('Missing required labels')
           } else {
-            core.setOutput("semver_app",matchedLabelsSemver[0]);
-            core.setOutput("semver_chart",matchedLabelsChartSemver[0]);
+            var semverAppVersion = matchedLabelsSemver.length==1?matchedLabelsSemver[0]:"none";
+            var semverChartVersion = matchedLabelsChartSemver.length==1?matchedLabelsChartSemver[0]:"none";
+            core.setOutput("semver_app", semverAppVersion);
+            core.setOutput("semver_chart", semverChartVersion);
+            core.setOutput("skip_release", skipRelease);
           }
