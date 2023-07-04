@@ -29,15 +29,18 @@ microservice-chart:
       ELASTIC_APM_SERVICE_NAME: pagopa-ecommerce-transactions-scheduler-service-blue
       ELASTIC_APM_APPLICATION_PACKAGES: it.pagopa.ecommerce.transactions.scheduler
       ELASTIC_APM_SERVER_URL: http://quickstart-apm-http.elastic-system.svc:8200
-      ELASTIC_APM_LOG_SENDING: "true"
+      ELASTIC_APM_LOG_SENDING: "false"
       PENDING_TRANSACTIONS_SEND_PAYMENT_RESULT_TIMEOUT_SECONDS: "3900"
+      TRANSIENT_QUEUES_TTL_SECONDS: "2592000"
+      ECS_SERVICE_NAME: pagopa-ecommerce-transactions-scheduler-service-blue
+      ECS_SERVICE_ENVIRONMENT: "prod"
     envSecret:
       MONGO_PASSWORD: mongo-ecommerce-password
-      QUEUE_CONNECTION_STRING: ecommerce-storage-connection-string
+      QUEUE_TRANSIENT_CONNECTION_STRING: ecommerce-storage-transient-connection-string
       ELASTIC_APM_SECRET_TOKEN: elastic-apm-secret-token
   image:
     repository: pagopapcommonacr.azurecr.io/pagopaecommercetransactionsschedulerservice
-    tag: "0.2.2"
+    tag: "0.2.6"
     pullPolicy: Always
   livenessProbe:
     httpGet:
@@ -114,11 +117,14 @@ microservice-chart:
     ELASTIC_APM_SERVICE_NAME: pagopa-ecommerce-transactions-scheduler-service
     ELASTIC_APM_APPLICATION_PACKAGES: it.pagopa.ecommerce.transactions.scheduler
     ELASTIC_APM_SERVER_URL: http://quickstart-apm-http.elastic-system.svc:8200
-    ELASTIC_APM_LOG_SENDING: "true"
+    ELASTIC_APM_LOG_SENDING: "false"
     PENDING_TRANSACTIONS_SEND_PAYMENT_RESULT_TIMEOUT_SECONDS: "3900"
+    TRANSIENT_QUEUES_TTL_SECONDS: "2592000"
+    ECS_SERVICE_NAME: pagopa-ecommerce-transactions-scheduler-service
+    ECS_SERVICE_ENVIRONMENT: "prod"
   envSecret:
     MONGO_PASSWORD: mongo-ecommerce-password
-    QUEUE_CONNECTION_STRING: ecommerce-storage-connection-string
+    QUEUE_TRANSIENT_CONNECTION_STRING: ecommerce-storage-transient-connection-string
     ELASTIC_APM_SECRET_TOKEN: elastic-apm-secret-token
   keyvault:
     name: "pagopa-p-ecommerce-kv"
