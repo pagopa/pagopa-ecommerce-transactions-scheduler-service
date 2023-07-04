@@ -13,6 +13,9 @@ outputs:
   semver_chart:
     description: "Chart semantic version label"
     value: ${{ steps.check_labels.outputs.semver_chart }}
+  skip_release:
+    description: "Skip release flag"
+    value: ${{ steps.check_labels.outputs.skip_release }}
 runs:
   using: "composite"
   steps:
