@@ -1,21 +1,10 @@
 name: Make release
 
-#on:
-#  pull_request:
-#    branches:
-#      - main
-#    types: [ closed ]
-on: #TODO to remove
+on:
   pull_request:
     branches:
       - main
-    types:
-      - opened
-      - synchronize
-      - labeled
-      - unlabeled
-      - reopened
-      - edited
+    types: [ closed ]
 
   workflow_dispatch:
 
@@ -105,19 +94,21 @@ jobs:
       - name: Update app version into helm values files
         shell: bash
         run: |
-          echo "Bump Helm app version to ${{ steps.get_app_version.outputs.app_next_version }}"
+          NEXT_VERSION_APP= ${{ steps.get_app_version.outputs.app_next_version }}
+          echo "Bump Helm app version to $NEXT_VERSION_APP"
           for i in helm/values-*.yaml; do
               [ -f "$i" ] || break
-              yq -i ".microservice-chart.image.tag = \"$(next_version_app.value)\"" "$i"
+              yq -i ".microservice-chart.image.tag = \"$NEXT_VERSION_APP\"" "$i"
               git add "$i"
           done
 
-      - name: Update Version into microservice chart
+      - name: Update app version into microservice chart
         shell: bash
         run: |
-          echo "Bump microservice chart app version to ${{ steps.get_app_version.outputs.app_version }}"
+          NEXT_VERSION_APP= ${{ steps.get_app_version.outputs.app_next_version }}
+          echo "Bump microservice chart app version to $NEXT_VERSION_APP"
           CHART_FILE="helm/Chart.yaml"
-          NEXT_VERSION_APP= ${{ steps.get_app_version.outputs.app_version }}
+          
             if [[ -f "$CHART_FILE" ]]; then
               yq -i ".appVersion = \"$(NEXT_VERSION_APP)\"" "$CHART_FILE"
               git add "$CHART_FILE"
@@ -136,12 +127,11 @@ jobs:
         id: update_chart_version
         shell: bash
         run: |
-          echo "Bump microservice chart version to ${{ steps.get_app_version.outputs.chart_version }}"
           RELEASE_CHART_SEMVER=${{ steps.get_app_version.outputs.chart_version }}
           CHART_FILE="helm/Chart.yaml"
           CURRENT_CHART_VERSION=$(yq -r '.version' $CHART_FILE)
           NEXT_CHART_VERSION=$(semver $CURRENT_CHART_VERSION -i $RELEASE_CHART_SEMVER )
-          echo "Old chart version: $CURRENT_CHART_VERSION, new version $NEXT_CHART_VERSION"
+          echo "Bump microservice chart version from $CURRENT_CHART_VERSION to $NEXT_CHART_VERSION"
           if [[ -f "$CHART_FILE" ]]; then
           yq -i ".version = \"$NEXT_CHART_VERSION\"" "$CHART_FILE"
           git add "$CHART_FILE"
@@ -154,13 +144,13 @@ jobs:
           git commit -m "Bump version [skip ci]"
           git push origin ${{ github.ref_name}}
 
-      #- name: Create Release
-      #  uses: ncipollo/release-action@v1.12.0
-      #  env:
-      #    GITHUB_TOKEN: ${{ secrets.github_token }}
-      #  with:
-      #    commit: ${{ github.ref_name }}
-      #    tag: $NEXT_VERSION
-      #    name: Release ${{ steps.semver.outputs.chart_next_version }}
-      #    makeLatest: latest
-      #    generateReleaseNotes: true
+      - name: Create Release
+        uses: ncipollo/release-action@v1.12.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.github_token }}
+        with:
+          commit: ${{ github.ref_name }}
+          tag: $NEXT_VERSION
+          name: Release ${{ steps.semver.outputs.chart_next_version }}
+          makeLatest: latest
+          generateReleaseNotes: true
