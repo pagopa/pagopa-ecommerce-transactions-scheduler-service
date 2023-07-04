@@ -146,6 +146,11 @@ jobs:
           fi
           echo "chart_next_version=$NEXT_VERSION" >> $GITHUB_OUTPUT
 
+      - uses: actions/checkout@v3
+        with:
+          ref: 'main'
+          token: ${{ secrets.github_token }}
+
       - name: Commit and push version update
         shell: bash
         run: |
