@@ -33,6 +33,7 @@ jobs:
       - uses: actions/checkout@v3
         with:
           token: ${{ secrets.github_token }}
+          ref: 'main'
       - uses: ./.github/actions/check-pr-semver-labels
         id: semver_labels
         with:
@@ -145,11 +146,6 @@ jobs:
           git add "$CHART_FILE"
           fi
           echo "chart_next_version=$NEXT_VERSION" >> $GITHUB_OUTPUT
-
-      - uses: actions/checkout@v3
-        with:
-          ref: 'main'
-          token: ${{ secrets.github_token }}
 
       - name: Commit and push version update
         shell: bash
