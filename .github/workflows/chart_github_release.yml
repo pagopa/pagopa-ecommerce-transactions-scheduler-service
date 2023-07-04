@@ -61,8 +61,7 @@ jobs:
           echo "UAT_SKIP_MANUAL_APPROVAL=False" >> $GITHUB_OUTPUT
           echo "PROD_SKIP_BLUE_DEPLOYMENT=False" >> $GITHUB_OUTPUT
         shell: bash
-      - name: Configure pipeline parameters
-        id: configure_pipeline_parameters
+      - name: Log pipeline parameters
         run: |
           echo "🪛 Pipeline parameters"
           echo "DEV_DEPLOY=${{ steps.configure_pipeline_parameters.outputs.DEV_DEPLOY }}"
