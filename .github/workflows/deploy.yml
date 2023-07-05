@@ -60,9 +60,9 @@ jobs:
           echo "DEV_DEPLOY=True" >> $GITHUB_OUTPUT
           echo "UAT_PROD_DEPLOY=True" >> $GITHUB_OUTPUT
           echo "RELEASE_SEMVER=$semverApp" >> $GITHUB_OUTPUT
-          echo "RELEASE_CHART_SEMVER=False" >> $GITHUB_OUTPUT
+          echo "RELEASE_CHART_SEMVER=$semverChart" >> $GITHUB_OUTPUT
           echo "FORCE_REPLACE_DOCKER_IMAGE=False" >> $GITHUB_OUTPUT
-          echo "SKIP_RELEASE=$skipRelease" >> $GITHUB_OUTPUT
+          echo "SKIP_RELEASE=False" >> $GITHUB_OUTPUT
           echo "UAT_SKIP_BLUE_DEPLOYMENT=False" >> $GITHUB_OUTPUT
           echo "UAT_SKIP_MANUAL_APPROVAL=False" >> $GITHUB_OUTPUT
           echo "PROD_SKIP_BLUE_DEPLOYMENT=False" >> $GITHUB_OUTPUT
