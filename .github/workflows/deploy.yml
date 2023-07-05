@@ -57,15 +57,15 @@ jobs:
           semverApp=$(echo ${{ needs.semver_labels.outputs.semver_app}} | sed "s/ignore-for-release/none/")
           semverChart=$(echo ${{ needs.semver_labels.outputs.semver_chart }} |  cut -d'-' -f2 | sed "s/skip-release/none/")
           skipRelease=$(echo ${{ needs.semver_labels.outputs.skip_release }})
-          echo "DEV_DEPLOY=true" >> $GITHUB_OUTPUT
-          echo "UAT_PROD_DEPLOY=true" >> $GITHUB_OUTPUT
+          echo "DEV_DEPLOY=True" >> $GITHUB_OUTPUT
+          echo "UAT_PROD_DEPLOY=True" >> $GITHUB_OUTPUT
           echo "RELEASE_SEMVER=$semverApp" >> $GITHUB_OUTPUT
           echo "RELEASE_CHART_SEMVER=$semverChart" >> $GITHUB_OUTPUT
-          echo "FORCE_REPLACE_DOCKER_IMAGE=false" >> $GITHUB_OUTPUT
-          echo "SKIP_RELEASE=false" >> $GITHUB_OUTPUT
-          echo "UAT_SKIP_BLUE_DEPLOYMENT=false" >> $GITHUB_OUTPUT
-          echo "UAT_SKIP_MANUAL_APPROVAL=false" >> $GITHUB_OUTPUT
-          echo "PROD_SKIP_BLUE_DEPLOYMENT=false" >> $GITHUB_OUTPUT
+          echo "FORCE_REPLACE_DOCKER_IMAGE=False" >> $GITHUB_OUTPUT
+          echo "SKIP_RELEASE=False" >> $GITHUB_OUTPUT
+          echo "UAT_SKIP_BLUE_DEPLOYMENT=False" >> $GITHUB_OUTPUT
+          echo "UAT_SKIP_MANUAL_APPROVAL=False" >> $GITHUB_OUTPUT
+          echo "PROD_SKIP_BLUE_DEPLOYMENT=False" >> $GITHUB_OUTPUT
         shell: bash
       - name: Log pipeline parameters
         run: |
