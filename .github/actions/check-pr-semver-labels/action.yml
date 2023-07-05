@@ -104,10 +104,10 @@ runs:
             if(skipRelease){
                 core.setOutput("semver_app", "none");
                 core.setOutput("semver_chart", "none");
-                core.setOutput("skip_release", "true");
+                core.setOutput("skip_release", "True");
             } else {
                 core.setOutput("semver_app", matchedLabelsSemver[0]);
                 core.setOutput("semver_chart", matchedLabelsChartSemver[0]);
-                core.setOutput("skip_release", "false");
+                core.setOutput("skip_release", "False");
             }
           }
