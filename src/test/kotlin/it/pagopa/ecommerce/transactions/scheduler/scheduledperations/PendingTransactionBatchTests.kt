@@ -1,30 +1,37 @@
 package it.pagopa.ecommerce.transactions.scheduler.scheduledperations
 
 import it.pagopa.ecommerce.transactions.scheduler.transactionanalyzer.PendingTransactionAnalyzer
-import java.time.Duration
-import java.time.temporal.ChronoUnit
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.TimeoutException
-import kotlin.time.ExperimentalTime
-import kotlin.time.measureTime
-import kotlin.time.toJavaDuration
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.extension.ExtendWith
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.Arguments
+import org.junit.jupiter.params.provider.MethodSource
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
 import org.mockito.kotlin.given
+import org.mockito.kotlin.times
+import org.mockito.kotlin.verify
 import org.springframework.test.context.TestPropertySource
 import reactor.core.publisher.Mono
+import java.time.Duration
+import java.time.temporal.ChronoUnit
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
+import java.util.stream.Stream
+import kotlin.time.ExperimentalTime
+import kotlin.time.measureTime
+import kotlin.time.toJavaDuration
 
 @ExtendWith(MockitoExtension::class)
 @TestPropertySource(locations = ["classpath:application-tests.properties"])
 @OptIn(ExperimentalTime::class)
 class PendingTransactionBatchTests {
 
-    @Mock private lateinit var pendingTransactionAnalyzer: PendingTransactionAnalyzer
+    @Mock
+    private lateinit var pendingTransactionAnalyzer: PendingTransactionAnalyzer
 
     private lateinit var pendingTransactionBatch: PendingTransactionBatch
 
@@ -42,7 +49,7 @@ class PendingTransactionBatchTests {
                 chronExpression = cronExecutionString,
                 executionRateMultiplier = executionRateMultiplier,
                 batchMaxDurationSeconds = maxDurationSeconds,
-                maxTransactionPerPage = 1000,
+                maxTransactionPerPage = maxTransactionPerPage,
             )
     }
 
@@ -52,14 +59,14 @@ class PendingTransactionBatchTests {
         given(pendingTransactionAnalyzer.getTotalTransactionCount(any(), any()))
             .willReturn(Mono.just(1L))
         given(
-                pendingTransactionAnalyzer.searchPendingTransactions(
-                    any(),
-                    any(),
-                    any(),
-                    any(),
-                    any()
-                )
+            pendingTransactionAnalyzer.searchPendingTransactions(
+                any(),
+                any(),
+                any(),
+                any(),
+                any()
             )
+        )
             .willReturn(Mono.just(true))
         assertDoesNotThrow { pendingTransactionBatch.execute() }
     }
@@ -114,14 +121,14 @@ class PendingTransactionBatchTests {
         given(pendingTransactionAnalyzer.getTotalTransactionCount(any(), any()))
             .willReturn(Mono.just(1L))
         given(
-                pendingTransactionAnalyzer.searchPendingTransactions(
-                    any(),
-                    any(),
-                    any(),
-                    any(),
-                    any()
-                )
+            pendingTransactionAnalyzer.searchPendingTransactions(
+                any(),
+                any(),
+                any(),
+                any(),
+                any()
             )
+        )
             .willReturn(Mono.error(RuntimeException("Error executing batch")))
         assertDoesNotThrow { pendingTransactionBatch.execute() }
     }
@@ -135,7 +142,7 @@ class PendingTransactionBatchTests {
                 chronExpression = cronExecutionString,
                 executionRateMultiplier = executionRateMultiplier,
                 batchMaxDurationSeconds = 1,
-                maxTransactionPerPage = 100
+                maxTransactionPerPage = maxTransactionPerPage
             )
         val maxExecutionTime =
             pendingTransactionBatch.getMaxDuration(
@@ -148,28 +155,84 @@ class PendingTransactionBatchTests {
         given(pendingTransactionAnalyzer.getTotalTransactionCount(any(), any()))
             .willReturn(Mono.just(1L))
         given(
-                pendingTransactionAnalyzer.searchPendingTransactions(
-                    any(),
-                    any(),
-                    any(),
-                    any(),
-                    any()
-                )
+            pendingTransactionAnalyzer.searchPendingTransactions(
+                any(),
+                any(),
+                any(),
+                any(),
+                any()
             )
+        )
             .willReturn(Mono.just(true).delayElement(pendingTransactionBatchTaskDuration))
 
         val duration =
             measureTime {
-                    val exception =
-                        assertThrows<Exception> {
-                            pendingTransactionBatch
-                                .pendingTransactionAnalyzerPaginatedPipeline()
-                                .block()
-                        }
-                    assertTrue(exception.cause is TimeoutException)
-                }
+                val exception =
+                    assertThrows<Exception> {
+                        pendingTransactionBatch
+                            .pendingTransactionAnalyzerPaginatedPipeline()
+                            .block()
+                    }
+                assertTrue(exception.cause is TimeoutException)
+            }
                 .toJavaDuration()
         assertTrue(duration < pendingTransactionBatchTaskDuration)
         assertEquals(pendingTransactionBatch.batchMaxDurationSeconds, duration.seconds.toInt())
+    }
+
+    @ParameterizedTest
+    @MethodSource("paginationTestArguments")
+    fun `Should handle pagination correctly`(transactionsCount: Int, expectedPages: Int) {
+        // assertions
+        given(pendingTransactionAnalyzer.getTotalTransactionCount(any(), any()))
+            .willReturn(Mono.just(transactionsCount.toLong()))
+        given(
+            pendingTransactionAnalyzer.searchPendingTransactions(
+                any(),
+                any(),
+                any(),
+                any(),
+                any()
+            )
+        )
+            .willReturn(Mono.just(true))
+        assertDoesNotThrow { pendingTransactionBatch.execute() }
+        verify(pendingTransactionAnalyzer, times(expectedPages)).searchPendingTransactions(
+            any(),
+            any(),
+            any(),
+            any(),
+            any()
+        )
+    }
+
+    @Test
+    fun `Should not perform any computation for no transaction found`() {
+        // assertions
+        given(pendingTransactionAnalyzer.getTotalTransactionCount(any(), any()))
+            .willReturn(Mono.just(0L))
+        assertDoesNotThrow { pendingTransactionBatch.execute() }
+        verify(pendingTransactionAnalyzer, times(0)).searchPendingTransactions(
+            any(),
+            any(),
+            any(),
+            any(),
+            any()
+        )
+    }
+
+    companion object {
+
+
+        private const val maxTransactionPerPage = 5
+
+        @JvmStatic
+        private fun paginationTestArguments() =
+            Stream.of(
+                Arguments.of(maxTransactionPerPage * 2, 2),
+                Arguments.of(maxTransactionPerPage * 2 + 1, 3),
+                Arguments.of(maxTransactionPerPage * 2 - 1, 2),
+                Arguments.of(maxTransactionPerPage - 1, 1)
+            )
     }
 }
