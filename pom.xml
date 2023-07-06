@@ -10,7 +10,7 @@
     </parent>
     <groupId>it.pagopa.ecommerce</groupId>
     <artifactId>pagopa-ecommerce-transactions-scheduler-service</artifactId>
-    <version>0.2.3</version>
+    <version>0.2.6</version>
     <name>pagopa-ecommerce-transactions-scheduler-service</name>
     <description>pagoPA ecommerce microservice to check perform scheduled operations on transactions such as analyze
         pending transactions
@@ -28,6 +28,7 @@
         <kotlinx-coroutines.version>1.6.2</kotlinx-coroutines.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <slf4j.version>2.0.6</slf4j.version>
+        <ecs-logging-version>1.5.0</ecs-logging-version>
     </properties>
     <dependencies>
         <dependency>
@@ -120,6 +121,11 @@
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
             <version>1.2.3</version>
+        </dependency>
+        <dependency>
+            <groupId>co.elastic.logging</groupId>
+            <artifactId>logback-ecs-encoder</artifactId>
+            <version>${ecs-logging-version}</version>
         </dependency>
         <dependency>
             <groupId>org.mockito.kotlin</groupId>

@@ -16,7 +16,8 @@ import reactor.core.scheduler.Schedulers
 abstract class EventPublisher<E>(
     private val queueAsyncClient: QueueAsyncClient,
     private val logger: Logger,
-    private val parallelEventsToProcess: Int
+    private val parallelEventsToProcess: Int,
+    private val transientQueueTTLSeconds: Int
 ) where E : TransactionEvent<*> {
 
     private fun publishEvent(
@@ -31,7 +32,7 @@ abstract class EventPublisher<E>(
                     .sendMessageWithResponse(
                         BinaryData.fromObject(event),
                         Duration.ofMillis(visibilityTimeoutMillis),
-                        null
+                        Duration.ofSeconds(transientQueueTTLSeconds.toLong())
                     )
                     .flatMap {
                         logger.info(

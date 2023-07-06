@@ -57,6 +57,8 @@ class TransactionExpiredEventPublisherTests {
 
     @Captor private lateinit var eventsVisibilityTimeoutCaptor: ArgumentCaptor<Duration>
 
+    private val transientQueueTTLSeconds = 30
+
     @Test
     fun `Should publish all events`() {
         // preconditions
@@ -107,7 +109,8 @@ class TransactionExpiredEventPublisherTests {
                         expiredEventQueueAsyncClient = queueAsyncClient,
                         viewRepository = viewRepository,
                         eventStoreRepository = eventStoreRepository,
-                        parallelEventToProcess = 1
+                        parallelEventToProcess = 1,
+                        transientQueueTTLSeconds = transientQueueTTLSeconds
                     )
                     .publishExpiryEvents(
                         baseDocuments,
@@ -162,7 +165,12 @@ class TransactionExpiredEventPublisherTests {
             )
             currentIdx--
         }
-        verify(queueAsyncClient, times(5)).sendMessageWithResponse(any<BinaryData>(), any(), any())
+        verify(queueAsyncClient, times(5))
+            .sendMessageWithResponse(
+                any<BinaryData>(),
+                any(),
+                eq(Duration.ofSeconds(transientQueueTTLSeconds.toLong()))
+            )
         verify(eventStoreRepository, times(5)).save(any())
         verify(viewRepository, times(5)).save(any())
     }
@@ -198,7 +206,8 @@ class TransactionExpiredEventPublisherTests {
                         expiredEventQueueAsyncClient = queueAsyncClient,
                         viewRepository = viewRepository,
                         eventStoreRepository = eventStoreRepository,
-                        parallelEventToProcess = 1
+                        parallelEventToProcess = 1,
+                        transientQueueTTLSeconds = transientQueueTTLSeconds
                     )
                     .publishExpiryEvents(
                         generateTransactionBaseDocuments(
@@ -213,7 +222,12 @@ class TransactionExpiredEventPublisherTests {
             .expectNext(false)
             .verifyComplete()
         // assertions
-        verify(queueAsyncClient, times(0)).sendMessageWithResponse(any<BinaryData>(), any(), any())
+        verify(queueAsyncClient, times(0))
+            .sendMessageWithResponse(
+                any<BinaryData>(),
+                any(),
+                eq(Duration.ofSeconds(transientQueueTTLSeconds.toLong()))
+            )
         verify(viewRepository, times(5)).save(any())
         verify(eventStoreRepository, times(5)).save(any())
     }
@@ -232,7 +246,8 @@ class TransactionExpiredEventPublisherTests {
                         expiredEventQueueAsyncClient = queueAsyncClient,
                         viewRepository = viewRepository,
                         eventStoreRepository = eventStoreRepository,
-                        parallelEventToProcess = 1
+                        parallelEventToProcess = 1,
+                        transientQueueTTLSeconds = transientQueueTTLSeconds
                     )
                     .publishExpiryEvents(
                         generateTransactionBaseDocuments(
@@ -247,7 +262,12 @@ class TransactionExpiredEventPublisherTests {
             .expectNext(false)
             .verifyComplete()
         // assertions
-        verify(queueAsyncClient, times(0)).sendMessageWithResponse(any<BinaryData>(), any(), any())
+        verify(queueAsyncClient, times(0))
+            .sendMessageWithResponse(
+                any<BinaryData>(),
+                any(),
+                eq(Duration.ofSeconds(transientQueueTTLSeconds.toLong()))
+            )
         verify(viewRepository, times(0)).save(any())
         verify(eventStoreRepository, times(5)).save(any())
     }
@@ -289,7 +309,8 @@ class TransactionExpiredEventPublisherTests {
                         expiredEventQueueAsyncClient = queueAsyncClient,
                         viewRepository = viewRepository,
                         eventStoreRepository = eventStoreRepository,
-                        parallelEventToProcess = 1
+                        parallelEventToProcess = 1,
+                        transientQueueTTLSeconds = transientQueueTTLSeconds
                     )
                     .publishExpiryEvents(
                         transactions,
@@ -301,7 +322,12 @@ class TransactionExpiredEventPublisherTests {
             .expectNext(false)
             .verifyComplete()
         // assertions
-        verify(queueAsyncClient, times(5)).sendMessageWithResponse(any<BinaryData>(), any(), any())
+        verify(queueAsyncClient, times(5))
+            .sendMessageWithResponse(
+                any<BinaryData>(),
+                any(),
+                eq(Duration.ofSeconds(transientQueueTTLSeconds.toLong()))
+            )
         verify(viewRepository, times(5)).save(any())
         verify(eventStoreRepository, times(5)).save(any())
     }
@@ -376,7 +402,8 @@ class TransactionExpiredEventPublisherTests {
                         expiredEventQueueAsyncClient = queueAsyncClient,
                         viewRepository = viewRepository,
                         eventStoreRepository = eventStoreRepository,
-                        parallelEventToProcess = 1
+                        parallelEventToProcess = 1,
+                        transientQueueTTLSeconds = transientQueueTTLSeconds
                     )
                     .publishExpiryEvents(
                         allTransactions,
@@ -390,7 +417,12 @@ class TransactionExpiredEventPublisherTests {
         // assertions
         verify(eventStoreRepository, times(6)).save(any())
         verify(viewRepository, times(5)).save(any())
-        verify(queueAsyncClient, times(5)).sendMessageWithResponse(any<BinaryData>(), any(), any())
+        verify(queueAsyncClient, times(5))
+            .sendMessageWithResponse(
+                any<BinaryData>(),
+                any(),
+                eq(Duration.ofSeconds(transientQueueTTLSeconds.toLong()))
+            )
 
         val viewCapturedArguments = viewArgumentCaptor.allValues
         viewCapturedArguments.sortBy { it.transactionId }
@@ -501,7 +533,8 @@ class TransactionExpiredEventPublisherTests {
                         expiredEventQueueAsyncClient = queueAsyncClient,
                         viewRepository = viewRepository,
                         eventStoreRepository = eventStoreRepository,
-                        parallelEventToProcess = 1
+                        parallelEventToProcess = 1,
+                        transientQueueTTLSeconds = transientQueueTTLSeconds
                     )
                     .publishExpiryEvents(
                         allTransactions,
@@ -558,7 +591,12 @@ class TransactionExpiredEventPublisherTests {
         }
         verify(eventStoreRepository, times(6)).save(any())
         verify(viewRepository, times(6)).save(any())
-        verify(queueAsyncClient, times(5)).sendMessageWithResponse(any<BinaryData>(), any(), any())
+        verify(queueAsyncClient, times(5))
+            .sendMessageWithResponse(
+                any<BinaryData>(),
+                any(),
+                eq(Duration.ofSeconds(transientQueueTTLSeconds.toLong()))
+            )
     }
 
     @Test
@@ -632,7 +670,8 @@ class TransactionExpiredEventPublisherTests {
                         expiredEventQueueAsyncClient = queueAsyncClient,
                         viewRepository = viewRepository,
                         eventStoreRepository = eventStoreRepository,
-                        parallelEventToProcess = 1
+                        parallelEventToProcess = 1,
+                        transientQueueTTLSeconds = transientQueueTTLSeconds
                     )
                     .publishExpiryEvents(
                         allTransactions,
@@ -689,7 +728,12 @@ class TransactionExpiredEventPublisherTests {
         }
         verify(eventStoreRepository, times(6)).save(any())
         verify(viewRepository, times(6)).save(any())
-        verify(queueAsyncClient, times(6)).sendMessageWithResponse(any<BinaryData>(), any(), any())
+        verify(queueAsyncClient, times(6))
+            .sendMessageWithResponse(
+                any<BinaryData>(),
+                any(),
+                eq(Duration.ofSeconds(transientQueueTTLSeconds.toLong()))
+            )
     }
 
     @Test
@@ -742,7 +786,8 @@ class TransactionExpiredEventPublisherTests {
                         expiredEventQueueAsyncClient = queueAsyncClient,
                         viewRepository = viewRepository,
                         eventStoreRepository = eventStoreRepository,
-                        parallelEventToProcess = 1
+                        parallelEventToProcess = 1,
+                        transientQueueTTLSeconds = transientQueueTTLSeconds
                     )
                     .publishExpiryEvents(
                         baseDocuments,
@@ -797,7 +842,12 @@ class TransactionExpiredEventPublisherTests {
             )
             currentIdx--
         }
-        verify(queueAsyncClient, times(5)).sendMessageWithResponse(any<BinaryData>(), any(), any())
+        verify(queueAsyncClient, times(5))
+            .sendMessageWithResponse(
+                any<BinaryData>(),
+                any(),
+                eq(Duration.ofSeconds(transientQueueTTLSeconds.toLong()))
+            )
         verify(eventStoreRepository, times(5)).save(any())
         verify(viewRepository, times(5)).save(any())
     }
@@ -908,7 +958,8 @@ class TransactionExpiredEventPublisherTests {
                         expiredEventQueueAsyncClient = queueAsyncClient,
                         viewRepository = viewRepository,
                         eventStoreRepository = eventStoreRepository,
-                        parallelEventToProcess = 1
+                        parallelEventToProcess = 1,
+                        transientQueueTTLSeconds = transientQueueTTLSeconds
                     )
                     .publishExpiryEvents(
                         baseDocuments,
@@ -963,7 +1014,12 @@ class TransactionExpiredEventPublisherTests {
             )
             currentIdx--
         }
-        verify(queueAsyncClient, times(25)).sendMessageWithResponse(any<BinaryData>(), any(), any())
+        verify(queueAsyncClient, times(25))
+            .sendMessageWithResponse(
+                any<BinaryData>(),
+                any(),
+                eq(Duration.ofSeconds(transientQueueTTLSeconds.toLong()))
+            )
         verify(eventStoreRepository, times(25)).save(any())
         verify(viewRepository, times(25)).save(any())
     }
@@ -1018,7 +1074,8 @@ class TransactionExpiredEventPublisherTests {
                         expiredEventQueueAsyncClient = queueAsyncClient,
                         viewRepository = viewRepository,
                         eventStoreRepository = eventStoreRepository,
-                        parallelEventToProcess = 1
+                        parallelEventToProcess = 1,
+                        transientQueueTTLSeconds = transientQueueTTLSeconds
                     )
                     .publishExpiryEvents(
                         baseDocuments,
@@ -1073,7 +1130,12 @@ class TransactionExpiredEventPublisherTests {
             )
             currentIdx--
         }
-        verify(queueAsyncClient, times(5)).sendMessageWithResponse(any<BinaryData>(), any(), any())
+        verify(queueAsyncClient, times(5))
+            .sendMessageWithResponse(
+                any<BinaryData>(),
+                any(),
+                eq(Duration.ofSeconds(transientQueueTTLSeconds.toLong()))
+            )
         verify(eventStoreRepository, times(5)).save(any())
         verify(viewRepository, times(5)).save(any())
     }
@@ -1128,7 +1190,8 @@ class TransactionExpiredEventPublisherTests {
                         expiredEventQueueAsyncClient = queueAsyncClient,
                         viewRepository = viewRepository,
                         eventStoreRepository = eventStoreRepository,
-                        parallelEventToProcess = 1
+                        parallelEventToProcess = 1,
+                        transientQueueTTLSeconds = transientQueueTTLSeconds
                     )
                     .publishExpiryEvents(
                         baseDocuments,
@@ -1183,7 +1246,12 @@ class TransactionExpiredEventPublisherTests {
             )
             currentIdx--
         }
-        verify(queueAsyncClient, times(5)).sendMessageWithResponse(any<BinaryData>(), any(), any())
+        verify(queueAsyncClient, times(5))
+            .sendMessageWithResponse(
+                any<BinaryData>(),
+                any(),
+                eq(Duration.ofSeconds(transientQueueTTLSeconds.toLong()))
+            )
         verify(eventStoreRepository, times(5)).save(any())
         verify(viewRepository, times(5)).save(any())
     }
@@ -1238,7 +1306,8 @@ class TransactionExpiredEventPublisherTests {
                         expiredEventQueueAsyncClient = queueAsyncClient,
                         viewRepository = viewRepository,
                         eventStoreRepository = eventStoreRepository,
-                        parallelEventToProcess = 1
+                        parallelEventToProcess = 1,
+                        transientQueueTTLSeconds = transientQueueTTLSeconds
                     )
                     .publishExpiryEvents(
                         baseDocuments,
@@ -1293,7 +1362,12 @@ class TransactionExpiredEventPublisherTests {
             )
             currentIdx--
         }
-        verify(queueAsyncClient, times(5)).sendMessageWithResponse(any<BinaryData>(), any(), any())
+        verify(queueAsyncClient, times(5))
+            .sendMessageWithResponse(
+                any<BinaryData>(),
+                any(),
+                eq(Duration.ofSeconds(transientQueueTTLSeconds.toLong()))
+            )
         verify(eventStoreRepository, times(5)).save(any())
         verify(viewRepository, times(5)).save(any())
     }

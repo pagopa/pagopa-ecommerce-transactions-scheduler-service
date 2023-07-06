@@ -26,12 +26,15 @@ class TransactionExpiredEventPublisher(
     @Autowired
     private val eventStoreRepository: TransactionsEventStoreRepository<TransactionExpiredData>,
     @Value("\${pendingTransactions.batch.transactionsAnalyzer.parallelEventsToProcess}")
-    private val parallelEventToProcess: Int
+    private val parallelEventToProcess: Int,
+    @Value("\${azurestorage.queues.transientQueues.ttlSeconds}")
+    private val transientQueueTTLSeconds: Int
 ) :
     EventPublisher<TransactionExpiredEvent>(
         queueAsyncClient = expiredEventQueueAsyncClient,
         logger = logger,
-        parallelEventsToProcess = parallelEventToProcess
+        parallelEventsToProcess = parallelEventToProcess,
+        transientQueueTTLSeconds = transientQueueTTLSeconds
     ) {
 
     fun publishExpiryEvents(
