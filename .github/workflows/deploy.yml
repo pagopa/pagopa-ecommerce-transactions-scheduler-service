@@ -43,7 +43,7 @@ jobs:
           echo "Semver chart: ${{ needs.semver_labels.outputs.semver_chart}}"
           echo "Skip release: ${{ needs.semver_labels.outputs.skip_release}}"
           semverApp=$(echo ${{ needs.semver_labels.outputs.semver_app}} | sed "s/ignore-for-release/none/")
-          semverChart=$(echo ${{ needs.semver_labels.outputs.semver_chart }} |  cut -d'-' -f2 | sed "s/skip-release/none/")
+          semverChart=$(echo ${{ needs.semver_labels.outputs.semver_chart }} |  cut -d'-' -f2 )
           skipRelease=$(echo ${{ needs.semver_labels.outputs.skip_release }})
           echo "DEV_DEPLOY=True" >> $GITHUB_OUTPUT
           echo "UAT_PROD_DEPLOY=True" >> $GITHUB_OUTPUT
