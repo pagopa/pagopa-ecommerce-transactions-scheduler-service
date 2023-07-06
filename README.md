@@ -91,6 +91,7 @@ These are all environment variables needed by the application:
 | PENDING_TRANSACTIONS_PARALLEL_EVENTS_TO_PROCESS              | Pending transactions parallel events to be processed                                                                                                                                                                                                                                                | int     |         |
 | PENDING_TRANSACTIONS_MAX_DURATION_SECONDS                    | Single batch max duration in seconds. Indicate the max time to wait for a single batch iteration to be completed. If negative the execution-rate-inter-time/2 will be used (Ex: if batch is configured to be executed every 10 minutes max duration will be set to 5 minutes                        | int     | -1      |
 | PENDING_TRANSACTIONS_SEND_PAYMENT_RESULT_TIMEOUT_SECONDS     | Timeout for a `sendPaymentResult` callback (`POST /user-receipts` on `transactions-service`) to be received. This timeout is evaluated for a transaction stuck in CLOSED status for which an OK authorization outcome has been received by Nodo and inhibits expiration if it is yet to be reached. | int     |         |
+| PENDING_TRANSACTIONS_MAX_TRANSACTIONS_PER_PAGE               | Max transactions to be fetched by paginated query                                                                                                                                                                                                                                                   | int     |         |
 
 ---
 
@@ -114,9 +115,9 @@ FROM:
 ```xml
 
 <configuration>
-	...
-	<scmVersionType>tag</scmVersionType>
-	<scmVersion>${pagopa-ecommerce-commons.version}</scmVersion>
+    ...
+    <scmVersionType>tag</scmVersionType>
+    <scmVersion>${pagopa-ecommerce-commons.version}</scmVersion>
 </configuration>
 ```
 
@@ -125,9 +126,9 @@ TO:
 ```xml
 
 <configuration>
-	...
-	<scmVersionType>branch</scmVersionType>
-	<scmVersion>name-of-a-specific-branch-to-link</scmVersion>
+    ...
+    <scmVersionType>branch</scmVersionType>
+    <scmVersion>name-of-a-specific-branch-to-link</scmVersion>
 </configuration>
 ```
 

@@ -71,9 +71,9 @@ microservice-chart:
     servicePort: 8080
   serviceAccount:
     create: false
-    annotations: {}
+    annotations: { }
     name: ""
-  podAnnotations: {}
+  podAnnotations: { }
   podSecurityContext:
     seccompProfile:
       type: RuntimeDefault
@@ -114,6 +114,7 @@ microservice-chart:
     TRANSACTION_EXPIRED_EVENTS_QUEUE_NAME: "pagopa-p-weu-ecommerce-transactions-expiration-queue"
     PENDING_TRANSACTIONS_SCHEDULE_CRON: "0 0 */1 * * *"
     PENDING_TRANSACTIONS_WINDOWS_BATCH_EXECUTION_RATE_MULTIPLIER: "2"
+    PENDING_TRANSACTIONS_MAX_TRANSACTIONS_PER_PAGE: "5"
     PENDING_TRANSACTIONS_PARALLEL_EVENTS_TO_PROCESS: "1"
     ELASTIC_APM_SERVICE_NAME: pagopa-ecommerce-transactions-scheduler-service
     ELASTIC_APM_APPLICATION_PACKAGES: it.pagopa.ecommerce.transactions.scheduler
@@ -130,8 +131,8 @@ microservice-chart:
   keyvault:
     name: "pagopa-p-ecommerce-kv"
     tenantId: "7788edaf-0346-4068-9d79-c868aed15b3d"
-  nodeSelector: {}
-  tolerations: []
+  nodeSelector: { }
+  tolerations: [ ]
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
