@@ -26,6 +26,7 @@ import org.mockito.*
 import org.mockito.BDDMockito.given
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.springframework.data.domain.Pageable
@@ -542,6 +543,26 @@ class PendingTransactionAnalyzerTests {
                 as List<TransactionEvent<Any>>
 
         checkThatExpiryEventIsNotSent(events, TransactionStatusDto.CLOSED)
+    }
+
+    @Test
+    fun `Should perform query for get total transaction count in time window`() {
+        val currentDate = ZonedDateTime.now()
+        val startTime = currentDate.toLocalDateTime()
+        val endTime = currentDate.plus(Duration.ofHours(2)).toLocalDateTime()
+        val totalTransactions = 20L
+        given(
+                viewRepository.countTransactionInTimeRangeWithExcludedStatuses(
+                    eq(startTime.toString()),
+                    eq(endTime.toString()),
+                    any()
+                )
+            )
+            .willReturn(Mono.just(totalTransactions))
+
+        StepVerifier.create(pendingTransactionAnalyzer.getTotalTransactionCount(startTime, endTime))
+            .expectNext(totalTransactions)
+            .verifyComplete()
     }
 
     private fun checkThatExpiryEventIsSent(
