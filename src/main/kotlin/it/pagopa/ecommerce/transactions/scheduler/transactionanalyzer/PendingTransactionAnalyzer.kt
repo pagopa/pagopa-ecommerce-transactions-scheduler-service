@@ -72,8 +72,9 @@ class PendingTransactionAnalyzer(
         totalRecordFound: Long,
         page: Pageable
     ): Mono<Boolean> {
-        val pageRequest =
-            PageRequest.of(page.pageNumber, page.pageSize, Sort.by("creationDate").ascending())
+        // take here always the first page since every interaction update records in DB changing
+        // transaction statuses
+        val pageRequest = PageRequest.of(0, page.pageSize, Sort.by("creationDate").ascending())
         logger.info("Searching for transaction with page request: {}", pageRequest)
         return viewRepository
             .findTransactionInTimeRangeWithExcludedStatusesPaginated(

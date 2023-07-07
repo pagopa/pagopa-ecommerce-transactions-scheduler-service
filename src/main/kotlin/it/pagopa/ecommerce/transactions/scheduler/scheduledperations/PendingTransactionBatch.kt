@@ -25,7 +25,9 @@ class PendingTransactionBatch(
     val executionRateMultiplier: Int,
     val logger: Logger = LoggerFactory.getLogger(PendingTransactionBatch::class.java),
     @Value("\${pendingTransactions.batch.maxDurationSeconds}") val batchMaxDurationSeconds: Int,
-    @Value("\${pendingTransactions.batch.maxTransactionsPerPage}") val maxTransactionPerPage: Int
+    @Value("\${pendingTransactions.batch.maxTransactionsPerPage}") val maxTransactionPerPage: Int,
+    @Value("\${pendingTransactions.batch.pageAnalysisDelaySeconds}")
+    val transactionPageAnalysisDelaySeconds: Int
 ) {
 
     @Scheduled(cron = "\${pendingTransactions.batch.scheduledChron}")
@@ -72,13 +74,14 @@ class PendingTransactionBatch(
                         (totalCount / maxTransactionPerPage) + 1
                     }
                 logger.info(
-                    "Transaction analysis offset: [$lowerThreshold - $upperThreshold]. Total transactions found: [$totalCount], max transaction per page: [$maxTransactionPerPage], total pages: [$pages]"
+                    "Transaction analysis offset: [$lowerThreshold - $upperThreshold]. Total transactions found: [$totalCount], max transaction per page: [$maxTransactionPerPage], total pages: [$pages]. Delay between page analysis: [$transactionPageAnalysisDelaySeconds] seconds"
                 )
                 Pair(pages.toInt(), totalCount)
             }
             .flatMapMany { (pages, totalCount) ->
                 Flux.fromStream(IntStream.range(0, pages).boxed().map { Pair(it, totalCount) })
             }
+            .delayElements(Duration.ofSeconds(transactionPageAnalysisDelaySeconds.toLong()))
             .flatMap { (page, totalCount) ->
                 pendingTransactionAnalyzer
                     .searchPendingTransactions(
