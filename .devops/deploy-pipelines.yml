@@ -420,7 +420,7 @@ stages:
       condition: |
         and(
           eq(${{parameters.UAT_PROD_DEPLOY}}, true),
-          in(dependencies.Prod_WaitForApproval.result, 'Succeeded')
+          eq(dependencies.Prod_WaitForApproval.result, 'Succeeded')
         )
     ${{ if eq(parameters['PROD_SKIP_BLUE_DEPLOYMENT'], False) }}:
       dependsOn: Blue_PROD_deployment
