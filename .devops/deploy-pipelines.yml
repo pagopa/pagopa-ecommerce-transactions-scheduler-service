@@ -127,7 +127,7 @@ stages:
                     APP_NAME: $(K8S_IMAGE_REPOSITORY_NAME)
                     VALUE_FILE: "helm/values-dev.yaml"
                     GREEN_VERSION: $(Build.SourceVersion)
-
+  # --- START Deploy UAT --- #
   - stage: "Build_release_candidate"
     displayName: 'Build release candidate'
     dependsOn: [ ]
@@ -175,6 +175,7 @@ stages:
               steps:
                 - checkout: self
                   displayName: "Checkout"
+                - task: KubectlInstaller@0
                 - task: Bash@3
                   name: update_chart_version
                   displayName: 'Setup helm microservice chart'
@@ -209,15 +210,16 @@ stages:
           - task: ManualValidation@0
             timeoutInMinutes: 4320 # 3 days
             inputs:
-              onTimeout: 'skip'
               notifyUsers: $(APPROVE_TOUCHPOINT_MAIL)
               instructions: "Please approve or reject UAT blue green promotions for $(commitUrl)"
-            condition: and(succeeded(), eq(${{parameters.UAT_SKIP_MANUAL_APPROVAL}}, False))
+              onTimeout: 'reject'
+
   - stage: Release
     ${{ if eq(parameters['UAT_SKIP_BLUE_DEPLOYMENT'], True) }}:
       dependsOn: Build_release_candidate
     ${{ if eq(parameters['UAT_SKIP_BLUE_DEPLOYMENT'], False) }}:
       dependsOn: Bluegreen_WaitForApproval
+      condition: succeeded()
     jobs:
       - job: make_release
         displayName: Make github release
@@ -339,6 +341,7 @@ stages:
 
   - stage: "Build_PROD_Blue"
     displayName: 'PROD blue Build'
+    dependsOn: [ Prod_WaitForApproval,Release ]
     condition: |
       and(
         eq(${{parameters.UAT_PROD_DEPLOY}}, true),
@@ -346,7 +349,6 @@ stages:
         eq(dependencies.Prod_WaitForApproval.result, 'Succeeded'),
         in(dependencies.Release.result, 'Succeeded', 'Skipped')
       )
-    dependsOn: [ Prod_WaitForApproval,Release ]
     variables:
       app_version: $[ stageDependencies.Release.make_release.outputs['chart_current_version.appVersion'] ]
     jobs:
@@ -449,14 +451,14 @@ stages:
   - stage: "Build_PROD_Green"
     displayName: 'PROD green Build'
     dependsOn: [ PROD_Green_WaitForApproval,Release ]
+    variables:
+      prod_version: $[ stageDependencies.Release.make_release.outputs['chart_current_version.appVersion'] ]
     condition: |
       and(
         eq(${{parameters.UAT_PROD_DEPLOY}}, true),
         eq(dependencies.PROD_Green_WaitForApproval.result, 'Succeeded'),
         in(dependencies.Release.result, 'Succeeded', 'Skipped')
       )
-    variables:
-      prod_version: $[ stageDependencies.Release.make_release.outputs['chart_current_version.appVersion'] ]
     jobs:
       - job: "PROD_image"
         displayName: 'Build PROD image'
@@ -543,13 +545,12 @@ stages:
       - job: Prod_Rollback_Approval
         displayName: Manual prod rollback approval
         pool: server
-        timeoutInMinutes: 30
         steps:
           - task: ManualValidation@0
             timeoutInMinutes: 30
             inputs:
               notifyUsers: $(APPROVE_TOUCHPOINT_MAIL)
-              instructions: "Please approve or reject PROD promotions for rollback $(release_url)"
+              instructions: "Please approve or reject PROD promotions for release $(release_url)"
               onTimeout: 'skip'
   - stage: "Prod_RollbackToLatestRelease"
     displayName: 'PROD rollback to the latest Release'
@@ -571,4 +572,4 @@ stages:
               install: true
               waitForExecution: true
               arguments: $(K8S_IMAGE_REPOSITORY_NAME)
-# --- START ROLLBACK PROD --- #
+# --- END ROLLBACK PROD --- #
