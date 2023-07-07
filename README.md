@@ -94,6 +94,24 @@ These are all environment variables needed by the application:
 | PENDING_TRANSACTIONS_MAX_TRANSACTIONS_PER_PAGE               | Max transactions to be fetched by paginated query                                                                                                                                                                                                                                                   | int     |         |
 | PENDING_TRANSACTIONS_PAGE_ANALYSIS_DELAY_SECONDS             | Delay for the next pending transaction page to be analyzed (in seconds). This parameter in pair with `PENDING_TRANSACTIONS_MAX_TRANSACTIONS_PER_PAGE` define the max batch tps                                                                                                                      | int     |         |
 
+### Pending transaction TPS configuration
+
+Pending transaction are processed at a configurable TPS (transactions per seconds) rate.
+This can be done changing the below parameters:
+
+- `PENDING_TRANSACTIONS_MAX_TRANSACTIONS_PER_PAGE` parameter allow to specify how many transactions to retrieve for each
+page -> chunk size
+- `PENDING_TRANSACTIONS_PAGE_ANALYSIS_DELAY_SECONDS` parameter allow to specify time to be waited between the next page
+to be analyzed -> chunk rate
+
+Example of configurations:
+
+| Max transaction per page | Delay between pages | Max TPS |
+|--------------------------|---------------------|---------|
+| 1                        | 1                   | 1       |
+| 5                        | 1                   | 5       |
+| 5                        | 2                   | 2,5     |
+
 ---
 
 ## Run locally with Docker
