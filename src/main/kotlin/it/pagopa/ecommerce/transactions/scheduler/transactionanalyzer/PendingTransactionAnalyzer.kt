@@ -96,7 +96,7 @@ class PendingTransactionAnalyzer(
                         expiredTransactions,
                         batchExecutionInterTime,
                         totalRecordFound,
-                        pageRequest
+                        page
                     )
                 }
             }
