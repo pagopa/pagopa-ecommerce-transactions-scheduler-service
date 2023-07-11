@@ -34,6 +34,7 @@ import org.mockito.Mockito.*
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.willReturn
 import org.mockito.kotlin.willReturnConsecutively
+import org.springframework.data.domain.PageRequest
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
 
@@ -111,7 +112,12 @@ class TransactionExpiredEventPublisherTests {
                         parallelEventToProcess = 1,
                         transientQueueTTLSeconds = transientQueueTTLSeconds
                     )
-                    .publishExpiryEvents(baseDocuments, batchExecutionTimeWindow)
+                    .publishExpiryEvents(
+                        baseDocuments,
+                        batchExecutionTimeWindow,
+                        5,
+                        PageRequest.of(0, 5)
+                    )
             )
             .expectNext(true)
             .verifyComplete()
@@ -208,7 +214,9 @@ class TransactionExpiredEventPublisherTests {
                             howMany = 5,
                             transactionType = TransactionType.ACTIVATED_ONLY
                         ),
-                        batchExecutionTimeWindow
+                        batchExecutionTimeWindow,
+                        5,
+                        PageRequest.of(0, 5)
                     )
             )
             .expectNext(false)
@@ -246,7 +254,9 @@ class TransactionExpiredEventPublisherTests {
                             howMany = 5,
                             transactionType = TransactionType.ACTIVATED_ONLY
                         ),
-                        batchExecutionTimeWindow
+                        batchExecutionTimeWindow,
+                        5,
+                        PageRequest.of(0, 5)
                     )
             )
             .expectNext(false)
@@ -302,7 +312,12 @@ class TransactionExpiredEventPublisherTests {
                         parallelEventToProcess = 1,
                         transientQueueTTLSeconds = transientQueueTTLSeconds
                     )
-                    .publishExpiryEvents(transactions, batchExecutionTimeWindow)
+                    .publishExpiryEvents(
+                        transactions,
+                        batchExecutionTimeWindow,
+                        5,
+                        PageRequest.of(0, 5)
+                    )
             )
             .expectNext(false)
             .verifyComplete()
@@ -390,7 +405,12 @@ class TransactionExpiredEventPublisherTests {
                         parallelEventToProcess = 1,
                         transientQueueTTLSeconds = transientQueueTTLSeconds
                     )
-                    .publishExpiryEvents(allTransactions, batchExecutionTimeWindow)
+                    .publishExpiryEvents(
+                        allTransactions,
+                        batchExecutionTimeWindow,
+                        allEvents.size.toLong(),
+                        PageRequest.of(0, allEvents.size)
+                    )
             )
             .expectNext(false)
             .verifyComplete()
@@ -516,7 +536,12 @@ class TransactionExpiredEventPublisherTests {
                         parallelEventToProcess = 1,
                         transientQueueTTLSeconds = transientQueueTTLSeconds
                     )
-                    .publishExpiryEvents(allTransactions, batchExecutionTimeWindow)
+                    .publishExpiryEvents(
+                        allTransactions,
+                        batchExecutionTimeWindow,
+                        allEvents.size.toLong(),
+                        PageRequest.of(0, allEvents.size)
+                    )
             )
             .expectNext(false)
             .verifyComplete()
@@ -648,7 +673,12 @@ class TransactionExpiredEventPublisherTests {
                         parallelEventToProcess = 1,
                         transientQueueTTLSeconds = transientQueueTTLSeconds
                     )
-                    .publishExpiryEvents(allTransactions, batchExecutionTimeWindow)
+                    .publishExpiryEvents(
+                        allTransactions,
+                        batchExecutionTimeWindow,
+                        allEvents.size.toLong(),
+                        PageRequest.of(0, allEvents.size)
+                    )
             )
             .expectNext(false)
             .verifyComplete()
@@ -759,7 +789,12 @@ class TransactionExpiredEventPublisherTests {
                         parallelEventToProcess = 1,
                         transientQueueTTLSeconds = transientQueueTTLSeconds
                     )
-                    .publishExpiryEvents(baseDocuments, batchExecutionTimeWindow)
+                    .publishExpiryEvents(
+                        baseDocuments,
+                        batchExecutionTimeWindow,
+                        baseDocuments.size.toLong(),
+                        PageRequest.of(0, baseDocuments.size)
+                    )
             )
             .expectNext(true)
             .verifyComplete()
@@ -926,7 +961,12 @@ class TransactionExpiredEventPublisherTests {
                         parallelEventToProcess = 1,
                         transientQueueTTLSeconds = transientQueueTTLSeconds
                     )
-                    .publishExpiryEvents(baseDocuments, batchExecutionTimeWindow)
+                    .publishExpiryEvents(
+                        baseDocuments,
+                        batchExecutionTimeWindow,
+                        baseDocuments.size.toLong(),
+                        PageRequest.of(0, baseDocuments.size)
+                    )
             )
             .expectNext(true)
             .verifyComplete()
@@ -1037,7 +1077,12 @@ class TransactionExpiredEventPublisherTests {
                         parallelEventToProcess = 1,
                         transientQueueTTLSeconds = transientQueueTTLSeconds
                     )
-                    .publishExpiryEvents(baseDocuments, batchExecutionTimeWindow)
+                    .publishExpiryEvents(
+                        baseDocuments,
+                        batchExecutionTimeWindow,
+                        baseDocuments.size.toLong(),
+                        PageRequest.of(0, baseDocuments.size)
+                    )
             )
             .expectNext(true)
             .verifyComplete()
@@ -1148,7 +1193,12 @@ class TransactionExpiredEventPublisherTests {
                         parallelEventToProcess = 1,
                         transientQueueTTLSeconds = transientQueueTTLSeconds
                     )
-                    .publishExpiryEvents(baseDocuments, batchExecutionTimeWindow)
+                    .publishExpiryEvents(
+                        baseDocuments,
+                        batchExecutionTimeWindow,
+                        baseDocuments.size.toLong(),
+                        PageRequest.of(0, baseDocuments.size)
+                    )
             )
             .expectNext(true)
             .verifyComplete()
@@ -1259,7 +1309,12 @@ class TransactionExpiredEventPublisherTests {
                         parallelEventToProcess = 1,
                         transientQueueTTLSeconds = transientQueueTTLSeconds
                     )
-                    .publishExpiryEvents(baseDocuments, batchExecutionTimeWindow)
+                    .publishExpiryEvents(
+                        baseDocuments,
+                        batchExecutionTimeWindow,
+                        baseDocuments.size.toLong(),
+                        PageRequest.of(0, baseDocuments.size)
+                    )
             )
             .expectNext(true)
             .verifyComplete()

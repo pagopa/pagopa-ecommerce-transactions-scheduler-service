@@ -8,6 +8,7 @@ import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
 import java.time.Duration
 import java.util.concurrent.atomic.AtomicLong
 import org.slf4j.Logger
+import org.springframework.data.domain.Pageable
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Schedulers
@@ -61,10 +62,13 @@ abstract class EventPublisher<E>(
 
     protected fun publishAllEvents(
         transactions: List<Pair<BaseTransaction, TransactionStatusDto>>,
-        batchExecutionWindowMillis: Long
+        batchExecutionWindowMillis: Long,
+        totalRecordFound: Long,
+        page: Pageable
     ): Mono<Boolean> {
-        val eventOffset = AtomicLong(0L)
-        val offsetIncrement = batchExecutionWindowMillis / transactions.size
+        val alreadyProcessedTransactions = page.pageNumber * page.pageSize
+        val offsetIncrement = batchExecutionWindowMillis / totalRecordFound
+        val eventOffset = AtomicLong(alreadyProcessedTransactions.toLong() * offsetIncrement)
         return Flux.fromIterable(transactions)
             .parallel(parallelEventsToProcess)
             .runOn(Schedulers.parallel())

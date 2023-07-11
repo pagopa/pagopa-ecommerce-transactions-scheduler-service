@@ -91,6 +91,26 @@ These are all environment variables needed by the application:
 | PENDING_TRANSACTIONS_PARALLEL_EVENTS_TO_PROCESS              | Pending transactions parallel events to be processed                                                                                                                                                                                                                                                | int     |         |
 | PENDING_TRANSACTIONS_MAX_DURATION_SECONDS                    | Single batch max duration in seconds. Indicate the max time to wait for a single batch iteration to be completed. If negative the execution-rate-inter-time/2 will be used (Ex: if batch is configured to be executed every 10 minutes max duration will be set to 5 minutes                        | int     | -1      |
 | PENDING_TRANSACTIONS_SEND_PAYMENT_RESULT_TIMEOUT_SECONDS     | Timeout for a `sendPaymentResult` callback (`POST /user-receipts` on `transactions-service`) to be received. This timeout is evaluated for a transaction stuck in CLOSED status for which an OK authorization outcome has been received by Nodo and inhibits expiration if it is yet to be reached. | int     |         |
+| PENDING_TRANSACTIONS_MAX_TRANSACTIONS_PER_PAGE               | Max transactions to be fetched by paginated query                                                                                                                                                                                                                                                   | int     |         |
+| PENDING_TRANSACTIONS_PAGE_ANALYSIS_DELAY_SECONDS             | Delay for the next pending transaction page to be analyzed (in seconds). This parameter in pair with `PENDING_TRANSACTIONS_MAX_TRANSACTIONS_PER_PAGE` define the max batch tps                                                                                                                      | int     |         |
+
+### Pending transaction TPS configuration
+
+Pending transaction are processed at a configurable TPS (transactions per seconds) rate.
+This can be done changing the below parameters:
+
+- `PENDING_TRANSACTIONS_MAX_TRANSACTIONS_PER_PAGE` parameter allow to specify how many transactions to retrieve for each
+page -> chunk size
+- `PENDING_TRANSACTIONS_PAGE_ANALYSIS_DELAY_SECONDS` parameter allow to specify time to be waited between the next page
+to be analyzed -> chunk rate
+
+Example of configurations:
+
+| Max transaction per page | Delay between pages | Max TPS |
+|--------------------------|---------------------|---------|
+| 1                        | 1                   | 1       |
+| 5                        | 1                   | 5       |
+| 5                        | 2                   | 2,5     |
 
 ---
 

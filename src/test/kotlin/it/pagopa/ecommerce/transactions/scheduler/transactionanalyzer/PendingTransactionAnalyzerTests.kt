@@ -26,8 +26,10 @@ import org.mockito.*
 import org.mockito.BDDMockito.given
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
+import org.springframework.data.domain.Pageable
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
@@ -543,6 +545,26 @@ class PendingTransactionAnalyzerTests {
         checkThatExpiryEventIsNotSent(events, TransactionStatusDto.CLOSED)
     }
 
+    @Test
+    fun `Should perform query for get total transaction count in time window`() {
+        val currentDate = ZonedDateTime.now()
+        val startTime = currentDate.toLocalDateTime()
+        val endTime = currentDate.plus(Duration.ofHours(2)).toLocalDateTime()
+        val totalTransactions = 20L
+        given(
+                viewRepository.countTransactionInTimeRangeWithExcludedStatuses(
+                    eq(startTime.toString()),
+                    eq(endTime.toString()),
+                    any()
+                )
+            )
+            .willReturn(Mono.just(totalTransactions))
+
+        StepVerifier.create(pendingTransactionAnalyzer.getTotalTransactionCount(startTime, endTime))
+            .expectNext(totalTransactions)
+            .verifyComplete()
+    }
+
     private fun checkThatExpiryEventIsSent(
         events: List<TransactionEvent<Any>>,
         expectedTransactionStatus: TransactionStatusDto
@@ -561,23 +583,33 @@ class PendingTransactionAnalyzerTests {
                 )
             )
             .willAnswer { transactionStatusesForSendExpiryEventOriginal.contains(it.arguments[0]) }
-        given(viewRepository.findTransactionInTimeRangeWithExcludedStatuses(any(), any(), any()))
+        given(
+                viewRepository.findTransactionInTimeRangeWithExcludedStatusesPaginated(
+                    any(),
+                    any(),
+                    any(),
+                    any()
+                )
+            )
             .willReturn(Flux.just(*transactions.toTypedArray()))
         given(eventStoreRepository.findByTransactionIdOrderByCreationDateAsc(any()))
             .willReturn(Flux.just(*events.toTypedArray()))
-        given(transactionExpiredEventPublisher.publishExpiryEvents(any(), any()))
+        given(transactionExpiredEventPublisher.publishExpiryEvents(any(), any(), any(), any()))
             .willReturn(Mono.just(true))
         // test
         StepVerifier.create(
                 pendingTransactionAnalyzer.searchPendingTransactions(
                     LocalDateTime.now(),
                     LocalDateTime.now(),
-                    1000
+                    1000,
+                    transactions.size.toLong(),
+                    Pageable.ofSize(1000)
                 )
             )
             .expectNext(true)
             .verifyComplete()
-        verify(transactionExpiredEventPublisher, times(1)).publishExpiryEvents(any(), any())
+        verify(transactionExpiredEventPublisher, times(1))
+            .publishExpiryEvents(any(), any(), any(), any())
         // This check has the purpose of check that the test list of events effectively cover the
         // wanted scenario.
         // The wanted scenario, in fact, is taken as input parameter by this method so developer
@@ -609,7 +641,14 @@ class PendingTransactionAnalyzerTests {
                 )
             )
             .willAnswer { transactionStatusesForSendExpiryEventOriginal.contains(it.arguments[0]) }
-        given(viewRepository.findTransactionInTimeRangeWithExcludedStatuses(any(), any(), any()))
+        given(
+                viewRepository.findTransactionInTimeRangeWithExcludedStatusesPaginated(
+                    any(),
+                    any(),
+                    any(),
+                    any()
+                )
+            )
             .willReturn(Flux.just(*transactions.toTypedArray()))
         given(eventStoreRepository.findByTransactionIdOrderByCreationDateAsc(any()))
             .willReturn(Flux.just(*events.toTypedArray()))
@@ -618,12 +657,15 @@ class PendingTransactionAnalyzerTests {
                 pendingTransactionAnalyzer.searchPendingTransactions(
                     LocalDateTime.now(),
                     LocalDateTime.now(),
-                    1000
+                    1000,
+                    transactions.size.toLong(),
+                    Pageable.ofSize(1000)
                 )
             )
             .expectNext(true)
             .verifyComplete()
-        verify(transactionExpiredEventPublisher, times(0)).publishExpiryEvents(any(), any())
+        verify(transactionExpiredEventPublisher, times(0))
+            .publishExpiryEvents(any(), any(), any(), any())
         // This check has the purpose of check that the test list of events effectively cover the
         // wanted scenario.
         // The wanted scenario, in fact, is taken as input parameter by this method so developer
