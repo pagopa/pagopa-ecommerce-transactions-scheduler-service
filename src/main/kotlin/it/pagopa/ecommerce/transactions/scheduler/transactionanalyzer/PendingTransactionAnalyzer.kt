@@ -16,6 +16,9 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Pageable
+import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 
@@ -65,13 +68,20 @@ class PendingTransactionAnalyzer(
     fun searchPendingTransactions(
         lowerThreshold: LocalDateTime,
         upperThreshold: LocalDateTime,
-        batchExecutionIntertime: Long
+        batchExecutionInterTime: Long,
+        totalRecordFound: Long,
+        page: Pageable
     ): Mono<Boolean> {
+        // take here always the first page since every interaction update records in DB changing
+        // transaction statuses
+        val pageRequest = PageRequest.of(0, page.pageSize, Sort.by("creationDate").ascending())
+        logger.info("Searching for transaction with page request: {}", pageRequest)
         return viewRepository
-            .findTransactionInTimeRangeWithExcludedStatuses(
+            .findTransactionInTimeRangeWithExcludedStatusesPaginated(
                 lowerThreshold.toString(),
                 upperThreshold.toString(),
-                transactionStatusesToExcludeFromView
+                transactionStatusesToExcludeFromView,
+                pageRequest,
             )
             .flatMap {
                 logger.info("Analyzing transaction: $it")
@@ -84,11 +94,23 @@ class PendingTransactionAnalyzer(
                 } else {
                     expiredTransactionEventPublisher.publishExpiryEvents(
                         expiredTransactions,
-                        batchExecutionIntertime
+                        batchExecutionInterTime,
+                        totalRecordFound,
+                        page
                     )
                 }
             }
     }
+
+    fun getTotalTransactionCount(
+        lowerThreshold: LocalDateTime,
+        upperThreshold: LocalDateTime,
+    ) =
+        viewRepository.countTransactionInTimeRangeWithExcludedStatuses(
+            lowerThreshold.toString(),
+            upperThreshold.toString(),
+            transactionStatusesToExcludeFromView
+        )
 
     private fun analyzeTransaction(transactionId: String): Mono<BaseTransaction> {
         val events = eventStoreRepository.findByTransactionIdOrderByCreationDateAsc(transactionId)

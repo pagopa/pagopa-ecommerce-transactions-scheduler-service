@@ -13,6 +13,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Mono
 
@@ -38,7 +39,9 @@ class TransactionExpiredEventPublisher(
 
     fun publishExpiryEvents(
         baseTransactions: List<BaseTransaction>,
-        batchExecutionTimeWindow: Long
+        batchExecutionTimeWindow: Long,
+        totalRecordFound: Long,
+        page: Pageable
     ): Mono<Boolean> {
         // split expired transaction in two lists: one for transactions without requested
         // authorization and one with requested authorization
@@ -80,7 +83,12 @@ class TransactionExpiredEventPublisher(
         logger.info(
             "Total expired transactions: [${mergedTransactions.size}], of which [${baseTransactionsWithRequestedAuthorization.size}] with requested authorization, [${baseTransactionActivatedOnly.size}] activated only and [${baseTransactionUserCanceled.size}] canceled by user"
         )
-        return publishAllEvents(mergedTransactions, batchExecutionTimeWindow)
+        return publishAllEvents(
+            mergedTransactions,
+            batchExecutionTimeWindow,
+            totalRecordFound,
+            page
+        )
     }
 
     override fun storeEventAndUpdateView(
