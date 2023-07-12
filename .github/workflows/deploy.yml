@@ -50,7 +50,7 @@ jobs:
           echo "SKIP_RELEASE=$skipRelease" >> $GITHUB_OUTPUT
           echo "UAT_SKIP_BLUE_DEPLOYMENT=False" >> $GITHUB_OUTPUT
           echo "PROD_SKIP_BLUE_DEPLOYMENT=False" >> $GITHUB_OUTPUT
-          echo "skipBuild=False" >> $GITHUB_OUTPUT
+          echo "SKIP_BUILD=False" >> $GITHUB_OUTPUT
         shell: bash
       - name: Log pipeline parameters
         run: |
@@ -63,7 +63,7 @@ jobs:
           echo "SKIP_RELEASE=${{ steps.configure_pipeline_parameters.outputs.SKIP_RELEASE }}"
           echo "UAT_SKIP_BLUE_DEPLOYMENT=${{ steps.configure_pipeline_parameters.outputs.UAT_SKIP_BLUE_DEPLOYMENT }}"
           echo "PROD_SKIP_BLUE_DEPLOYMENT=${{ steps.configure_pipeline_parameters.outputs.PROD_SKIP_BLUE_DEPLOYMENT }}"
-          echo "skipBuild=${{ steps.configure_pipeline_parameters.outputs.skipBuild }}"
+          echo "SKIP_BUILD=${{ steps.configure_pipeline_parameters.outputs.SKIP_BUILD }}"
         shell: bash
       - name: Azure Pipelines Action
         uses: jacopocarlini/azure-pipelines@v1.3
@@ -71,4 +71,4 @@ jobs:
           azure-devops-project-url: https://dev.azure.com/pagopaspa/pagoPA-projects
           azure-pipeline-name: 'pagopa-ecommerce-transactions-scheduler-service.deploy'
           azure-devops-token: ${{ secrets.AZURE_DEVOPS_TOKEN }}
-          azure-template-parameters: '{"DEV_DEPLOY": "${{ steps.configure_pipeline_parameters.outputs.DEV_DEPLOY }}","UAT_PROD_DEPLOY": "${{ steps.configure_pipeline_parameters.outputs.UAT_PROD_DEPLOY }}","skipBuild": "${{ steps.configure_pipeline_parameters.outputs.skipBuild }}","RELEASE_SEMVER": "${{ steps.configure_pipeline_parameters.outputs.RELEASE_SEMVER }}","RELEASE_CHART_SEMVER": "${{ steps.configure_pipeline_parameters.outputs.RELEASE_CHART_SEMVER }}","FORCE_REPLACE_DOCKER_IMAGE": "${{ steps.configure_pipeline_parameters.outputs.FORCE_REPLACE_DOCKER_IMAGE }}","SKIP_RELEASE": "${{ steps.configure_pipeline_parameters.outputs.SKIP_RELEASE }}","UAT_SKIP_BLUE_DEPLOYMENT": "${{ steps.configure_pipeline_parameters.outputs.UAT_SKIP_BLUE_DEPLOYMENT }}","PROD_SKIP_BLUE_DEPLOYMENT": "${{ steps.configure_pipeline_parameters.outputs.PROD_SKIP_BLUE_DEPLOYMENT }}"}'
+          azure-template-parameters: '{"DEV_DEPLOY": "${{ steps.configure_pipeline_parameters.outputs.DEV_DEPLOY }}","UAT_PROD_DEPLOY": "${{ steps.configure_pipeline_parameters.outputs.UAT_PROD_DEPLOY }}","SKIP_BUILD": "${{ steps.configure_pipeline_parameters.outputs.SKIP_BUILD }}","RELEASE_SEMVER": "${{ steps.configure_pipeline_parameters.outputs.RELEASE_SEMVER }}","RELEASE_CHART_SEMVER": "${{ steps.configure_pipeline_parameters.outputs.RELEASE_CHART_SEMVER }}","FORCE_REPLACE_DOCKER_IMAGE": "${{ steps.configure_pipeline_parameters.outputs.FORCE_REPLACE_DOCKER_IMAGE }}","SKIP_RELEASE": "${{ steps.configure_pipeline_parameters.outputs.SKIP_RELEASE }}","UAT_SKIP_BLUE_DEPLOYMENT": "${{ steps.configure_pipeline_parameters.outputs.UAT_SKIP_BLUE_DEPLOYMENT }}","PROD_SKIP_BLUE_DEPLOYMENT": "${{ steps.configure_pipeline_parameters.outputs.PROD_SKIP_BLUE_DEPLOYMENT }}"}'
