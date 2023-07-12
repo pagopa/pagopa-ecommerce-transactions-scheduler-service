@@ -91,7 +91,7 @@ runs:
           for (const comment of comments.data) {
             if (comment.body.includes('Pull request label validation error!')) {
               github.rest.issues.deleteComment({
-                issue_number: context.issue.number,
+                issue_number: issueNumber,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 comment_id: comment.id
@@ -113,7 +113,7 @@ runs:
           If you want to skip release for this PR add \`${skipReleaseLabel}\` label
           `
             github.rest.issues.createComment({
-              issue_number: context.issue.number,
+              issue_number: issueNumber,
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: errorMessage
