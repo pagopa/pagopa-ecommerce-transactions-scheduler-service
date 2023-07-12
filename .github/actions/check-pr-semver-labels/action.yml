@@ -46,11 +46,11 @@ runs:
             }
             const commitMessage = mergeCommit.data.message;
             core.info(`Commit message: ${commitMessage}`);
-            const extractedPrNumber = commitMessage.match('\\(#(\\d{1,9})\\)')[1]; 
+            const extractedPrNumber = commitMessage.match('\\(#(\\d{1,9})\\)'); 
             if(extractedPrNumber ==null || extractedPrNumber.length <1){
                throw `Could not extract PR number from commit message ${commitMessage}`;
             }
-            const prNumber = 
+            const prNumber = extractedPrNumber[1];
             core.info(`Extracted PR number: ${prNumber}`);
             issueNumber = prNumber;
           }
