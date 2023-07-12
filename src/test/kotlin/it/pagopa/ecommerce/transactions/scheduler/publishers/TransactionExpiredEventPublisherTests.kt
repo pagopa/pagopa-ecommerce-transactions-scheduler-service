@@ -2,17 +2,18 @@ package it.pagopa.ecommerce.transactions.scheduler.publishers
 
 import com.azure.core.http.rest.Response
 import com.azure.core.http.rest.ResponseBase
-import com.azure.core.util.BinaryData
-import com.azure.storage.queue.QueueAsyncClient
 import com.azure.storage.queue.models.QueueStorageException
 import com.azure.storage.queue.models.SendMessageResult
 import com.mongodb.MongoException
+import it.pagopa.ecommerce.commons.client.QueueAsyncClient
 import it.pagopa.ecommerce.commons.documents.v1.Transaction
 import it.pagopa.ecommerce.commons.documents.v1.TransactionExpiredData
 import it.pagopa.ecommerce.commons.documents.v1.TransactionExpiredEvent
 import it.pagopa.ecommerce.commons.domain.v1.*
 import it.pagopa.ecommerce.commons.domain.v1.pojos.BaseTransaction
 import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
+import it.pagopa.ecommerce.commons.queues.QueueEvent
+import it.pagopa.ecommerce.commons.queues.TracingUtilsTests
 import it.pagopa.ecommerce.commons.v1.TransactionTestUtils
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsEventStoreRepository
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsViewRepository
@@ -49,7 +50,7 @@ class TransactionExpiredEventPublisherTests {
     private lateinit var eventStoreRepository:
         TransactionsEventStoreRepository<TransactionExpiredData>
 
-    @Captor private lateinit var queueArgumentCaptor: ArgumentCaptor<BinaryData>
+    @Captor private lateinit var queueArgumentCaptor: ArgumentCaptor<QueueEvent<*>>
 
     @Captor private lateinit var viewArgumentCaptor: ArgumentCaptor<Transaction>
 
@@ -58,6 +59,8 @@ class TransactionExpiredEventPublisherTests {
     @Captor private lateinit var eventsVisibilityTimeoutCaptor: ArgumentCaptor<Duration>
 
     private val transientQueueTTLSeconds = 30
+
+    private val tracingUtils = TracingUtilsTests.getMock()
 
     @Test
     fun `Should publish all events`() {
@@ -110,7 +113,8 @@ class TransactionExpiredEventPublisherTests {
                         viewRepository = viewRepository,
                         eventStoreRepository = eventStoreRepository,
                         parallelEventToProcess = 1,
-                        transientQueueTTLSeconds = transientQueueTTLSeconds
+                        transientQueueTTLSeconds = transientQueueTTLSeconds,
+                        tracingUtils = tracingUtils
                     )
                     .publishExpiryEvents(
                         baseDocuments,
@@ -128,10 +132,7 @@ class TransactionExpiredEventPublisherTests {
         val eventCapturedArguments = eventStoreCaptor.allValues
         eventCapturedArguments.sortBy { it.transactionId }
         val queueCapturedArguments = queueArgumentCaptor.allValues
-        queueCapturedArguments.sortBy {
-            val event = it.toObject(TransactionExpiredEvent::class.java)
-            event.transactionId
-        }
+        queueCapturedArguments.sortBy { it.event.transactionId }
         for ((idx, expectedGeneratedEvent) in expectedGeneratedEvents.withIndex()) {
             /*
              * verify that event stored into event store collection and sent on the queue are the expected ones.
@@ -167,7 +168,7 @@ class TransactionExpiredEventPublisherTests {
         }
         verify(queueAsyncClient, times(5))
             .sendMessageWithResponse(
-                any<BinaryData>(),
+                any<QueueEvent<*>>(),
                 any(),
                 eq(Duration.ofSeconds(transientQueueTTLSeconds.toLong()))
             )
@@ -207,7 +208,8 @@ class TransactionExpiredEventPublisherTests {
                         viewRepository = viewRepository,
                         eventStoreRepository = eventStoreRepository,
                         parallelEventToProcess = 1,
-                        transientQueueTTLSeconds = transientQueueTTLSeconds
+                        transientQueueTTLSeconds = transientQueueTTLSeconds,
+                        tracingUtils = tracingUtils
                     )
                     .publishExpiryEvents(
                         generateTransactionBaseDocuments(
@@ -224,7 +226,7 @@ class TransactionExpiredEventPublisherTests {
         // assertions
         verify(queueAsyncClient, times(0))
             .sendMessageWithResponse(
-                any<BinaryData>(),
+                any<QueueEvent<*>>(),
                 any(),
                 eq(Duration.ofSeconds(transientQueueTTLSeconds.toLong()))
             )
@@ -247,7 +249,8 @@ class TransactionExpiredEventPublisherTests {
                         viewRepository = viewRepository,
                         eventStoreRepository = eventStoreRepository,
                         parallelEventToProcess = 1,
-                        transientQueueTTLSeconds = transientQueueTTLSeconds
+                        transientQueueTTLSeconds = transientQueueTTLSeconds,
+                        tracingUtils = tracingUtils
                     )
                     .publishExpiryEvents(
                         generateTransactionBaseDocuments(
@@ -264,7 +267,7 @@ class TransactionExpiredEventPublisherTests {
         // assertions
         verify(queueAsyncClient, times(0))
             .sendMessageWithResponse(
-                any<BinaryData>(),
+                any<QueueEvent<*>>(),
                 any(),
                 eq(Duration.ofSeconds(transientQueueTTLSeconds.toLong()))
             )
@@ -283,7 +286,7 @@ class TransactionExpiredEventPublisherTests {
         val sendMessageResult = SendMessageResult()
         sendMessageResult.messageId = "msgId"
         sendMessageResult.timeNextVisible = OffsetDateTime.now()
-        given(queueAsyncClient.sendMessageWithResponse(any<BinaryData>(), any(), any()))
+        given(queueAsyncClient.sendMessageWithResponse(any<QueueEvent<*>>(), any(), any()))
             .willReturn(
                 Mono.error(QueueStorageException("Error sending message to queue", null, null))
             )
@@ -310,7 +313,8 @@ class TransactionExpiredEventPublisherTests {
                         viewRepository = viewRepository,
                         eventStoreRepository = eventStoreRepository,
                         parallelEventToProcess = 1,
-                        transientQueueTTLSeconds = transientQueueTTLSeconds
+                        transientQueueTTLSeconds = transientQueueTTLSeconds,
+                        tracingUtils = tracingUtils
                     )
                     .publishExpiryEvents(
                         transactions,
@@ -324,7 +328,7 @@ class TransactionExpiredEventPublisherTests {
         // assertions
         verify(queueAsyncClient, times(5))
             .sendMessageWithResponse(
-                any<BinaryData>(),
+                any<QueueEvent<*>>(),
                 any(),
                 eq(Duration.ofSeconds(transientQueueTTLSeconds.toLong()))
             )
@@ -403,7 +407,8 @@ class TransactionExpiredEventPublisherTests {
                         viewRepository = viewRepository,
                         eventStoreRepository = eventStoreRepository,
                         parallelEventToProcess = 1,
-                        transientQueueTTLSeconds = transientQueueTTLSeconds
+                        transientQueueTTLSeconds = transientQueueTTLSeconds,
+                        tracingUtils = tracingUtils
                     )
                     .publishExpiryEvents(
                         allTransactions,
@@ -419,7 +424,7 @@ class TransactionExpiredEventPublisherTests {
         verify(viewRepository, times(5)).save(any())
         verify(queueAsyncClient, times(5))
             .sendMessageWithResponse(
-                any<BinaryData>(),
+                any<QueueEvent<*>>(),
                 any(),
                 eq(Duration.ofSeconds(transientQueueTTLSeconds.toLong()))
             )
@@ -429,10 +434,7 @@ class TransactionExpiredEventPublisherTests {
         val eventCapturedArguments = eventStoreCaptor.allValues
         eventCapturedArguments.sortBy { it.transactionId }
         val queueCapturedArguments = queueArgumentCaptor.allValues
-        queueCapturedArguments.sortBy {
-            val event = it.toObject(TransactionExpiredEvent::class.java)
-            event.transactionId
-        }
+        queueCapturedArguments.sortBy { it.event.transactionId }
         for ((idx, expectedEvent) in expectedCapturedSavedEvents.withIndex()) {
             equalityAssertionsOnEventStore(expectedEvent, eventCapturedArguments[idx], idx)
         }
@@ -534,7 +536,8 @@ class TransactionExpiredEventPublisherTests {
                         viewRepository = viewRepository,
                         eventStoreRepository = eventStoreRepository,
                         parallelEventToProcess = 1,
-                        transientQueueTTLSeconds = transientQueueTTLSeconds
+                        transientQueueTTLSeconds = transientQueueTTLSeconds,
+                        tracingUtils = tracingUtils
                     )
                     .publishExpiryEvents(
                         allTransactions,
@@ -552,10 +555,7 @@ class TransactionExpiredEventPublisherTests {
         val eventCapturedArguments = eventStoreCaptor.allValues
         eventCapturedArguments.sortBy { it.transactionId }
         val queueCapturedArguments = queueArgumentCaptor.allValues
-        queueCapturedArguments.sortBy {
-            val event = it.toObject(TransactionExpiredEvent::class.java)
-            event.transactionId
-        }
+        queueCapturedArguments.sortBy { it.event.transactionId }
         for ((idx, expectedEvent) in expectedCapturedSavedEvents.withIndex()) {
             equalityAssertionsOnEventStore(expectedEvent, eventCapturedArguments[idx], idx)
         }
@@ -593,7 +593,7 @@ class TransactionExpiredEventPublisherTests {
         verify(viewRepository, times(6)).save(any())
         verify(queueAsyncClient, times(5))
             .sendMessageWithResponse(
-                any<BinaryData>(),
+                any<QueueEvent<*>>(),
                 any(),
                 eq(Duration.ofSeconds(transientQueueTTLSeconds.toLong()))
             )
@@ -653,9 +653,8 @@ class TransactionExpiredEventPublisherTests {
             )
             .willAnswer {
                 if (
-                    BinaryData.fromBytes((it.arguments[0] as BinaryData).toBytes())
-                        .toObject(TransactionExpiredEvent::class.java)
-                        .transactionId != errorTransactionId.value()
+                    (it.arguments[0] as QueueEvent<*>).event.transactionId !=
+                        errorTransactionId.value()
                 ) {
                     queueAsyncClientResponse
                 } else {
@@ -671,7 +670,8 @@ class TransactionExpiredEventPublisherTests {
                         viewRepository = viewRepository,
                         eventStoreRepository = eventStoreRepository,
                         parallelEventToProcess = 1,
-                        transientQueueTTLSeconds = transientQueueTTLSeconds
+                        transientQueueTTLSeconds = transientQueueTTLSeconds,
+                        tracingUtils = tracingUtils
                     )
                     .publishExpiryEvents(
                         allTransactions,
@@ -689,10 +689,7 @@ class TransactionExpiredEventPublisherTests {
         val eventCapturedArguments = eventStoreCaptor.allValues
         eventCapturedArguments.sortBy { it.transactionId }
         val queueCapturedArguments = queueArgumentCaptor.allValues
-        queueCapturedArguments.sortBy {
-            val event = it.toObject(TransactionExpiredEvent::class.java)
-            event.transactionId
-        }
+        queueCapturedArguments.sortBy { it.event.transactionId }
         for ((idx, expectedEvent) in expectedCapturedSavedEvents.withIndex()) {
             equalityAssertionsOnEventStore(expectedEvent, eventCapturedArguments[idx], idx)
         }
@@ -730,7 +727,7 @@ class TransactionExpiredEventPublisherTests {
         verify(viewRepository, times(6)).save(any())
         verify(queueAsyncClient, times(6))
             .sendMessageWithResponse(
-                any<BinaryData>(),
+                any<QueueEvent<*>>(),
                 any(),
                 eq(Duration.ofSeconds(transientQueueTTLSeconds.toLong()))
             )
@@ -787,7 +784,8 @@ class TransactionExpiredEventPublisherTests {
                         viewRepository = viewRepository,
                         eventStoreRepository = eventStoreRepository,
                         parallelEventToProcess = 1,
-                        transientQueueTTLSeconds = transientQueueTTLSeconds
+                        transientQueueTTLSeconds = transientQueueTTLSeconds,
+                        tracingUtils = tracingUtils
                     )
                     .publishExpiryEvents(
                         baseDocuments,
@@ -805,10 +803,7 @@ class TransactionExpiredEventPublisherTests {
         val eventCapturedArguments = eventStoreCaptor.allValues
         eventCapturedArguments.sortBy { it.transactionId }
         val queueCapturedArguments = queueArgumentCaptor.allValues
-        queueCapturedArguments.sortBy {
-            val event = it.toObject(TransactionExpiredEvent::class.java)
-            event.transactionId
-        }
+        queueCapturedArguments.sortBy { it.event.transactionId }
         for ((idx, expectedGeneratedEvent) in expectedGeneratedEvents.withIndex()) {
             /*
              * verify that event stored into event store collection and sent on the queue are the expected ones.
@@ -844,7 +839,7 @@ class TransactionExpiredEventPublisherTests {
         }
         verify(queueAsyncClient, times(5))
             .sendMessageWithResponse(
-                any<BinaryData>(),
+                any<QueueEvent<*>>(),
                 any(),
                 eq(Duration.ofSeconds(transientQueueTTLSeconds.toLong()))
             )
@@ -959,7 +954,8 @@ class TransactionExpiredEventPublisherTests {
                         viewRepository = viewRepository,
                         eventStoreRepository = eventStoreRepository,
                         parallelEventToProcess = 1,
-                        transientQueueTTLSeconds = transientQueueTTLSeconds
+                        transientQueueTTLSeconds = transientQueueTTLSeconds,
+                        tracingUtils = tracingUtils
                     )
                     .publishExpiryEvents(
                         baseDocuments,
@@ -977,10 +973,7 @@ class TransactionExpiredEventPublisherTests {
         val eventCapturedArguments = eventStoreCaptor.allValues
         eventCapturedArguments.sortBy { it.transactionId }
         val queueCapturedArguments = queueArgumentCaptor.allValues
-        queueCapturedArguments.sortBy {
-            val event = it.toObject(TransactionExpiredEvent::class.java)
-            event.transactionId
-        }
+        queueCapturedArguments.sortBy { it.event.transactionId }
         for ((idx, expectedGeneratedEvent) in expectedGeneratedEvents.withIndex()) {
             /*
              * verify that event stored into event store collection and sent on the queue are the expected ones.
@@ -1016,7 +1009,7 @@ class TransactionExpiredEventPublisherTests {
         }
         verify(queueAsyncClient, times(25))
             .sendMessageWithResponse(
-                any<BinaryData>(),
+                any<QueueEvent<*>>(),
                 any(),
                 eq(Duration.ofSeconds(transientQueueTTLSeconds.toLong()))
             )
@@ -1075,7 +1068,8 @@ class TransactionExpiredEventPublisherTests {
                         viewRepository = viewRepository,
                         eventStoreRepository = eventStoreRepository,
                         parallelEventToProcess = 1,
-                        transientQueueTTLSeconds = transientQueueTTLSeconds
+                        transientQueueTTLSeconds = transientQueueTTLSeconds,
+                        tracingUtils = tracingUtils
                     )
                     .publishExpiryEvents(
                         baseDocuments,
@@ -1093,10 +1087,7 @@ class TransactionExpiredEventPublisherTests {
         val eventCapturedArguments = eventStoreCaptor.allValues
         eventCapturedArguments.sortBy { it.transactionId }
         val queueCapturedArguments = queueArgumentCaptor.allValues
-        queueCapturedArguments.sortBy {
-            val event = it.toObject(TransactionExpiredEvent::class.java)
-            event.transactionId
-        }
+        queueCapturedArguments.sortBy { it.event.transactionId }
         for ((idx, expectedGeneratedEvent) in expectedGeneratedEvents.withIndex()) {
             /*
              * verify that event stored into event store collection and sent on the queue are the expected ones.
@@ -1132,7 +1123,7 @@ class TransactionExpiredEventPublisherTests {
         }
         verify(queueAsyncClient, times(5))
             .sendMessageWithResponse(
-                any<BinaryData>(),
+                any<QueueEvent<*>>(),
                 any(),
                 eq(Duration.ofSeconds(transientQueueTTLSeconds.toLong()))
             )
@@ -1191,7 +1182,8 @@ class TransactionExpiredEventPublisherTests {
                         viewRepository = viewRepository,
                         eventStoreRepository = eventStoreRepository,
                         parallelEventToProcess = 1,
-                        transientQueueTTLSeconds = transientQueueTTLSeconds
+                        transientQueueTTLSeconds = transientQueueTTLSeconds,
+                        tracingUtils = tracingUtils
                     )
                     .publishExpiryEvents(
                         baseDocuments,
@@ -1209,10 +1201,7 @@ class TransactionExpiredEventPublisherTests {
         val eventCapturedArguments = eventStoreCaptor.allValues
         eventCapturedArguments.sortBy { it.transactionId }
         val queueCapturedArguments = queueArgumentCaptor.allValues
-        queueCapturedArguments.sortBy {
-            val event = it.toObject(TransactionExpiredEvent::class.java)
-            event.transactionId
-        }
+        queueCapturedArguments.sortBy { it.event.transactionId }
         for ((idx, expectedGeneratedEvent) in expectedGeneratedEvents.withIndex()) {
             /*
              * verify that event stored into event store collection and sent on the queue are the expected ones.
@@ -1248,7 +1237,7 @@ class TransactionExpiredEventPublisherTests {
         }
         verify(queueAsyncClient, times(5))
             .sendMessageWithResponse(
-                any<BinaryData>(),
+                any<QueueEvent<*>>(),
                 any(),
                 eq(Duration.ofSeconds(transientQueueTTLSeconds.toLong()))
             )
@@ -1307,7 +1296,8 @@ class TransactionExpiredEventPublisherTests {
                         viewRepository = viewRepository,
                         eventStoreRepository = eventStoreRepository,
                         parallelEventToProcess = 1,
-                        transientQueueTTLSeconds = transientQueueTTLSeconds
+                        transientQueueTTLSeconds = transientQueueTTLSeconds,
+                        tracingUtils = tracingUtils
                     )
                     .publishExpiryEvents(
                         baseDocuments,
@@ -1325,10 +1315,7 @@ class TransactionExpiredEventPublisherTests {
         val eventCapturedArguments = eventStoreCaptor.allValues
         eventCapturedArguments.sortBy { it.transactionId }
         val queueCapturedArguments = queueArgumentCaptor.allValues
-        queueCapturedArguments.sortBy {
-            val event = it.toObject(TransactionExpiredEvent::class.java)
-            event.transactionId
-        }
+        queueCapturedArguments.sortBy { it.event.transactionId }
         for ((idx, expectedGeneratedEvent) in expectedGeneratedEvents.withIndex()) {
             /*
              * verify that event stored into event store collection and sent on the queue are the expected ones.
@@ -1364,7 +1351,7 @@ class TransactionExpiredEventPublisherTests {
         }
         verify(queueAsyncClient, times(5))
             .sendMessageWithResponse(
-                any<BinaryData>(),
+                any<QueueEvent<*>>(),
                 any(),
                 eq(Duration.ofSeconds(transientQueueTTLSeconds.toLong()))
             )
@@ -1414,13 +1401,13 @@ class TransactionExpiredEventPublisherTests {
 
     private fun equalityAssertionsOnSentEvent(
         expectedGeneratedEvent: TransactionExpiredEvent,
-        binaryData: BinaryData,
+        actualEvent: QueueEvent<*>,
         idx: Int
     ) {
         val equalityMessage = "Event[$idx]"
+        val eventSent = actualEvent.event as TransactionExpiredEvent
+
         // assertions on events sent on queue
-        val eventSent =
-            BinaryData.fromBytes(binaryData.toBytes()).toObject(TransactionExpiredEvent::class.java)
         assertEquals(expectedGeneratedEvent.transactionId, eventSent.transactionId, equalityMessage)
         assertEquals(expectedGeneratedEvent.eventCode, eventSent.eventCode, equalityMessage)
         assertEquals(
