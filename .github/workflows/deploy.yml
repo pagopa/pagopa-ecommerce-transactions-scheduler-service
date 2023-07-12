@@ -1,10 +1,8 @@
 name: Trigger pipeline deploy
 
 on:
-  pull_request:
-    branches:
-      - main
-    types: [ closed ]
+  push:
+    branches: [ "main" ]
 
   workflow_dispatch:
 
@@ -15,7 +13,6 @@ jobs:
   semver_labels:
     name: Read semver labels from merged PR
     runs-on: ubuntu-latest
-    if: github.event.pull_request.merged == true
     outputs:
       semver_app: ${{ steps.semver_labels.outputs.semver_app }}
       semver_chart: ${{ steps.semver_labels.outputs.semver_chart }}
