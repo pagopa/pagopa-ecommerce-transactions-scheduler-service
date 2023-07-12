@@ -79,5 +79,6 @@ jobs:
                 "SKIP_BUILD": "${{ steps.configure_pipeline_parameters.outputs.SKIP_BUILD }}",
                 "RELEASE_SEMVER": "${{ steps.configure_pipeline_parameters.outputs.RELEASE_SEMVER }}",
                 "RELEASE_CHART_SEMVER": "${{ steps.configure_pipeline_parameters.outputs.RELEASE_CHART_SEMVER }}",
-                "FORCE_REPLACE_DOCKER_IMAGE": "${{ steps.configure_pipeline_parameters.outputs.FORCE_REPLACE_DOCKER_IMAGE }}"
+                "FORCE_REPLACE_DOCKER_IMAGE": "${{ steps.configure_pipeline_parameters.outputs.FORCE_REPLACE_DOCKER_IMAGE }}",
+                "SKIP_RELEASE": "${{ steps.configure_pipeline_parameters.outputs.SKIP_RELEASE }}"
             }
