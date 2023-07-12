@@ -26,7 +26,6 @@ runs:
         VALID_APP_VERSION_LABELS: patch, minor, major, ignore-for-release
         VALID_CHART_VERSION_LABELS: chart-patch, chart-minor, chart-major
         SKIP_RELEASE_LABEL: skip-release
-        PR_LABELS: github.event.pull_request.labels.*.name
       with:
         github-token: ${{ inputs.github_token }}
         script: |
@@ -34,8 +33,22 @@ runs:
           const validLabelsSemver = VALID_APP_VERSION_LABELS.trim().split(',').map(word => word.trim()).filter(word => word.length > 0);
           const validLabelsChartSemver = VALID_CHART_VERSION_LABELS.trim().split(',').map(word => word.trim()).filter(word => word.length > 0);
           const skipReleaseLabel = SKIP_RELEASE_LABEL.trim();
+          var issueNumber = context.issue.number;
+          if(issueNumber == ''){
+            core.info('Retrieving issue number from merge commit message')
+            var commitQuery = await github.rest.git.getCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+              commit_sha: context.sha,
+            });
+            const commitMessage = commitQuery.data.map(commit => commit.message);
+            const prNumber = commitMessage.match('\\(#(\\d{1,9})\\)')[1];
+            core.info(`Commit message: ${commitMessage}, pr number: ${prNumber}`);
+            issueNumber = prNumber; 
+          }
+          core.info(`Issue number: ${issueNumber}`);
           var labelsQuery = await github.rest.issues.listLabelsOnIssue({
-              issue_number: context.issue.number,
+              issue_number: issueNumber,
               owner: context.repo.owner,
               repo: context.repo.repo
             });
