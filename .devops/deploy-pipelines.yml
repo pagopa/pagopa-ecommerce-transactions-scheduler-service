@@ -22,10 +22,7 @@ parameters:
   - name: 'skipBuild'
     displayName: 'Check this flag to skip build and proceed to deploy a docker image previously built'
     type: boolean
-    default: False
-    values:
-      - False
-      - True
+    default: false
   - name: 'RELEASE_SEMVER'
     displayName: 'When packing a release, define the version bump to apply (release is done automatically when deploying on UAT and skipped on DEV) '
     type: string

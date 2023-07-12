@@ -122,7 +122,7 @@ runs:
           } else {
             if (skipRelease) {
               core.setOutput("semver_app", "none");
-              core.setOutput("semver_chart", "none");
+              core.setOutput("semver_chart", "patch");
               core.setOutput("skip_release", "True");
             } else {
               core.setOutput("semver_app", matchedLabelsSemver[0]);
