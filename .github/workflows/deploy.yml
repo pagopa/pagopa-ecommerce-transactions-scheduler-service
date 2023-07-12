@@ -76,4 +76,5 @@ jobs:
             {
                 "DEV_DEPLOY": "${{ steps.configure_pipeline_parameters.outputs.DEV_DEPLOY }}",
                 "UAT_PROD_DEPLOY": "${{ steps.configure_pipeline_parameters.outputs.UAT_PROD_DEPLOY }}"
+                "SKIP_BUILD": "${{ steps.configure_pipeline_parameters.outputs.SKIP_BUILD }}"
             }
