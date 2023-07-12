@@ -48,8 +48,8 @@ jobs:
           echo "RELEASE_CHART_SEMVER=$semverChart" >> $GITHUB_OUTPUT
           echo "FORCE_REPLACE_DOCKER_IMAGE=False" >> $GITHUB_OUTPUT
           echo "SKIP_RELEASE=$skipRelease" >> $GITHUB_OUTPUT
-          echo "UAT_SKIP_BLUE_DEPLOYMENT=False" >> $GITHUB_OUTPUT
-          echo "PROD_SKIP_BLUE_DEPLOYMENT=False" >> $GITHUB_OUTPUT
+          echo "UAT_SKIP_BLUE_DEPLOYMENT=True" >> $GITHUB_OUTPUT
+          echo "PROD_SKIP_BLUE_DEPLOYMENT=True" >> $GITHUB_OUTPUT
           echo "SKIP_BUILD=False" >> $GITHUB_OUTPUT
         shell: bash
       - name: Log pipeline parameters
