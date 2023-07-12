@@ -57,10 +57,11 @@ runs:
             repo: context.repo.repo
           });
           var prLabels = labelsQuery.data.map(label => label.name);
-          core.info(`PR labels: ${prLabels}
-                              Valid labels semver: ${validLabelsSemver}
-                              Valid labels chart semver: ${validLabelsChartSemver}
-                              Skip release label: ${skipReleaseLabel}`
+          core.info(
+            `PR labels: ${prLabels}
+            Valid labels semver: ${validLabelsSemver}
+            Valid labels chart semver: ${validLabelsChartSemver}
+            Skip release label: ${skipReleaseLabel}`
           );
           var matchedLabelsSemver = [];
           var matchedLabelsChartSemver = [];
@@ -80,7 +81,7 @@ runs:
           );
           core.info(
             `Matched labels semver: ${matchedLabelsSemver}
-                              chart semver: ${matchedLabelsChartSemver}`
+            chart semver: ${matchedLabelsChartSemver}`
           )
           var comments = await github.rest.issues.listComments({
             issue_number: context.issue.number,
@@ -99,17 +100,18 @@ runs:
           }
 
           if ((matchedLabelsSemver.length != 1 || matchedLabelsChartSemver.length != 1) && !skipRelease) {
-            const errorMessage = `Pull request label validation error!
-                                Required label for app version: ${validLabelsSemver.map(label => `\`${label}\``).join()}
-                                Required label for chart version: ${validLabelsChartSemver.map(label => `\`${label}\``).join()}.
+            const errorMessage =
+              `Pull request label validation error!
+              Required label for app version: ${validLabelsSemver.map(label => `\`${label}\``).join()}
+              Required label for chart version: ${validLabelsChartSemver.map(label => `\`${label}\``).join()}.
 
-                                Found labels on PR...
+              Found labels on PR...
 
-                                app version: ${matchedLabelsSemver.map(label => `\`${label}\``).join()}
-                                chart version: ${matchedLabelsChartSemver.map(label => `\`${label}\``).join()}
+              app version: ${matchedLabelsSemver.map(label => `\`${label}\``).join()}
+              chart version: ${matchedLabelsChartSemver.map(label => `\`${label}\``).join()}
 
-                                If you want to skip release for this PR add \`${skipReleaseLabel}\` label
-                                `
+              If you want to skip release for this PR add \`${skipReleaseLabel}\` label
+              `
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
