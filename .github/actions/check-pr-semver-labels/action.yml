@@ -34,16 +34,20 @@ runs:
           const validLabelsChartSemver = VALID_CHART_VERSION_LABELS.trim().split(',').map(word => word.trim()).filter(word => word.length > 0);
           const skipReleaseLabel = SKIP_RELEASE_LABEL.trim();
           var issueNumber = context.issue.number;
-          if (issueNumber == '') {
+          if (issueNumber === undefined) {
             core.info('Retrieving issue number from merge commit message')
-            var commitQuery = await github.rest.git.getCommit({
+            var mergeCommit = await github.rest.git.getCommit({
               owner: context.repo.owner,
               repo: context.repo.repo,
               commit_sha: context.sha,
             });
-            const commitMessage = commitQuery.data.map(commit => commit.message);
+            if (!mergeCommit) {
+              throw `Could not find commit for sha ${context.sha}`;
+            }
+            const commitMessage = mergeCommit.data.message;
+            core.info(`Commit message: ${commitMessage}`);
             const prNumber = commitMessage.match('\\(#(\\d{1,9})\\)')[1];
-            core.info(`Commit message: ${commitMessage}, pr number: ${prNumber}`);
+            core.info(`Extracted PR number: ${prNumber}`);
             issueNumber = prNumber;
           }
           core.info(`Issue number: ${issueNumber}`);
@@ -54,9 +58,9 @@ runs:
           });
           var prLabels = labelsQuery.data.map(label => label.name);
           core.info(`PR labels: ${prLabels}
-                    Valid labels semver: ${validLabelsSemver}
-                    Valid labels chart semver: ${validLabelsChartSemver}
-                    Skip release label: ${skipReleaseLabel}`
+                              Valid labels semver: ${validLabelsSemver}
+                              Valid labels chart semver: ${validLabelsChartSemver}
+                              Skip release label: ${skipReleaseLabel}`
           );
           var matchedLabelsSemver = [];
           var matchedLabelsChartSemver = [];
@@ -76,7 +80,7 @@ runs:
           );
           core.info(
             `Matched labels semver: ${matchedLabelsSemver}
-                    chart semver: ${matchedLabelsChartSemver}`
+                              chart semver: ${matchedLabelsChartSemver}`
           )
           var comments = await github.rest.issues.listComments({
             issue_number: context.issue.number,
@@ -96,16 +100,16 @@ runs:
 
           if ((matchedLabelsSemver.length != 1 || matchedLabelsChartSemver.length != 1) && !skipRelease) {
             const errorMessage = `Pull request label validation error!
-                      Required label for app version: ${validLabelsSemver.map(label => `\`${label}\``).join()}
-                      Required label for chart version: ${validLabelsChartSemver.map(label => `\`${label}\``).join()}.
+                                Required label for app version: ${validLabelsSemver.map(label => `\`${label}\``).join()}
+                                Required label for chart version: ${validLabelsChartSemver.map(label => `\`${label}\``).join()}.
 
-                      Found labels on PR...
+                                Found labels on PR...
 
-                      app version: ${matchedLabelsSemver.map(label => `\`${label}\``).join()}
-                      chart version: ${matchedLabelsChartSemver.map(label => `\`${label}\``).join()}
+                                app version: ${matchedLabelsSemver.map(label => `\`${label}\``).join()}
+                                chart version: ${matchedLabelsChartSemver.map(label => `\`${label}\``).join()}
 
-                      If you want to skip release for this PR add \`${skipReleaseLabel}\` label
-                      `
+                                If you want to skip release for this PR add \`${skipReleaseLabel}\` label
+                                `
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
