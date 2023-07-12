@@ -34,7 +34,7 @@ runs:
           const validLabelsChartSemver = VALID_CHART_VERSION_LABELS.trim().split(',').map(word => word.trim()).filter(word => word.length > 0);
           const skipReleaseLabel = SKIP_RELEASE_LABEL.trim();
           var issueNumber = context.issue.number;
-          if (issueNumber == '') {
+          if (issueNumber === undefined) {
             core.info('Retrieving issue number from merge commit message')
             var commitQuery = await github.rest.git.getCommit({
               owner: context.repo.owner,
