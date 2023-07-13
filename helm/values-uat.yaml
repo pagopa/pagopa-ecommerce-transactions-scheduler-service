@@ -29,16 +29,16 @@ microservice-chart:
       PENDING_TRANSACTIONS_MAX_TRANSACTIONS_PER_PAGE: "5"
       PENDING_TRANSACTIONS_PAGE_ANALYSIS_DELAY_SECONDS: "1"
       PENDING_TRANSACTIONS_SEND_PAYMENT_RESULT_TIMEOUT_SECONDS: "3900"
-      ELASTIC_APM_SERVICE_NAME: pagopa-ecommerce-transactions-scheduler-service-blue
-      ELASTIC_APM_APPLICATION_PACKAGES: it.pagopa.ecommerce.transactions.scheduler
-      ELASTIC_APM_SERVER_URL: http://quickstart-apm-http.elastic-system.svc:8200
-      ELASTIC_APM_LOG_SENDING: "false"
+      OTEL_RESOURCE_ATTRIBUTES: "service.name=pagopa-ecommerce-transactions-scheduler-service-blue,service.deployment.environment=uat"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.elastic-system.svc:4317"
+      OTEL_LOGS_EXPORTER: none
+      OTEL_TRACES_SAMPLER: "always_on"
       ECS_SERVICE_NAME: pagopa-ecommerce-transactions-scheduler-service-blue
       ECS_SERVICE_ENVIRONMENT: "uat"
     envSecret:
       MONGO_PASSWORD: mongo-ecommerce-password
       QUEUE_TRANSIENT_CONNECTION_STRING: ecommerce-storage-transient-connection-string
-      ELASTIC_APM_SECRET_TOKEN: elastic-apm-secret-token
+      OTEL_EXPORTER_OTLP_HEADERS: elastic-otel-token-header
   image:
     repository: pagopaucommonacr.azurecr.io/pagopaecommercetransactionsschedulerservice
     tag: "0.2.8"
@@ -118,16 +118,16 @@ microservice-chart:
     PENDING_TRANSACTIONS_MAX_TRANSACTIONS_PER_PAGE: "5"
     PENDING_TRANSACTIONS_PAGE_ANALYSIS_DELAY_SECONDS: "1"
     PENDING_TRANSACTIONS_SEND_PAYMENT_RESULT_TIMEOUT_SECONDS: "3900"
-    ELASTIC_APM_SERVICE_NAME: pagopa-ecommerce-transactions-scheduler-service
-    ELASTIC_APM_APPLICATION_PACKAGES: it.pagopa.ecommerce.transactions.scheduler
-    ELASTIC_APM_SERVER_URL: http://quickstart-apm-http.elastic-system.svc:8200
-    ELASTIC_APM_LOG_SENDING: "false"
+    OTEL_RESOURCE_ATTRIBUTES: "service.name=pagopa-ecommerce-transactions-scheduler-service,service.deployment.environment=uat"
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.elastic-system.svc:4317"
+    OTEL_LOGS_EXPORTER: none
+    OTEL_TRACES_SAMPLER: "always_on"
     ECS_SERVICE_NAME: pagopa-ecommerce-transactions-scheduler-service
     ECS_SERVICE_ENVIRONMENT: "uat"
   envSecret:
     MONGO_PASSWORD: mongo-ecommerce-password
     QUEUE_TRANSIENT_CONNECTION_STRING: ecommerce-storage-transient-connection-string
-    ELASTIC_APM_SECRET_TOKEN: elastic-apm-secret-token
+    OTEL_EXPORTER_OTLP_HEADERS: elastic-otel-token-header
   keyvault:
     name: "pagopa-u-ecommerce-kv"
     tenantId: "7788edaf-0346-4068-9d79-c868aed15b3d"
