@@ -20,7 +20,7 @@
         <java.version>17</java.version>
         <azure.functions.java.library.version>3.0.0</azure.functions.java.library.version>
         <spring.cloud.azure.dependencies>4.0.0</spring.cloud.azure.dependencies>
-        <pagopa-ecommerce-commons.version>0.19.2</pagopa-ecommerce-commons.version>
+        <pagopa-ecommerce-commons.version>0.19.5</pagopa-ecommerce-commons.version>
         <spotless.version>2.28.0</spotless.version>
         <jacoco.version>0.8.8</jacoco.version>
         <maven.compiler.plugin.version>3.10.1</maven.compiler.plugin.version>
@@ -62,6 +62,14 @@
             <artifactId>jackson-module-kotlin</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jdk8</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-core-serializer-json-jackson</artifactId>
+        </dependency>
+        <dependency>
             <groupId>io.projectreactor.kotlin</groupId>
             <artifactId>reactor-kotlin-extensions</artifactId>
         </dependency>
@@ -87,6 +95,24 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-sdk</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-exporter-otlp</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-semconv</artifactId>
+            <version>1.27.0-alpha</version>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -199,6 +225,14 @@
                 <groupId>com.azure.spring</groupId>
                 <artifactId>spring-cloud-azure-dependencies</artifactId>
                 <version>${spring.cloud.azure.dependencies}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>io.opentelemetry</groupId>
+                <artifactId>opentelemetry-bom</artifactId>
+                <version>1.27.0</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>

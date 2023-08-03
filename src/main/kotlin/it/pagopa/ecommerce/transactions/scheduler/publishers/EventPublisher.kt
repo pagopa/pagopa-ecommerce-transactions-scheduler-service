@@ -1,10 +1,11 @@
 package it.pagopa.ecommerce.transactions.scheduler.publishers
 
-import com.azure.core.util.BinaryData
-import com.azure.storage.queue.QueueAsyncClient
+import it.pagopa.ecommerce.commons.client.QueueAsyncClient
 import it.pagopa.ecommerce.commons.documents.v1.TransactionEvent
 import it.pagopa.ecommerce.commons.domain.v1.pojos.BaseTransaction
 import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
+import it.pagopa.ecommerce.commons.queues.QueueEvent
+import it.pagopa.ecommerce.commons.queues.TracingUtils
 import java.time.Duration
 import java.util.concurrent.atomic.AtomicLong
 import org.slf4j.Logger
@@ -17,7 +18,8 @@ abstract class EventPublisher<E>(
     private val queueAsyncClient: QueueAsyncClient,
     private val logger: Logger,
     private val parallelEventsToProcess: Int,
-    private val transientQueueTTLSeconds: Int
+    private val transientQueueTTLSeconds: Int,
+    private val tracingUtils: TracingUtils,
 ) where E : TransactionEvent<*> {
 
     private fun publishEvent(
@@ -28,21 +30,23 @@ abstract class EventPublisher<E>(
         return Mono.just(baseTransaction)
             .flatMap { storeEventAndUpdateView(it, newStatus) }
             .flatMap { event ->
-                queueAsyncClient
-                    .sendMessageWithResponse(
-                        BinaryData.fromObject(event),
-                        Duration.ofMillis(visibilityTimeoutMillis),
-                        Duration.ofSeconds(transientQueueTTLSeconds.toLong())
-                    )
-                    .flatMap {
-                        logger.info(
-                            "Event: [$event] successfully sent with visibility timeout: [${it.value.timeNextVisible}] ms to queue: [${queueAsyncClient.queueName}]"
+                tracingUtils.traceMono(this.javaClass.simpleName) { tracingInfo ->
+                    queueAsyncClient
+                        .sendMessageWithResponse(
+                            QueueEvent(event, tracingInfo),
+                            Duration.ofMillis(visibilityTimeoutMillis),
+                            Duration.ofSeconds(transientQueueTTLSeconds.toLong())
                         )
-                        Mono.just(true)
-                    }
-                    .doOnError { exception ->
-                        logger.error("Error sending event: [${event}].", exception)
-                    }
+                        .flatMap {
+                            logger.info(
+                                "Event: [$event] successfully sent with visibility timeout: [${it.value.timeNextVisible}] ms to queue: [${queueAsyncClient.queueName}]"
+                            )
+                            Mono.just(true)
+                        }
+                        .doOnError { exception ->
+                            logger.error("Error sending event: [${event}].", exception)
+                        }
+                }
             }
             .onErrorResume {
                 logger.error(

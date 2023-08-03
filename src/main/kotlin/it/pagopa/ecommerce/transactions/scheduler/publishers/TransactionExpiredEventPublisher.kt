@@ -1,12 +1,13 @@
 package it.pagopa.ecommerce.transactions.scheduler.publishers
 
-import com.azure.storage.queue.QueueAsyncClient
+import it.pagopa.ecommerce.commons.client.QueueAsyncClient
 import it.pagopa.ecommerce.commons.documents.v1.*
 import it.pagopa.ecommerce.commons.domain.v1.TransactionWithClosureError
 import it.pagopa.ecommerce.commons.domain.v1.pojos.BaseTransaction
 import it.pagopa.ecommerce.commons.domain.v1.pojos.BaseTransactionWithCancellationRequested
 import it.pagopa.ecommerce.commons.domain.v1.pojos.BaseTransactionWithRequestedAuthorization
 import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
+import it.pagopa.ecommerce.commons.queues.TracingUtils
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsEventStoreRepository
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsViewRepository
 import org.slf4j.Logger
@@ -28,13 +29,15 @@ class TransactionExpiredEventPublisher(
     @Value("\${pendingTransactions.batch.transactionsAnalyzer.parallelEventsToProcess}")
     private val parallelEventToProcess: Int,
     @Value("\${azurestorage.queues.transientQueues.ttlSeconds}")
-    private val transientQueueTTLSeconds: Int
+    private val transientQueueTTLSeconds: Int,
+    @Autowired private val tracingUtils: TracingUtils
 ) :
     EventPublisher<TransactionExpiredEvent>(
         queueAsyncClient = expiredEventQueueAsyncClient,
         logger = logger,
         parallelEventsToProcess = parallelEventToProcess,
-        transientQueueTTLSeconds = transientQueueTTLSeconds
+        transientQueueTTLSeconds = transientQueueTTLSeconds,
+        tracingUtils = tracingUtils
     ) {
 
     fun publishExpiryEvents(
