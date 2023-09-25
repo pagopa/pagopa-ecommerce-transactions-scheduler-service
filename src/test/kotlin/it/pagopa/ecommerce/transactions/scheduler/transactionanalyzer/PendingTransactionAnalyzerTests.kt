@@ -1,14 +1,15 @@
 package it.pagopa.ecommerce.transactions.scheduler.transactionanalyzer
 
-import it.pagopa.ecommerce.commons.documents.v1.TransactionClosureData
-import it.pagopa.ecommerce.commons.documents.v1.TransactionEvent
-import it.pagopa.ecommerce.commons.documents.v1.TransactionUserReceiptData
-import it.pagopa.ecommerce.commons.domain.v1.EmptyTransaction
-import it.pagopa.ecommerce.commons.domain.v1.pojos.BaseTransaction
+import it.pagopa.ecommerce.commons.documents.v1.TransactionClosureData as TransactionClosureDataV1
+import it.pagopa.ecommerce.commons.documents.v1.TransactionEvent as TransactionEventV1
+import it.pagopa.ecommerce.commons.documents.v1.TransactionUserReceiptData as TransactionUserReceiptDataV1
+import it.pagopa.ecommerce.commons.domain.v1.EmptyTransaction as EmptyTransactionV1
+import it.pagopa.ecommerce.commons.domain.v1.pojos.BaseTransaction as BaseTransactionV1
 import it.pagopa.ecommerce.commons.generated.server.model.AuthorizationResultDto
 import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
 import it.pagopa.ecommerce.commons.v1.TransactionTestUtils
-import it.pagopa.ecommerce.transactions.scheduler.publishers.TransactionExpiredEventPublisher
+import it.pagopa.ecommerce.transactions.scheduler.publishers.v1.TransactionExpiredEventPublisher as TransactionExpiredEventPublisherV1
+import it.pagopa.ecommerce.transactions.scheduler.publishers.v2.TransactionExpiredEventPublisher as TransactionExpiredEventPublisherV2
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsEventStoreRepository
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsViewRepository
 import java.time.Duration
@@ -37,7 +38,11 @@ import reactor.test.StepVerifier
 @ExtendWith(MockitoExtension::class)
 class PendingTransactionAnalyzerTests {
 
-    @Mock private lateinit var transactionExpiredEventPublisher: TransactionExpiredEventPublisher
+    @Mock
+    private lateinit var transactionExpiredEventPublisherV1: TransactionExpiredEventPublisherV1
+
+    @Mock
+    private lateinit var transactionExpiredEventPublisherV2: TransactionExpiredEventPublisherV2
 
     @Mock private lateinit var viewRepository: TransactionsViewRepository
 
@@ -81,7 +86,8 @@ class PendingTransactionAnalyzerTests {
     fun `init`() {
         pendingTransactionAnalyzer =
             PendingTransactionAnalyzer(
-                expiredTransactionEventPublisher = transactionExpiredEventPublisher,
+                expiredTransactionEventPublisherV1 = transactionExpiredEventPublisherV1,
+                expiredTransactionEventPublisherV2 = transactionExpiredEventPublisherV2,
                 viewRepository = viewRepository,
                 eventStoreRepository = eventStoreRepository,
                 transactionStatusesForSendExpiryEvent = transactionStatusesForSendExpiryEventMocked,
@@ -93,7 +99,8 @@ class PendingTransactionAnalyzerTests {
          */
         transactionStatusesForSendExpiryEventOriginal =
             PendingTransactionAnalyzer(
-                    expiredTransactionEventPublisher = transactionExpiredEventPublisher,
+                    expiredTransactionEventPublisherV1 = transactionExpiredEventPublisherV1,
+                    expiredTransactionEventPublisherV2 = transactionExpiredEventPublisherV2,
                     viewRepository = viewRepository,
                     eventStoreRepository = eventStoreRepository,
                     sendPaymentResultTimeoutSeconds = sendPaymentResultTimeout
@@ -105,7 +112,7 @@ class PendingTransactionAnalyzerTests {
     fun `Should send event for pending transaction in ACTIVATED state`() {
         // assertions
         val events =
-            listOf(TransactionTestUtils.transactionActivateEvent()) as List<TransactionEvent<Any>>
+            listOf(TransactionTestUtils.transactionActivateEvent()) as List<TransactionEventV1<Any>>
 
         checkThatExpiryEventIsSent(events, TransactionStatusDto.ACTIVATED)
     }
@@ -118,7 +125,7 @@ class PendingTransactionAnalyzerTests {
                 TransactionTestUtils.transactionActivateEvent(),
                 TransactionTestUtils.transactionAuthorizationRequestedEvent()
             )
-                as List<TransactionEvent<Any>>
+                as List<TransactionEventV1<Any>>
 
         checkThatExpiryEventIsSent(events, TransactionStatusDto.AUTHORIZATION_REQUESTED)
     }
@@ -132,7 +139,7 @@ class PendingTransactionAnalyzerTests {
                 TransactionTestUtils.transactionAuthorizationRequestedEvent(),
                 TransactionTestUtils.transactionAuthorizationCompletedEvent()
             )
-                as List<TransactionEvent<Any>>
+                as List<TransactionEventV1<Any>>
 
         checkThatExpiryEventIsSent(events, TransactionStatusDto.AUTHORIZATION_COMPLETED)
     }
@@ -147,7 +154,7 @@ class PendingTransactionAnalyzerTests {
                 TransactionTestUtils.transactionAuthorizationCompletedEvent(),
                 TransactionTestUtils.transactionClosureErrorEvent()
             )
-                as List<TransactionEvent<Any>>
+                as List<TransactionEventV1<Any>>
 
         checkThatExpiryEventIsSent(events, TransactionStatusDto.CLOSURE_ERROR)
     }
@@ -160,7 +167,7 @@ class PendingTransactionAnalyzerTests {
                 TransactionTestUtils.transactionActivateEvent(),
                 TransactionTestUtils.transactionUserCanceledEvent()
             )
-                as List<TransactionEvent<Any>>
+                as List<TransactionEventV1<Any>>
 
         checkThatExpiryEventIsSent(events, TransactionStatusDto.CANCELLATION_REQUESTED)
     }
@@ -169,7 +176,7 @@ class PendingTransactionAnalyzerTests {
     fun `Should send event for pending transaction in CLOSED state outcome OK`() {
         // assertions
         val closedEvent =
-            TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK)
+            TransactionTestUtils.transactionClosedEvent(TransactionClosureDataV1.Outcome.OK)
         closedEvent.creationDate =
             ZonedDateTime.now()
                 .minus(Duration.ofSeconds(sendPaymentResultTimeout.toLong() + 1))
@@ -181,7 +188,7 @@ class PendingTransactionAnalyzerTests {
                 TransactionTestUtils.transactionAuthorizationCompletedEvent(),
                 closedEvent
             )
-                as List<TransactionEvent<Any>>
+                as List<TransactionEventV1<Any>>
 
         checkThatExpiryEventIsSent(events, TransactionStatusDto.CLOSED)
     }
@@ -194,9 +201,9 @@ class PendingTransactionAnalyzerTests {
                 TransactionTestUtils.transactionActivateEvent(),
                 TransactionTestUtils.transactionAuthorizationRequestedEvent(),
                 TransactionTestUtils.transactionAuthorizationCompletedEvent(),
-                TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.KO)
+                TransactionTestUtils.transactionClosedEvent(TransactionClosureDataV1.Outcome.KO)
             )
-                as List<TransactionEvent<Any>>
+                as List<TransactionEventV1<Any>>
 
         checkThatExpiryEventIsSent(events, TransactionStatusDto.CLOSED)
     }
@@ -209,19 +216,19 @@ class PendingTransactionAnalyzerTests {
                 TransactionTestUtils.transactionActivateEvent(),
                 TransactionTestUtils.transactionAuthorizationRequestedEvent(),
                 TransactionTestUtils.transactionAuthorizationCompletedEvent(),
-                TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK),
+                TransactionTestUtils.transactionClosedEvent(TransactionClosureDataV1.Outcome.OK),
                 TransactionTestUtils.transactionUserReceiptRequestedEvent(
                     TransactionTestUtils.transactionUserReceiptData(
-                        TransactionUserReceiptData.Outcome.OK
+                        TransactionUserReceiptDataV1.Outcome.OK
                     )
                 ),
                 TransactionTestUtils.transactionUserReceiptAddErrorEvent(
                     TransactionTestUtils.transactionUserReceiptData(
-                        TransactionUserReceiptData.Outcome.OK
+                        TransactionUserReceiptDataV1.Outcome.OK
                     )
                 )
             )
-                as List<TransactionEvent<Any>>
+                as List<TransactionEventV1<Any>>
 
         checkThatExpiryEventIsSent(events, TransactionStatusDto.NOTIFICATION_ERROR)
     }
@@ -234,19 +241,19 @@ class PendingTransactionAnalyzerTests {
                 TransactionTestUtils.transactionActivateEvent(),
                 TransactionTestUtils.transactionAuthorizationRequestedEvent(),
                 TransactionTestUtils.transactionAuthorizationCompletedEvent(),
-                TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK),
+                TransactionTestUtils.transactionClosedEvent(TransactionClosureDataV1.Outcome.OK),
                 TransactionTestUtils.transactionUserReceiptRequestedEvent(
                     TransactionTestUtils.transactionUserReceiptData(
-                        TransactionUserReceiptData.Outcome.KO
+                        TransactionUserReceiptDataV1.Outcome.KO
                     )
                 ),
                 TransactionTestUtils.transactionUserReceiptAddErrorEvent(
                     TransactionTestUtils.transactionUserReceiptData(
-                        TransactionUserReceiptData.Outcome.KO
+                        TransactionUserReceiptDataV1.Outcome.KO
                     )
                 )
             )
-                as List<TransactionEvent<Any>>
+                as List<TransactionEventV1<Any>>
 
         checkThatExpiryEventIsSent(events, TransactionStatusDto.NOTIFICATION_ERROR)
     }
@@ -259,14 +266,14 @@ class PendingTransactionAnalyzerTests {
                 TransactionTestUtils.transactionActivateEvent(),
                 TransactionTestUtils.transactionAuthorizationRequestedEvent(),
                 TransactionTestUtils.transactionAuthorizationCompletedEvent(),
-                TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK),
+                TransactionTestUtils.transactionClosedEvent(TransactionClosureDataV1.Outcome.OK),
                 TransactionTestUtils.transactionUserReceiptRequestedEvent(
                     TransactionTestUtils.transactionUserReceiptData(
-                        TransactionUserReceiptData.Outcome.OK
+                        TransactionUserReceiptDataV1.Outcome.OK
                     )
                 )
             )
-                as List<TransactionEvent<Any>>
+                as List<TransactionEventV1<Any>>
 
         checkThatExpiryEventIsSent(events, TransactionStatusDto.NOTIFICATION_REQUESTED)
     }
@@ -279,14 +286,14 @@ class PendingTransactionAnalyzerTests {
                 TransactionTestUtils.transactionActivateEvent(),
                 TransactionTestUtils.transactionAuthorizationRequestedEvent(),
                 TransactionTestUtils.transactionAuthorizationCompletedEvent(),
-                TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK),
+                TransactionTestUtils.transactionClosedEvent(TransactionClosureDataV1.Outcome.OK),
                 TransactionTestUtils.transactionUserReceiptRequestedEvent(
                     TransactionTestUtils.transactionUserReceiptData(
-                        TransactionUserReceiptData.Outcome.KO
+                        TransactionUserReceiptDataV1.Outcome.KO
                     )
                 )
             )
-                as List<TransactionEvent<Any>>
+                as List<TransactionEventV1<Any>>
 
         checkThatExpiryEventIsSent(events, TransactionStatusDto.NOTIFICATION_REQUESTED)
     }
@@ -301,7 +308,7 @@ class PendingTransactionAnalyzerTests {
                     TransactionTestUtils.transactionActivated(ZonedDateTime.now().toString())
                 )
             )
-                as List<TransactionEvent<Any>>
+                as List<TransactionEventV1<Any>>
 
         checkThatExpiryEventIsNotSent(events, TransactionStatusDto.EXPIRED_NOT_AUTHORIZED)
     }
@@ -313,9 +320,9 @@ class PendingTransactionAnalyzerTests {
             listOf(
                 TransactionTestUtils.transactionActivateEvent(),
                 TransactionTestUtils.transactionUserCanceledEvent(),
-                TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK)
+                TransactionTestUtils.transactionClosedEvent(TransactionClosureDataV1.Outcome.OK)
             )
-                as List<TransactionEvent<Any>>
+                as List<TransactionEventV1<Any>>
 
         checkThatExpiryEventIsNotSent(events, TransactionStatusDto.CANCELED)
     }
@@ -331,10 +338,10 @@ class PendingTransactionAnalyzerTests {
                     AuthorizationResultDto.KO
                 ),
                 TransactionTestUtils.transactionClosureFailedEvent(
-                    TransactionClosureData.Outcome.OK
+                    TransactionClosureDataV1.Outcome.OK
                 )
             )
-                as List<TransactionEvent<Any>>
+                as List<TransactionEventV1<Any>>
 
         checkThatExpiryEventIsNotSent(events, TransactionStatusDto.UNAUTHORIZED)
     }
@@ -349,19 +356,19 @@ class PendingTransactionAnalyzerTests {
                 TransactionTestUtils.transactionAuthorizationCompletedEvent(
                     AuthorizationResultDto.OK
                 ),
-                TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK),
+                TransactionTestUtils.transactionClosedEvent(TransactionClosureDataV1.Outcome.OK),
                 TransactionTestUtils.transactionUserReceiptRequestedEvent(
                     TransactionTestUtils.transactionUserReceiptData(
-                        TransactionUserReceiptData.Outcome.OK
+                        TransactionUserReceiptDataV1.Outcome.OK
                     )
                 ),
                 TransactionTestUtils.transactionUserReceiptAddedEvent(
                     TransactionTestUtils.transactionUserReceiptData(
-                        TransactionUserReceiptData.Outcome.OK
+                        TransactionUserReceiptDataV1.Outcome.OK
                     )
                 )
             )
-                as List<TransactionEvent<Any>>
+                as List<TransactionEventV1<Any>>
 
         checkThatExpiryEventIsNotSent(events, TransactionStatusDto.NOTIFIED_OK)
     }
@@ -376,19 +383,19 @@ class PendingTransactionAnalyzerTests {
                 TransactionTestUtils.transactionAuthorizationCompletedEvent(
                     AuthorizationResultDto.OK
                 ),
-                TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK),
+                TransactionTestUtils.transactionClosedEvent(TransactionClosureDataV1.Outcome.OK),
                 TransactionTestUtils.transactionUserReceiptRequestedEvent(
                     TransactionTestUtils.transactionUserReceiptData(
-                        TransactionUserReceiptData.Outcome.KO
+                        TransactionUserReceiptDataV1.Outcome.KO
                     )
                 ),
                 TransactionTestUtils.transactionUserReceiptAddedEvent(
                     TransactionTestUtils.transactionUserReceiptData(
-                        TransactionUserReceiptData.Outcome.KO
+                        TransactionUserReceiptDataV1.Outcome.KO
                     )
                 )
             )
-                as List<TransactionEvent<Any>>
+                as List<TransactionEventV1<Any>>
 
         checkThatExpiryEventIsSent(events, TransactionStatusDto.NOTIFIED_KO)
     }
@@ -404,13 +411,13 @@ class PendingTransactionAnalyzerTests {
                 TransactionTestUtils.transactionAuthorizationCompletedEvent(
                     AuthorizationResultDto.OK
                 ),
-                TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK),
+                TransactionTestUtils.transactionClosedEvent(TransactionClosureDataV1.Outcome.OK),
             )
-                as List<TransactionEvent<Any>>
+                as List<TransactionEventV1<Any>>
         events =
             events.plus(
                 TransactionTestUtils.transactionExpiredEvent(reduceEvents(events))
-                    as TransactionEvent<Any>
+                    as TransactionEventV1<Any>
             )
 
         checkThatExpiryEventIsNotSent(events, TransactionStatusDto.EXPIRED)
@@ -426,18 +433,18 @@ class PendingTransactionAnalyzerTests {
                 TransactionTestUtils.transactionAuthorizationCompletedEvent(
                     AuthorizationResultDto.OK
                 ),
-                TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK),
+                TransactionTestUtils.transactionClosedEvent(TransactionClosureDataV1.Outcome.OK),
             )
-                as List<TransactionEvent<Any>>
+                as List<TransactionEventV1<Any>>
         events =
             events.plus(
                 TransactionTestUtils.transactionExpiredEvent(reduceEvents(events))
-                    as TransactionEvent<Any>
+                    as TransactionEventV1<Any>
             )
         events =
             events.plus(
                 TransactionTestUtils.transactionRefundRequestedEvent(reduceEvents(events))
-                    as TransactionEvent<Any>
+                    as TransactionEventV1<Any>
             )
 
         checkThatExpiryEventIsNotSent(events, TransactionStatusDto.REFUND_REQUESTED)
@@ -453,24 +460,24 @@ class PendingTransactionAnalyzerTests {
                 TransactionTestUtils.transactionAuthorizationCompletedEvent(
                     AuthorizationResultDto.OK
                 ),
-                TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK),
+                TransactionTestUtils.transactionClosedEvent(TransactionClosureDataV1.Outcome.OK),
             )
-                as List<TransactionEvent<Any>>
+                as List<TransactionEventV1<Any>>
         events =
             events.plus(
                 TransactionTestUtils.transactionExpiredEvent(reduceEvents(events))
-                    as TransactionEvent<Any>
+                    as TransactionEventV1<Any>
             )
         events =
             events.plus(
                 TransactionTestUtils.transactionRefundRequestedEvent(reduceEvents(events))
-                    as TransactionEvent<Any>
+                    as TransactionEventV1<Any>
             )
 
         events =
             events.plus(
                 TransactionTestUtils.transactionRefundErrorEvent(reduceEvents(events))
-                    as TransactionEvent<Any>
+                    as TransactionEventV1<Any>
             )
 
         checkThatExpiryEventIsNotSent(events, TransactionStatusDto.REFUND_ERROR)
@@ -486,23 +493,23 @@ class PendingTransactionAnalyzerTests {
                 TransactionTestUtils.transactionAuthorizationCompletedEvent(
                     AuthorizationResultDto.OK
                 ),
-                TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK),
+                TransactionTestUtils.transactionClosedEvent(TransactionClosureDataV1.Outcome.OK),
             )
-                as List<TransactionEvent<Any>>
+                as List<TransactionEventV1<Any>>
         events =
             events.plus(
                 TransactionTestUtils.transactionExpiredEvent(reduceEvents(events))
-                    as TransactionEvent<Any>
+                    as TransactionEventV1<Any>
             )
         events =
             events.plus(
                 TransactionTestUtils.transactionRefundRequestedEvent(reduceEvents(events))
-                    as TransactionEvent<Any>
+                    as TransactionEventV1<Any>
             )
         events =
             events.plus(
                 TransactionTestUtils.transactionRefundedEvent(reduceEvents(events))
-                    as TransactionEvent<Any>
+                    as TransactionEventV1<Any>
             )
 
         checkThatExpiryEventIsNotSent(events, TransactionStatusDto.REFUNDED)
@@ -516,12 +523,12 @@ class PendingTransactionAnalyzerTests {
                 TransactionTestUtils.transactionActivateEvent(),
                 TransactionTestUtils.transactionUserCanceledEvent(),
             )
-                as List<TransactionEvent<Any>>
+                as List<TransactionEventV1<Any>>
 
         events =
             events.plus(
                 TransactionTestUtils.transactionExpiredEvent(reduceEvents(events))
-                    as TransactionEvent<Any>
+                    as TransactionEventV1<Any>
             )
 
         checkThatExpiryEventIsNotSent(events, TransactionStatusDto.CANCELLATION_EXPIRED)
@@ -531,7 +538,7 @@ class PendingTransactionAnalyzerTests {
     fun `Should send event for pending transaction in CLOSED state with outcome OK timed out waiting for send payment result`() {
         // assertions
         val closedEvent =
-            TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK)
+            TransactionTestUtils.transactionClosedEvent(TransactionClosureDataV1.Outcome.OK)
         closedEvent.creationDate = ZonedDateTime.now().toString()
         val events =
             listOf(
@@ -540,7 +547,7 @@ class PendingTransactionAnalyzerTests {
                 TransactionTestUtils.transactionAuthorizationCompletedEvent(),
                 closedEvent
             )
-                as List<TransactionEvent<Any>>
+                as List<TransactionEventV1<Any>>
 
         checkThatExpiryEventIsNotSent(events, TransactionStatusDto.CLOSED)
     }
@@ -566,7 +573,7 @@ class PendingTransactionAnalyzerTests {
     }
 
     private fun checkThatExpiryEventIsSent(
-        events: List<TransactionEvent<Any>>,
+        events: List<TransactionEventV1<Any>>,
         expectedTransactionStatus: TransactionStatusDto
     ) {
 
@@ -594,7 +601,7 @@ class PendingTransactionAnalyzerTests {
             .willReturn(Flux.just(*transactions.toTypedArray()))
         given(eventStoreRepository.findByTransactionIdOrderByCreationDateAsc(any()))
             .willReturn(Flux.just(*events.toTypedArray()))
-        given(transactionExpiredEventPublisher.publishExpiryEvents(any(), any(), any(), any()))
+        given(transactionExpiredEventPublisherV1.publishExpiryEvents(any(), any(), any(), any()))
             .willReturn(Mono.just(true))
         // test
         StepVerifier.create(
@@ -608,7 +615,7 @@ class PendingTransactionAnalyzerTests {
             )
             .expectNext(true)
             .verifyComplete()
-        verify(transactionExpiredEventPublisher, times(1))
+        verify(transactionExpiredEventPublisherV1, times(1))
             .publishExpiryEvents(any(), any(), any(), any())
         // This check has the purpose of check that the test list of events effectively cover the
         // wanted scenario.
@@ -625,7 +632,7 @@ class PendingTransactionAnalyzerTests {
     }
 
     private fun checkThatExpiryEventIsNotSent(
-        events: List<TransactionEvent<Any>>,
+        events: List<TransactionEventV1<Any>>,
         expectedTransactionStatus: TransactionStatusDto
     ) {
         val transactions =
@@ -664,7 +671,7 @@ class PendingTransactionAnalyzerTests {
             )
             .expectNext(true)
             .verifyComplete()
-        verify(transactionExpiredEventPublisher, times(0))
+        verify(transactionExpiredEventPublisherV1, times(0))
             .publishExpiryEvents(any(), any(), any(), any())
         // This check has the purpose of check that the test list of events effectively cover the
         // wanted scenario.
@@ -680,11 +687,11 @@ class PendingTransactionAnalyzerTests {
         testedStatuses.add(transactionStatusArgumentCaptor.value)
     }
 
-    private fun reduceEvents(events: List<TransactionEvent<out Any>>): BaseTransaction {
-        val emptyTransaction = EmptyTransaction()
+    private fun reduceEvents(events: List<TransactionEventV1<out Any>>): BaseTransactionV1 {
+        val emptyTransaction = EmptyTransactionV1()
         val listToReduce: List<Any> = listOf(emptyTransaction).plus(events)
         return listToReduce.reduce { trx, event ->
             (trx as it.pagopa.ecommerce.commons.domain.v1.Transaction).applyEvent(event)
-        } as BaseTransaction
+        } as BaseTransactionV1
     }
 }

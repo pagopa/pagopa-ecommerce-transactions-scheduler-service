@@ -1,14 +1,22 @@
 package it.pagopa.ecommerce.transactions.scheduler.transactionanalyzer
 
-import it.pagopa.ecommerce.commons.documents.v1.TransactionClosedEvent
-import it.pagopa.ecommerce.commons.documents.v1.TransactionClosureData
-import it.pagopa.ecommerce.commons.domain.v1.EmptyTransaction
-import it.pagopa.ecommerce.commons.domain.v1.TransactionEventCode
-import it.pagopa.ecommerce.commons.domain.v1.pojos.BaseTransaction
+import it.pagopa.ecommerce.commons.documents.BaseTransactionEvent
+import it.pagopa.ecommerce.commons.documents.v1.TransactionClosedEvent as TransactionClosedEventV1
+import it.pagopa.ecommerce.commons.documents.v1.TransactionClosureData as TransactionClosureDataV1
+import it.pagopa.ecommerce.commons.documents.v2.TransactionClosedEvent as TransactionClosedEventV2
+import it.pagopa.ecommerce.commons.documents.v2.TransactionClosureData as TransactionClosureDataV2
+import it.pagopa.ecommerce.commons.domain.v1.EmptyTransaction as EmptyTransactionV1
+import it.pagopa.ecommerce.commons.domain.v1.TransactionEventCode as TransactionEventCodeV1
+import it.pagopa.ecommerce.commons.domain.v1.pojos.BaseTransaction as BaseTransactionV1
+import it.pagopa.ecommerce.commons.domain.v2.EmptyTransaction as EmptyTransactionV2
+import it.pagopa.ecommerce.commons.domain.v2.TransactionEventCode as TransactionEventCodeV2
+import it.pagopa.ecommerce.commons.domain.v2.pojos.BaseTransaction as BaseTransactionV2
 import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
-import it.pagopa.ecommerce.transactions.scheduler.publishers.TransactionExpiredEventPublisher
+import it.pagopa.ecommerce.transactions.scheduler.publishers.v1.TransactionExpiredEventPublisher as TransactionExpiredEventPublisherV1
+import it.pagopa.ecommerce.transactions.scheduler.publishers.v2.TransactionExpiredEventPublisher as TransactionExpiredEventPublisherV2
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsEventStoreRepository
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsViewRepository
+import java.lang.RuntimeException
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
@@ -20,12 +28,14 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
+import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
 @Service
 class PendingTransactionAnalyzer(
     private val logger: Logger = LoggerFactory.getLogger(PendingTransactionAnalyzer::class.java),
-    @Autowired private val expiredTransactionEventPublisher: TransactionExpiredEventPublisher,
+    @Autowired private val expiredTransactionEventPublisherV1: TransactionExpiredEventPublisherV1,
+    @Autowired private val expiredTransactionEventPublisherV2: TransactionExpiredEventPublisherV2,
     @Autowired private val viewRepository: TransactionsViewRepository,
     @Autowired private val eventStoreRepository: TransactionsEventStoreRepository<Any>,
     /*
@@ -64,7 +74,6 @@ class PendingTransactionAnalyzer(
     @Value("\${pendingTransactions.batch.sendPaymentResultTimeout}")
     private val sendPaymentResultTimeoutSeconds: Int,
 ) {
-
     fun searchPendingTransactions(
         lowerThreshold: LocalDateTime,
         upperThreshold: LocalDateTime,
@@ -92,12 +101,30 @@ class PendingTransactionAnalyzer(
                 if (expiredTransactions.isEmpty()) {
                     Mono.just(true)
                 } else {
-                    expiredTransactionEventPublisher.publishExpiryEvents(
-                        expiredTransactions,
-                        batchExecutionInterTime,
-                        totalRecordFound,
-                        page
-                    )
+                    when (expiredTransactions.firstOrNull()) {
+                        is BaseTransactionV1 -> {
+                            expiredTransactionEventPublisherV1.publishExpiryEvents(
+                                expiredTransactions as List<BaseTransactionV1>,
+                                batchExecutionInterTime,
+                                totalRecordFound,
+                                page
+                            )
+                        }
+                        is BaseTransactionV2 -> {
+                            expiredTransactionEventPublisherV2.publishExpiryEvents(
+                                expiredTransactions as List<BaseTransactionV2>,
+                                batchExecutionInterTime,
+                                totalRecordFound,
+                                page
+                            )
+                        }
+                        else ->
+                            Mono.error(
+                                RuntimeException(
+                                    "Error while searching for transactionExpired. List of transactions is not empty, but transactions are not v1 neither v2"
+                                )
+                            )
+                    }
                 }
             }
     }
@@ -112,22 +139,79 @@ class PendingTransactionAnalyzer(
             transactionStatusesToExcludeFromView
         )
 
-    private fun analyzeTransaction(transactionId: String): Mono<BaseTransaction> {
+    private fun analyzeTransaction(transactionId: String): Mono<*> {
         val events = eventStoreRepository.findByTransactionIdOrderByCreationDateAsc(transactionId)
+        return Mono.firstWithValue(analyzeTransactionV1(events), analyzeTransactionV2(events))
+    }
+
+    private fun analyzeTransactionV1(
+        events: Flux<BaseTransactionEvent<Any>>
+    ): Mono<BaseTransactionV1> {
         return events
             .reduce(
-                EmptyTransaction(),
+                EmptyTransactionV1(),
                 it.pagopa.ecommerce.commons.domain.v1.Transaction::applyEvent
             )
-            .cast(BaseTransaction::class.java)
+            .filter { it !is EmptyTransactionV1 }
+            .cast(BaseTransactionV1::class.java)
             .filterWhen { baseTransaction ->
                 val skipTransaction =
                     if (baseTransaction.status == TransactionStatusDto.CLOSED) {
                         events
                             .filter {
-                                it.eventCode == TransactionEventCode.TRANSACTION_CLOSED_EVENT &&
-                                    (it as TransactionClosedEvent).data.responseOutcome ==
-                                        TransactionClosureData.Outcome.OK
+                                it.eventCode.equals(
+                                    TransactionEventCodeV1.TRANSACTION_CLOSED_EVENT.toString()
+                                ) &&
+                                    (it as TransactionClosedEventV1).data.responseOutcome ==
+                                        TransactionClosureDataV1.Outcome.OK
+                            }
+                            .next()
+                            .map {
+                                val timeout =
+                                    Duration.ofSeconds(sendPaymentResultTimeoutSeconds.toLong())
+                                val closePaymentDate = ZonedDateTime.parse(it.creationDate)
+                                val now = ZonedDateTime.now()
+                                val timeLeft = Duration.between(now, closePaymentDate.plus(timeout))
+                                logger.info(
+                                    "Transaction close payment done at: $closePaymentDate, time left: $timeLeft"
+                                )
+                                return@map timeLeft >= Duration.ZERO
+                            }
+                            .switchIfEmpty(Mono.just(false))
+                    } else {
+                        Mono.just(false)
+                    }
+                skipTransaction.map {
+                    val sendExpiryEvent =
+                        transactionStatusesForSendExpiryEvent.contains(baseTransaction.status)
+                    logger.info(
+                        "Transaction with id: [${baseTransaction.transactionId}] state: [${baseTransaction.status}], expired transaction statuses: ${transactionStatusesForSendExpiryEvent}. Send event: $sendExpiryEvent, Skip transaction: $it"
+                    )
+                    sendExpiryEvent && !it
+                }
+            }
+    }
+
+    private fun analyzeTransactionV2(
+        events: Flux<BaseTransactionEvent<Any>>
+    ): Mono<BaseTransactionV2> {
+        return events
+            .reduce(
+                EmptyTransactionV2(),
+                it.pagopa.ecommerce.commons.domain.v2.Transaction::applyEvent
+            )
+            .filter { it !is EmptyTransactionV2 }
+            .cast(BaseTransactionV2::class.java)
+            .filterWhen { baseTransaction ->
+                val skipTransaction =
+                    if (baseTransaction.status == TransactionStatusDto.CLOSED) {
+                        events
+                            .filter {
+                                it.eventCode.equals(
+                                    TransactionEventCodeV2.TRANSACTION_CLOSED_EVENT.toString()
+                                ) &&
+                                    (it as TransactionClosedEventV2).data.responseOutcome ==
+                                        TransactionClosureDataV2.Outcome.OK
                             }
                             .next()
                             .map {

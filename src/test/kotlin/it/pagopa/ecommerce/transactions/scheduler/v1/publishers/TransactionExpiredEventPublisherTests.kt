@@ -1,4 +1,4 @@
-package it.pagopa.ecommerce.transactions.scheduler.publishers
+package it.pagopa.ecommerce.transactions.scheduler.v1.publishers
 
 import com.azure.core.http.rest.Response
 import com.azure.core.http.rest.ResponseBase
@@ -9,12 +9,14 @@ import it.pagopa.ecommerce.commons.client.QueueAsyncClient
 import it.pagopa.ecommerce.commons.documents.v1.Transaction
 import it.pagopa.ecommerce.commons.documents.v1.TransactionExpiredData
 import it.pagopa.ecommerce.commons.documents.v1.TransactionExpiredEvent
+import it.pagopa.ecommerce.commons.domain.TransactionId
 import it.pagopa.ecommerce.commons.domain.v1.*
 import it.pagopa.ecommerce.commons.domain.v1.pojos.BaseTransaction
 import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
 import it.pagopa.ecommerce.commons.queues.QueueEvent
 import it.pagopa.ecommerce.commons.queues.TracingUtilsTests
 import it.pagopa.ecommerce.commons.v1.TransactionTestUtils
+import it.pagopa.ecommerce.transactions.scheduler.publishers.v1.TransactionExpiredEventPublisher
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsEventStoreRepository
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsViewRepository
 import java.time.Duration

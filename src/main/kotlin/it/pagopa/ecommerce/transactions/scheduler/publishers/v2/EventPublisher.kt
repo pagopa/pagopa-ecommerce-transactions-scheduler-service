@@ -1,8 +1,8 @@
-package it.pagopa.ecommerce.transactions.scheduler.publishers
+package it.pagopa.ecommerce.transactions.scheduler.publishers.v2
 
 import it.pagopa.ecommerce.commons.client.QueueAsyncClient
-import it.pagopa.ecommerce.commons.documents.v1.TransactionEvent
-import it.pagopa.ecommerce.commons.domain.v1.pojos.BaseTransaction
+import it.pagopa.ecommerce.commons.documents.v2.TransactionEvent as TransactionEventV2
+import it.pagopa.ecommerce.commons.domain.v2.pojos.BaseTransaction as BaseTransactionV2
 import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
 import it.pagopa.ecommerce.commons.queues.QueueEvent
 import it.pagopa.ecommerce.commons.queues.TracingUtils
@@ -20,10 +20,10 @@ abstract class EventPublisher<E>(
     private val parallelEventsToProcess: Int,
     private val transientQueueTTLSeconds: Int,
     private val tracingUtils: TracingUtils,
-) where E : TransactionEvent<*> {
+) where E : TransactionEventV2<*> {
 
     private fun publishEvent(
-        baseTransaction: BaseTransaction,
+        baseTransaction: BaseTransactionV2,
         newStatus: TransactionStatusDto,
         visibilityTimeoutMillis: Long
     ): Mono<Boolean> {
@@ -58,14 +58,14 @@ abstract class EventPublisher<E>(
     }
 
     abstract fun storeEventAndUpdateView(
-        transaction: BaseTransaction,
+        transaction: BaseTransactionV2,
         newStatus: TransactionStatusDto
     ): Mono<E>
 
-    abstract fun toEvent(baseTransaction: BaseTransaction): Mono<E>
+    abstract fun toEvent(baseTransaction: BaseTransactionV2): Mono<E>
 
     protected fun publishAllEvents(
-        transactions: List<Pair<BaseTransaction, TransactionStatusDto>>,
+        transactions: List<Pair<BaseTransactionV2, TransactionStatusDto>>,
         batchExecutionWindowMillis: Long,
         totalRecordFound: Long,
         page: Pageable
