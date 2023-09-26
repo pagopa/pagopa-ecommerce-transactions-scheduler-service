@@ -1,6 +1,6 @@
 package it.pagopa.ecommerce.transactions.scheduler.transactionanalyzer
 
-import it.pagopa.ecommerce.commons.documents.BaseTransactionEvent
+import it.pagopa.ecommerce.commons.documents.BaseTransactionView
 import it.pagopa.ecommerce.commons.documents.v1.TransactionClosedEvent as TransactionClosedEventV1
 import it.pagopa.ecommerce.commons.documents.v1.TransactionClosureData as TransactionClosureDataV1
 import it.pagopa.ecommerce.commons.documents.v2.TransactionClosedEvent as TransactionClosedEventV2
@@ -16,7 +16,6 @@ import it.pagopa.ecommerce.transactions.scheduler.publishers.v1.TransactionExpir
 import it.pagopa.ecommerce.transactions.scheduler.publishers.v2.TransactionExpiredEventPublisher as TransactionExpiredEventPublisherV2
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsEventStoreRepository
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsViewRepository
-import java.lang.RuntimeException
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
@@ -74,6 +73,7 @@ class PendingTransactionAnalyzer(
     @Value("\${pendingTransactions.batch.sendPaymentResultTimeout}")
     private val sendPaymentResultTimeoutSeconds: Int,
 ) {
+
     fun searchPendingTransactions(
         lowerThreshold: LocalDateTime,
         upperThreshold: LocalDateTime,
@@ -85,46 +85,82 @@ class PendingTransactionAnalyzer(
         // transaction statuses
         val pageRequest = PageRequest.of(0, page.pageSize, Sort.by("creationDate").ascending())
         logger.info("Searching for transaction with page request: {}", pageRequest)
-        return viewRepository
-            .findTransactionInTimeRangeWithExcludedStatusesPaginated(
+        val baseTransactionViewFlux =
+            viewRepository.findTransactionInTimeRangeWithExcludedStatusesPaginated(
                 lowerThreshold.toString(),
                 upperThreshold.toString(),
                 transactionStatusesToExcludeFromView,
-                pageRequest,
+                page,
             )
+        return searchPendingTransactionsV2(
+                baseTransactionViewFlux,
+                batchExecutionInterTime,
+                totalRecordFound,
+                page
+            )
+            .switchIfEmpty(
+                searchPendingTransactionsV1(
+                    baseTransactionViewFlux,
+                    batchExecutionInterTime,
+                    totalRecordFound,
+                    page
+                )
+            )
+            .switchIfEmpty(Mono.just(true))
+    }
+
+    private fun searchPendingTransactionsV1(
+        baseTransactionViewFlux: Flux<BaseTransactionView>,
+        batchExecutionInterTime: Long,
+        totalRecordFound: Long,
+        page: Pageable
+    ): Mono<Boolean> {
+        return baseTransactionViewFlux
             .flatMap {
                 logger.info("Analyzing transaction: $it")
-                analyzeTransaction(it.transactionId)
+                analyzeTransactionV1(it.transactionId)
             }
             .collectList()
             .flatMap { expiredTransactions ->
                 if (expiredTransactions.isEmpty()) {
-                    Mono.just(true)
+                    logger.info("expired transaction should be empty")
+                    Mono.empty()
                 } else {
-                    when (expiredTransactions.firstOrNull()) {
-                        is BaseTransactionV1 -> {
-                            expiredTransactionEventPublisherV1.publishExpiryEvents(
-                                expiredTransactions as List<BaseTransactionV1>,
-                                batchExecutionInterTime,
-                                totalRecordFound,
-                                page
-                            )
-                        }
-                        is BaseTransactionV2 -> {
-                            expiredTransactionEventPublisherV2.publishExpiryEvents(
-                                expiredTransactions as List<BaseTransactionV2>,
-                                batchExecutionInterTime,
-                                totalRecordFound,
-                                page
-                            )
-                        }
-                        else ->
-                            Mono.error(
-                                RuntimeException(
-                                    "Error while searching for transactionExpired. List of transactions is not empty, but transactions are not v1 neither v2"
-                                )
-                            )
-                    }
+                    logger.info("expired transaction is v1 $expiredTransactions")
+                    expiredTransactionEventPublisherV1.publishExpiryEvents(
+                        expiredTransactions,
+                        batchExecutionInterTime,
+                        totalRecordFound,
+                        page
+                    )
+                }
+            }
+    }
+
+    private fun searchPendingTransactionsV2(
+        baseTransactionViewFlux: Flux<BaseTransactionView>,
+        batchExecutionInterTime: Long,
+        totalRecordFound: Long,
+        page: Pageable
+    ): Mono<Boolean> {
+        return baseTransactionViewFlux
+            .flatMap {
+                logger.info("Analyzing transaction: $it")
+                analyzeTransactionV2(it.transactionId)
+            }
+            .collectList()
+            .flatMap { expiredTransactions ->
+                if (expiredTransactions.isEmpty()) {
+                    logger.info("expired transaction should be empty")
+                    Mono.empty()
+                } else {
+                    logger.info("expired transaction is v2 $expiredTransactions")
+                    expiredTransactionEventPublisherV2.publishExpiryEvents(
+                        expiredTransactions,
+                        batchExecutionInterTime,
+                        totalRecordFound,
+                        page
+                    )
                 }
             }
     }
@@ -139,14 +175,9 @@ class PendingTransactionAnalyzer(
             transactionStatusesToExcludeFromView
         )
 
-    private fun analyzeTransaction(transactionId: String): Mono<*> {
+    private fun analyzeTransactionV1(transactionId: String): Mono<BaseTransactionV1> {
+        logger.info("Analyze v1")
         val events = eventStoreRepository.findByTransactionIdOrderByCreationDateAsc(transactionId)
-        return Mono.firstWithValue(analyzeTransactionV1(events), analyzeTransactionV2(events))
-    }
-
-    private fun analyzeTransactionV1(
-        events: Flux<BaseTransactionEvent<Any>>
-    ): Mono<BaseTransactionV1> {
         return events
             .reduce(
                 EmptyTransactionV1(),
@@ -192,9 +223,9 @@ class PendingTransactionAnalyzer(
             }
     }
 
-    private fun analyzeTransactionV2(
-        events: Flux<BaseTransactionEvent<Any>>
-    ): Mono<BaseTransactionV2> {
+    private fun analyzeTransactionV2(transactionId: String): Mono<BaseTransactionV2> {
+        logger.info("Analyze v2")
+        val events = eventStoreRepository.findByTransactionIdOrderByCreationDateAsc(transactionId)
         return events
             .reduce(
                 EmptyTransactionV2(),
