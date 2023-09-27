@@ -1,12 +1,16 @@
 package it.pagopa.ecommerce.transactions.scheduler.transactionanalyzer
 
+import it.pagopa.ecommerce.commons.documents.BaseTransactionEvent
 import it.pagopa.ecommerce.commons.documents.BaseTransactionView
 import it.pagopa.ecommerce.commons.documents.v1.Transaction as TransactionV1
 import it.pagopa.ecommerce.commons.documents.v1.TransactionClosedEvent as TransactionClosedEventV1
 import it.pagopa.ecommerce.commons.documents.v1.TransactionClosureData as TransactionClosureDataV1
+import it.pagopa.ecommerce.commons.documents.v1.TransactionEvent as TransactionEventV1
 import it.pagopa.ecommerce.commons.documents.v2.Transaction as TransactionV2
 import it.pagopa.ecommerce.commons.documents.v2.TransactionClosedEvent as TransactionClosedEventV2
 import it.pagopa.ecommerce.commons.documents.v2.TransactionClosureData as TransactionClosureDataV2
+import it.pagopa.ecommerce.commons.documents.v2.TransactionEvent as TransactionEventV2
+import it.pagopa.ecommerce.commons.domain.TransactionId
 import it.pagopa.ecommerce.commons.domain.v1.EmptyTransaction as EmptyTransactionV1
 import it.pagopa.ecommerce.commons.domain.v1.TransactionEventCode as TransactionEventCodeV1
 import it.pagopa.ecommerce.commons.domain.v1.pojos.BaseTransaction as BaseTransactionV1
@@ -21,6 +25,7 @@ import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsViewR
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
+import java.util.function.Predicate
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -182,40 +187,7 @@ class PendingTransactionAnalyzer(
             .filter { it !is EmptyTransactionV1 }
             .cast(BaseTransactionV1::class.java)
             .filterWhen { baseTransaction ->
-                val skipTransaction =
-                    if (baseTransaction.status == TransactionStatusDto.CLOSED) {
-                        events
-                            .filter {
-                                it.eventCode.equals(
-                                    TransactionEventCodeV1.TRANSACTION_CLOSED_EVENT.toString()
-                                ) &&
-                                    (it as TransactionClosedEventV1).data.responseOutcome ==
-                                        TransactionClosureDataV1.Outcome.OK
-                            }
-                            .next()
-                            .map {
-                                val timeout =
-                                    Duration.ofSeconds(sendPaymentResultTimeoutSeconds.toLong())
-                                val closePaymentDate = ZonedDateTime.parse(it.creationDate)
-                                val now = ZonedDateTime.now()
-                                val timeLeft = Duration.between(now, closePaymentDate.plus(timeout))
-                                logger.info(
-                                    "Transaction close payment done at: $closePaymentDate, time left: $timeLeft"
-                                )
-                                return@map timeLeft >= Duration.ZERO
-                            }
-                            .switchIfEmpty(Mono.just(false))
-                    } else {
-                        Mono.just(false)
-                    }
-                skipTransaction.map {
-                    val sendExpiryEvent =
-                        transactionStatusesForSendExpiryEvent.contains(baseTransaction.status)
-                    logger.info(
-                        "Transaction with id: [${baseTransaction.transactionId}] state: [${baseTransaction.status}], expired transaction statuses: ${transactionStatusesForSendExpiryEvent}. Send event: $sendExpiryEvent, Skip transaction: $it"
-                    )
-                    sendExpiryEvent && !it
-                }
+                mapSkipTransaction(baseTransaction.status, events, baseTransaction.transactionId)
             }
     }
 
@@ -230,40 +202,71 @@ class PendingTransactionAnalyzer(
             .filter { it !is EmptyTransactionV2 }
             .cast(BaseTransactionV2::class.java)
             .filterWhen { baseTransaction ->
-                val skipTransaction =
-                    if (baseTransaction.status == TransactionStatusDto.CLOSED) {
-                        events
-                            .filter {
-                                it.eventCode.equals(
-                                    TransactionEventCodeV2.TRANSACTION_CLOSED_EVENT.toString()
-                                ) &&
-                                    (it as TransactionClosedEventV2).data.responseOutcome ==
-                                        TransactionClosureDataV2.Outcome.OK
-                            }
-                            .next()
-                            .map {
-                                val timeout =
-                                    Duration.ofSeconds(sendPaymentResultTimeoutSeconds.toLong())
-                                val closePaymentDate = ZonedDateTime.parse(it.creationDate)
-                                val now = ZonedDateTime.now()
-                                val timeLeft = Duration.between(now, closePaymentDate.plus(timeout))
-                                logger.info(
-                                    "Transaction close payment done at: $closePaymentDate, time left: $timeLeft"
-                                )
-                                return@map timeLeft >= Duration.ZERO
-                            }
-                            .switchIfEmpty(Mono.just(false))
-                    } else {
-                        Mono.just(false)
-                    }
-                skipTransaction.map {
-                    val sendExpiryEvent =
-                        transactionStatusesForSendExpiryEvent.contains(baseTransaction.status)
-                    logger.info(
-                        "Transaction with id: [${baseTransaction.transactionId}] state: [${baseTransaction.status}], expired transaction statuses: ${transactionStatusesForSendExpiryEvent}. Send event: $sendExpiryEvent, Skip transaction: $it"
-                    )
-                    sendExpiryEvent && !it
+                mapSkipTransaction(baseTransaction.status, events, baseTransaction.transactionId)
+            }
+    }
+
+    private fun mapSkipTransaction(
+        status: TransactionStatusDto,
+        events: Flux<BaseTransactionEvent<Any>>,
+        transactionId: TransactionId
+    ): Mono<Boolean> {
+        val skipTransaction =
+            if (status == TransactionStatusDto.CLOSED) {
+                filterEvents(events)
+            } else {
+                Mono.just(false)
+            }
+        return skipTransaction.map {
+            val sendExpiryEvent = transactionStatusesForSendExpiryEvent.contains(status)
+            logger.info(
+                "Transaction with id: [${transactionId}] state: [${status}], expired transaction statuses: ${transactionStatusesForSendExpiryEvent}. Send event: $sendExpiryEvent, Skip transaction: $it"
+            )
+            sendExpiryEvent && !it
+        }
+    }
+
+    private fun predicateEventsV1(
+        baseTransactionEvent: BaseTransactionEvent<Any>
+    ): Predicate<BaseTransactionEvent<Any>> {
+        return Predicate {
+            baseTransactionEvent.eventCode ==
+                TransactionEventCodeV1.TRANSACTION_CLOSED_EVENT.toString() &&
+                (it as TransactionClosedEventV1).data.responseOutcome ==
+                    TransactionClosureDataV1.Outcome.OK
+        }
+    }
+    private fun predicateEventsV2(
+        baseTransactionEvent: BaseTransactionEvent<Any>
+    ): Predicate<BaseTransactionEvent<Any>> {
+        return Predicate {
+            baseTransactionEvent.eventCode ==
+                TransactionEventCodeV2.TRANSACTION_CLOSED_EVENT.toString() &&
+                (baseTransactionEvent as TransactionClosedEventV2).data.responseOutcome ==
+                    TransactionClosureDataV2.Outcome.OK
+        }
+    }
+
+    private fun filterEvents(events: Flux<BaseTransactionEvent<Any>>): Mono<Boolean> {
+        return events
+            .filter {
+                when (it) {
+                    is TransactionEventV1 -> predicateEventsV1(it).test(it)
+                    is TransactionEventV2 -> predicateEventsV2(it).test(it)
+                    else -> Predicate<BaseTransactionEvent<Any>> { false }.test(it)
                 }
             }
+            .next()
+            .map {
+                val timeout = Duration.ofSeconds(sendPaymentResultTimeoutSeconds.toLong())
+                val closePaymentDate = ZonedDateTime.parse(it.creationDate)
+                val now = ZonedDateTime.now()
+                val timeLeft = Duration.between(now, closePaymentDate.plus(timeout))
+                logger.info(
+                    "Transaction close payment done at: $closePaymentDate, time left: $timeLeft"
+                )
+                return@map timeLeft >= Duration.ZERO
+            }
+            .switchIfEmpty(Mono.just(false))
     }
 }
