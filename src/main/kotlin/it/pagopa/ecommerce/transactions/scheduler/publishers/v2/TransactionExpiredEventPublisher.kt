@@ -15,21 +15,19 @@ import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsViewR
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Mono
 
-@Component
-@Qualifier("TransactionExpiredEventPublisherV2")
+@Component("TransactionExpiredEventPublisherV2")
 class TransactionExpiredEventPublisher(
     private val logger: Logger =
         LoggerFactory.getLogger(TransactionExpiredEventPublisher::class.java),
     @Autowired private val expiredEventQueueAsyncClient: QueueAsyncClient,
     @Autowired private val viewRepository: TransactionsViewRepository,
     @Autowired
-    private val eventStoreRepositoryV1: TransactionsEventStoreRepository<TransactionExpiredDataV2>,
+    private val eventStoreRepository: TransactionsEventStoreRepository<TransactionExpiredDataV2>,
     @Value("\${pendingTransactions.batch.transactionsAnalyzer.parallelEventsToProcess}")
     private val parallelEventToProcess: Int,
     @Value("\${azurestorage.queues.transientQueues.ttlSeconds}")
@@ -103,7 +101,7 @@ class TransactionExpiredEventPublisher(
         newStatus: TransactionStatusDto
     ): Mono<TransactionExpiredEventV2> =
         toEvent(transaction)
-            .flatMap { eventStoreRepositoryV1.save(it) }
+            .flatMap { eventStoreRepository.save(it) }
             .flatMap { event ->
                 viewRepository
                     .findByTransactionId(transaction.transactionId.value())

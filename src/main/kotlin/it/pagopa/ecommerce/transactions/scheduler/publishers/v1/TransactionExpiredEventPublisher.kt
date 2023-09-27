@@ -15,14 +15,12 @@ import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsViewR
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Mono
 
-@Component
-@Qualifier("TransactionExpiredEventPublisherV1")
+@Component("TransactionExpiredEventPublisherV1")
 class TransactionExpiredEventPublisher(
     private val logger: Logger =
         LoggerFactory.getLogger(TransactionExpiredEventPublisher::class.java),
