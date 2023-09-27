@@ -1,8 +1,8 @@
-package it.pagopa.ecommerce.transactions.scheduler.publishers.v2
+package it.pagopa.ecommerce.transactions.scheduler.publishers
 
 import it.pagopa.ecommerce.commons.client.QueueAsyncClient
-import it.pagopa.ecommerce.commons.documents.v2.TransactionEvent as TransactionEventV2
-import it.pagopa.ecommerce.commons.domain.v2.pojos.BaseTransaction as BaseTransactionV2
+import it.pagopa.ecommerce.commons.documents.BaseTransactionEvent
+import it.pagopa.ecommerce.commons.domain.TransactionId
 import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
 import it.pagopa.ecommerce.commons.queues.QueueEvent
 import it.pagopa.ecommerce.commons.queues.TracingUtils
@@ -14,16 +14,16 @@ import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Schedulers
 
-abstract class EventPublisher<E>(
+abstract class EventPublisher<E, F>(
     private val queueAsyncClient: QueueAsyncClient,
     private val logger: Logger,
     private val parallelEventsToProcess: Int,
     private val transientQueueTTLSeconds: Int,
     private val tracingUtils: TracingUtils,
-) where E : TransactionEventV2<*> {
+) where E : BaseTransactionEvent<*>, F : Any {
 
     private fun publishEvent(
-        baseTransaction: BaseTransactionV2,
+        baseTransaction: F,
         newStatus: TransactionStatusDto,
         visibilityTimeoutMillis: Long
     ): Mono<Boolean> {
@@ -50,22 +50,21 @@ abstract class EventPublisher<E>(
             }
             .onErrorResume {
                 logger.error(
-                    "Error processing transaction with id: [${baseTransaction.transactionId}]",
+                    "Error processing transaction with id: [${getTransactionId(baseTransaction)}]",
                     it
                 )
                 Mono.just(false)
             }
     }
 
-    abstract fun storeEventAndUpdateView(
-        transaction: BaseTransactionV2,
-        newStatus: TransactionStatusDto
-    ): Mono<E>
+    abstract fun getTransactionId(baseTransaction: F): TransactionId
 
-    abstract fun toEvent(baseTransaction: BaseTransactionV2): Mono<E>
+    abstract fun storeEventAndUpdateView(transaction: F, newStatus: TransactionStatusDto): Mono<E>
+
+    abstract fun toEvent(baseTransaction: F): Mono<E>
 
     protected fun publishAllEvents(
-        transactions: List<Pair<BaseTransactionV2, TransactionStatusDto>>,
+        transactions: List<Pair<F, TransactionStatusDto>>,
         batchExecutionWindowMillis: Long,
         totalRecordFound: Long,
         page: Pageable

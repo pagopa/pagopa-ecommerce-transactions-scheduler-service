@@ -4,12 +4,15 @@ import it.pagopa.ecommerce.commons.client.QueueAsyncClient
 import it.pagopa.ecommerce.commons.documents.v2.Transaction as TransactionV2
 import it.pagopa.ecommerce.commons.documents.v2.TransactionExpiredData as TransactionExpiredDataV2
 import it.pagopa.ecommerce.commons.documents.v2.TransactionExpiredEvent as TransactionExpiredEventV2
+import it.pagopa.ecommerce.commons.domain.TransactionId
 import it.pagopa.ecommerce.commons.domain.v2.TransactionWithClosureError as TransactionWithClosureErrorV2
 import it.pagopa.ecommerce.commons.domain.v2.pojos.BaseTransaction as BaseTransactionV2
+import it.pagopa.ecommerce.commons.domain.v2.pojos.BaseTransaction
 import it.pagopa.ecommerce.commons.domain.v2.pojos.BaseTransactionWithCancellationRequested as BaseTransactionWithCancellationRequestedV2
 import it.pagopa.ecommerce.commons.domain.v2.pojos.BaseTransactionWithRequestedAuthorization as BaseTransactionWithRequestedAuthorizationV2
 import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
 import it.pagopa.ecommerce.commons.queues.TracingUtils
+import it.pagopa.ecommerce.transactions.scheduler.publishers.EventPublisher
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsEventStoreRepository
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsViewRepository
 import org.slf4j.Logger
@@ -34,7 +37,7 @@ class TransactionExpiredEventPublisher(
     private val transientQueueTTLSeconds: Int,
     @Autowired private val tracingUtils: TracingUtils
 ) :
-    EventPublisher<TransactionExpiredEventV2>(
+    EventPublisher<TransactionExpiredEventV2, BaseTransactionV2>(
         queueAsyncClient = expiredEventQueueAsyncClient,
         logger = logger,
         parallelEventsToProcess = parallelEventToProcess,
@@ -120,4 +123,8 @@ class TransactionExpiredEventPublisher(
                 TransactionExpiredDataV2(baseTrasaction.status)
             )
         )
+
+    override fun getTransactionId(baseTransaction: BaseTransaction): TransactionId {
+        return baseTransaction.transactionId
+    }
 }
