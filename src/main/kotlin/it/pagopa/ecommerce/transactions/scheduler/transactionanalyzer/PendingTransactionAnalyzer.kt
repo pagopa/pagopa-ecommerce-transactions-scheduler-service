@@ -113,7 +113,10 @@ class PendingTransactionAnalyzer(
                 when (it) {
                     is TransactionV1 -> analyzeTransactionV1(it.transactionId)
                     is TransactionV2 -> analyzeTransactionV2(it.transactionId)
-                    else -> Mono.error(RuntimeException("Nor v1 neither v2"))
+                    else ->
+                        Mono.error(
+                            RuntimeException("Not a known event version for transaction found")
+                        )
                 }
             }
             .collectList()

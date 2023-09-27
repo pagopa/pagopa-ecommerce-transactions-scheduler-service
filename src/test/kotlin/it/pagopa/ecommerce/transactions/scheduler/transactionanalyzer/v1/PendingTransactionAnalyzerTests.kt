@@ -1,4 +1,4 @@
-package it.pagopa.ecommerce.transactions.scheduler.transactionanalyzer
+package it.pagopa.ecommerce.transactions.scheduler.transactionanalyzer.v1
 
 import it.pagopa.ecommerce.commons.documents.v1.TransactionClosureData as TransactionClosureDataV1
 import it.pagopa.ecommerce.commons.documents.v1.TransactionEvent as TransactionEventV1
@@ -12,6 +12,7 @@ import it.pagopa.ecommerce.transactions.scheduler.publishers.v1.TransactionExpir
 import it.pagopa.ecommerce.transactions.scheduler.publishers.v2.TransactionExpiredEventPublisher as TransactionExpiredEventPublisherV2
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsEventStoreRepository
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsViewRepository
+import it.pagopa.ecommerce.transactions.scheduler.transactionanalyzer.PendingTransactionAnalyzer
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
