@@ -126,41 +126,44 @@ class PendingTransactionAnalyzer(
             }
             .collectList()
             .flatMap { expiredTransactions ->
-                if (expiredTransactions.isEmpty()) {
-                    Mono.just(true)
-                } else {
-                    val (expiredTransactionsV1, expiredTransactionsV2) =
-                        expiredTransactions.partition { it is BaseTransactionV1 }
-                    if (expiredTransactionsV1.isNotEmpty() && expiredTransactionsV2.isNotEmpty()) {
-                        Mono.error(
-                            RuntimeException(
-                                "Expired event transactions belong to multiple events version"
+                when (expiredTransactions.isEmpty()) {
+                    true -> Mono.just(true)
+                    else -> {
+                        val (expiredTransactionsV1, expiredTransactionsV2) =
+                            expiredTransactions.partition { it is BaseTransactionV1 }
+                        if (
+                            expiredTransactionsV1.isNotEmpty() && expiredTransactionsV2.isNotEmpty()
+                        ) {
+                            Mono.error(
+                                RuntimeException(
+                                    "Expired event transactions belong to multiple events version"
+                                )
                             )
-                        )
-                    } else if (expiredTransactionsV1.isNotEmpty()) {
-                        val baseTransactionV1 =
-                            expiredTransactionsV1.map { it as BaseTransactionV1 }
-                        expiredTransactionEventPublisherV1.publishExpiryEvents(
-                            baseTransactionV1,
-                            batchExecutionInterTime,
-                            totalRecordFound,
-                            page
-                        )
-                    } else if (expiredTransactionsV2.isNotEmpty()) {
-                        val baseTransactionV2 =
-                            expiredTransactionsV2.map { it as BaseTransactionV2 }
-                        expiredTransactionEventPublisherV2.publishExpiryEvents(
-                            baseTransactionV2,
-                            batchExecutionInterTime,
-                            totalRecordFound,
-                            page
-                        )
-                    } else {
-                        Mono.error(
-                            RuntimeException(
-                                "Expired event transactions belongs to unknown events version"
+                        } else if (expiredTransactionsV1.isNotEmpty()) {
+                            val baseTransactionV1 =
+                                expiredTransactionsV1.map { it as BaseTransactionV1 }
+                            expiredTransactionEventPublisherV1.publishExpiryEvents(
+                                baseTransactionV1,
+                                batchExecutionInterTime,
+                                totalRecordFound,
+                                page
                             )
-                        )
+                        } else if (expiredTransactionsV2.isNotEmpty()) {
+                            val baseTransactionV2 =
+                                expiredTransactionsV2.map { it as BaseTransactionV2 }
+                            expiredTransactionEventPublisherV2.publishExpiryEvents(
+                                baseTransactionV2,
+                                batchExecutionInterTime,
+                                totalRecordFound,
+                                page
+                            )
+                        } else {
+                            Mono.error(
+                                RuntimeException(
+                                    "Expired event transactions belongs to unknown events version"
+                                )
+                            )
+                        }
                     }
                 }
             }
