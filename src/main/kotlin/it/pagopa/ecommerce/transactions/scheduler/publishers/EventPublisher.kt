@@ -105,5 +105,6 @@ abstract class EventPublisher<E, F>(
             .sequential()
             .collectList()
             .map { it.none { eventSent -> !eventSent } }
+            .switchIfEmpty(Mono.just(true))
     }
 }

@@ -129,43 +129,48 @@ class PendingTransactionAnalyzer(
                 when (expiredTransactions.isEmpty()) {
                     true -> Mono.just(true)
                     else -> {
-                        val (expiredTransactionsV1, expiredTransactionsV2) =
+                        val (expiredTransactionsV1, others) =
                             expiredTransactions.partition { it is BaseTransactionV1 }
-                        when {
-                            expiredTransactionsV1.isNotEmpty() &&
-                                expiredTransactionsV2.isNotEmpty() ->
-                                Mono.error(
-                                    RuntimeException(
-                                        "Expired event transactions belong to multiple events version"
-                                    )
-                                )
-                            expiredTransactionsV1.isNotEmpty() -> {
-                                val baseTransactionV1 =
-                                    expiredTransactionsV1.map { it as BaseTransactionV1 }
-                                expiredTransactionEventPublisherV1.publishExpiryEvents(
-                                    baseTransactionV1,
-                                    batchExecutionInterTime,
-                                    totalRecordFound,
-                                    page
-                                )
-                            }
-                            expiredTransactionsV2.isNotEmpty() -> {
-                                val baseTransactionV2 =
-                                    expiredTransactionsV2.map { it as BaseTransactionV2 }
-                                expiredTransactionEventPublisherV2.publishExpiryEvents(
-                                    baseTransactionV2,
-                                    batchExecutionInterTime,
-                                    totalRecordFound,
-                                    page
-                                )
-                            }
-                            else ->
-                                Mono.error(
-                                    RuntimeException(
-                                        "Expired event transactions belongs to unknown events version"
-                                    )
-                                )
+
+                        val (expiredTransactionsV2, unmatched) =
+                            others.partition { it is BaseTransactionV2 }
+
+                        if (unmatched.isNotEmpty()) {
+                            logger.error("Unmatched transactions found {}", unmatched)
                         }
+
+                        val baseTransactionV1 =
+                            expiredTransactionsV1.map { it as BaseTransactionV1 }
+                        val publishBaseTransactionV1 =
+                            expiredTransactionEventPublisherV1.publishExpiryEvents(
+                                baseTransactionV1,
+                                batchExecutionInterTime,
+                                totalRecordFound,
+                                page
+                            )
+
+                        val baseTransactionV2 =
+                            expiredTransactionsV2.map { it as BaseTransactionV2 }
+                        val publishBaseTransactionV2 =
+                            expiredTransactionEventPublisherV2.publishExpiryEvents(
+                                baseTransactionV2,
+                                batchExecutionInterTime,
+                                totalRecordFound,
+                                page
+                            )
+
+                        publishBaseTransactionV1
+                            .flatMap { v1Outcome ->
+                                publishBaseTransactionV2.map { Pair(v1Outcome, it) }
+                            }
+                            .map { (v1Outcome, v2Outcome) ->
+                                logger.info(
+                                    "Overall processing outcome -> V1 outcome: {}, V2 outcome: {}",
+                                    v1Outcome,
+                                    v2Outcome
+                                )
+                                v1Outcome.and(v2Outcome)
+                            }
                     }
                 }
             }
