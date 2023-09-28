@@ -18,6 +18,7 @@ import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsViewR
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Component
@@ -27,7 +28,9 @@ import reactor.core.publisher.Mono
 class TransactionExpiredEventPublisher(
     private val logger: Logger =
         LoggerFactory.getLogger(TransactionExpiredEventPublisher::class.java),
-    @Autowired private val expiredEventQueueAsyncClient: QueueAsyncClient,
+    @Autowired
+    @Qualifier("expiredEventQueueAsyncClientV1")
+    private val expiredEventQueueAsyncClient: QueueAsyncClient,
     @Autowired private val viewRepository: TransactionsViewRepository,
     @Autowired
     private val eventStoreRepository: TransactionsEventStoreRepository<TransactionExpiredDataV1>,
