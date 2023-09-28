@@ -76,21 +76,12 @@ class TransactionExpiredEventPublisher(
                             .orElse(false))
             }
         val mergedTransactions =
-            baseTransactionsWithRequestedAuthorization
-                .map { Pair(it, TransactionStatusDto.EXPIRED) }
-                .plus(
-                    baseTransactionUserCanceled.map {
-                        Pair(it, TransactionStatusDto.CANCELLATION_EXPIRED)
-                    }
-                )
-                .plus(
-                    baseTransactionActivatedOnly.map {
-                        Pair(it, TransactionStatusDto.EXPIRED_NOT_AUTHORIZED)
-                    }
-                )
-        logger.info(
-            "Total expired transactions: [${mergedTransactions.size}], of which [${baseTransactionsWithRequestedAuthorization.size}] with requested authorization, [${baseTransactionActivatedOnly.size}] activated only and [${baseTransactionUserCanceled.size}] canceled by user"
-        )
+            mergeTransaction(
+                baseTransactionsWithRequestedAuthorization,
+                baseTransactionUserCanceled,
+                baseTransactionActivatedOnly
+            )
+
         return publishAllEvents(
             mergedTransactions,
             batchExecutionTimeWindow,

@@ -63,6 +63,30 @@ abstract class EventPublisher<E, F>(
 
     abstract fun toEvent(baseTransaction: F): Mono<E>
 
+    protected fun mergeTransaction(
+        baseTransactionsWithRequestedAuthorization: List<F>,
+        baseTransactionUserCanceled: List<F>,
+        baseTransactionActivatedOnly: List<F>
+    ): List<Pair<F, TransactionStatusDto>> {
+        val mergedTransactions =
+            baseTransactionsWithRequestedAuthorization
+                .map { Pair(it, TransactionStatusDto.EXPIRED) }
+                .plus(
+                    baseTransactionUserCanceled.map {
+                        Pair(it, TransactionStatusDto.CANCELLATION_EXPIRED)
+                    }
+                )
+                .plus(
+                    baseTransactionActivatedOnly.map {
+                        Pair(it, TransactionStatusDto.EXPIRED_NOT_AUTHORIZED)
+                    }
+                )
+        logger.info(
+            "Total expired transactions: [${mergedTransactions.size}], of which [${baseTransactionsWithRequestedAuthorization.size}] with requested authorization, [${baseTransactionActivatedOnly.size}] activated only and [${baseTransactionUserCanceled.size}] canceled by user"
+        )
+        return mergedTransactions
+    }
+
     protected fun publishAllEvents(
         transactions: List<Pair<F, TransactionStatusDto>>,
         batchExecutionWindowMillis: Long,
