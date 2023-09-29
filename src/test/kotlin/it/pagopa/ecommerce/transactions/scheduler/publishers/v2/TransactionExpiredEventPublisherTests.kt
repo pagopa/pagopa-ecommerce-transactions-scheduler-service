@@ -37,7 +37,6 @@ import org.mockito.Mockito.*
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.willReturn
 import org.mockito.kotlin.willReturnConsecutively
-import org.springframework.data.domain.PageRequest
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
 
@@ -118,12 +117,7 @@ class TransactionExpiredEventPublisherTests {
                         transientQueueTTLSeconds = transientQueueTTLSeconds,
                         tracingUtils = tracingUtils
                     )
-                    .publishExpiryEvents(
-                        baseDocuments,
-                        batchExecutionTimeWindow,
-                        5,
-                        PageRequest.of(0, 5)
-                    )
+                    .publishExpiryEvents(baseDocuments, batchExecutionTimeWindow, 5, 0)
             )
             .expectNext(true)
             .verifyComplete()
@@ -220,7 +214,7 @@ class TransactionExpiredEventPublisherTests {
                         ),
                         batchExecutionTimeWindow,
                         5,
-                        PageRequest.of(0, 5)
+                        0
                     )
             )
             .expectNext(false)
@@ -261,7 +255,7 @@ class TransactionExpiredEventPublisherTests {
                         ),
                         batchExecutionTimeWindow,
                         5,
-                        PageRequest.of(0, 5)
+                        0
                     )
             )
             .expectNext(false)
@@ -318,12 +312,7 @@ class TransactionExpiredEventPublisherTests {
                         transientQueueTTLSeconds = transientQueueTTLSeconds,
                         tracingUtils = tracingUtils
                     )
-                    .publishExpiryEvents(
-                        transactions,
-                        batchExecutionTimeWindow,
-                        5,
-                        PageRequest.of(0, 5)
-                    )
+                    .publishExpiryEvents(transactions, batchExecutionTimeWindow, 5, 0)
             )
             .expectNext(false)
             .verifyComplete()
@@ -416,7 +405,7 @@ class TransactionExpiredEventPublisherTests {
                         allTransactions,
                         batchExecutionTimeWindow,
                         allEvents.size.toLong(),
-                        PageRequest.of(0, allEvents.size)
+                        0
                     )
             )
             .expectNext(false)
@@ -545,7 +534,7 @@ class TransactionExpiredEventPublisherTests {
                         allTransactions,
                         batchExecutionTimeWindow,
                         allEvents.size.toLong(),
-                        PageRequest.of(0, allEvents.size)
+                        0
                     )
             )
             .expectNext(false)
@@ -679,7 +668,7 @@ class TransactionExpiredEventPublisherTests {
                         allTransactions,
                         batchExecutionTimeWindow,
                         allEvents.size.toLong(),
-                        PageRequest.of(0, allEvents.size)
+                        0
                     )
             )
             .expectNext(false)
@@ -793,7 +782,7 @@ class TransactionExpiredEventPublisherTests {
                         baseDocuments,
                         batchExecutionTimeWindow,
                         baseDocuments.size.toLong(),
-                        PageRequest.of(0, baseDocuments.size)
+                        0
                     )
             )
             .expectNext(true)
@@ -963,7 +952,7 @@ class TransactionExpiredEventPublisherTests {
                         baseDocuments,
                         batchExecutionTimeWindow,
                         baseDocuments.size.toLong(),
-                        PageRequest.of(0, baseDocuments.size)
+                        0
                     )
             )
             .expectNext(true)
@@ -1077,7 +1066,7 @@ class TransactionExpiredEventPublisherTests {
                         baseDocuments,
                         batchExecutionTimeWindow,
                         baseDocuments.size.toLong(),
-                        PageRequest.of(0, baseDocuments.size)
+                        0
                     )
             )
             .expectNext(true)
@@ -1191,7 +1180,7 @@ class TransactionExpiredEventPublisherTests {
                         baseDocuments,
                         batchExecutionTimeWindow,
                         baseDocuments.size.toLong(),
-                        PageRequest.of(0, baseDocuments.size)
+                        0
                     )
             )
             .expectNext(true)
@@ -1305,7 +1294,7 @@ class TransactionExpiredEventPublisherTests {
                         baseDocuments,
                         batchExecutionTimeWindow,
                         baseDocuments.size.toLong(),
-                        PageRequest.of(0, baseDocuments.size)
+                        0
                     )
             )
             .expectNext(true)

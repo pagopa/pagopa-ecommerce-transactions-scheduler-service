@@ -106,6 +106,7 @@ class PendingTransactionAnalyzer(
             page
         )
     }
+
     private fun searchPendingTransactions(
         baseTransactionViewFlux: Flux<BaseTransactionView>,
         batchExecutionInterTime: Long,
@@ -139,24 +140,26 @@ class PendingTransactionAnalyzer(
                             logger.error("Unmatched transactions found {}", unmatched)
                         }
 
-                        val baseTransactionV1 =
+                        val baseTransactionsV1 =
                             expiredTransactionsV1.map { it as BaseTransactionV1 }
+                        val baseTransactionsV2 =
+                            expiredTransactionsV2.map { it as BaseTransactionV2 }
+                        val totalV1Transactions = baseTransactionsV1.size
+                        val alreadyProcessedTransactions = page.pageNumber * page.pageSize
                         val publishBaseTransactionV1 =
                             expiredTransactionEventPublisherV1.publishExpiryEvents(
-                                baseTransactionV1,
+                                baseTransactionsV1,
                                 batchExecutionInterTime,
                                 totalRecordFound,
-                                page
+                                alreadyProcessedTransactions.toLong()
                             )
 
-                        val baseTransactionV2 =
-                            expiredTransactionsV2.map { it as BaseTransactionV2 }
                         val publishBaseTransactionV2 =
                             expiredTransactionEventPublisherV2.publishExpiryEvents(
-                                baseTransactionV2,
+                                baseTransactionsV2,
                                 batchExecutionInterTime,
                                 totalRecordFound,
-                                page
+                                alreadyProcessedTransactions.plus(totalV1Transactions).toLong()
                             )
 
                         publishBaseTransactionV1
@@ -246,6 +249,7 @@ class PendingTransactionAnalyzer(
                     TransactionClosureDataV1.Outcome.OK
         }
     }
+
     private fun predicateEventsV2(
         baseTransactionEvent: BaseTransactionEvent<Any>
     ): Predicate<BaseTransactionEvent<Any>> {

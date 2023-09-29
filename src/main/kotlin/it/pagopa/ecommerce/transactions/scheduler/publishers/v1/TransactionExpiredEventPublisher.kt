@@ -20,7 +20,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Mono
 
@@ -52,7 +51,7 @@ class TransactionExpiredEventPublisher(
         baseTransactions: List<BaseTransactionV1>,
         batchExecutionTimeWindow: Long,
         totalRecordFound: Long,
-        page: Pageable
+        alreadyProcessedTransactions: Long
     ): Mono<Boolean> {
         // split expired transaction in two lists: one for transactions without requested
         // authorization and one with requested authorization
@@ -89,7 +88,7 @@ class TransactionExpiredEventPublisher(
             mergedTransactions,
             batchExecutionTimeWindow,
             totalRecordFound,
-            page
+            alreadyProcessedTransactions
         )
     }
 
