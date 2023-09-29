@@ -1,29 +1,28 @@
 package it.pagopa.ecommerce.transactions.scheduler.publishers
 
 import it.pagopa.ecommerce.commons.client.QueueAsyncClient
-import it.pagopa.ecommerce.commons.documents.v1.TransactionEvent
-import it.pagopa.ecommerce.commons.domain.v1.pojos.BaseTransaction
+import it.pagopa.ecommerce.commons.documents.BaseTransactionEvent
+import it.pagopa.ecommerce.commons.domain.TransactionId
 import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
 import it.pagopa.ecommerce.commons.queues.QueueEvent
 import it.pagopa.ecommerce.commons.queues.TracingUtils
 import java.time.Duration
 import java.util.concurrent.atomic.AtomicLong
 import org.slf4j.Logger
-import org.springframework.data.domain.Pageable
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Schedulers
 
-abstract class EventPublisher<E>(
+abstract class EventPublisher<E, F>(
     private val queueAsyncClient: QueueAsyncClient,
     private val logger: Logger,
     private val parallelEventsToProcess: Int,
     private val transientQueueTTLSeconds: Int,
     private val tracingUtils: TracingUtils,
-) where E : TransactionEvent<*> {
+) where E : BaseTransactionEvent<*>, F : Any {
 
     private fun publishEvent(
-        baseTransaction: BaseTransaction,
+        baseTransaction: F,
         newStatus: TransactionStatusDto,
         visibilityTimeoutMillis: Long
     ): Mono<Boolean> {
@@ -50,29 +49,51 @@ abstract class EventPublisher<E>(
             }
             .onErrorResume {
                 logger.error(
-                    "Error processing transaction with id: [${baseTransaction.transactionId}]",
+                    "Error processing transaction with id: [${getTransactionId(baseTransaction)}]",
                     it
                 )
                 Mono.just(false)
             }
     }
 
-    abstract fun storeEventAndUpdateView(
-        transaction: BaseTransaction,
-        newStatus: TransactionStatusDto
-    ): Mono<E>
+    abstract fun getTransactionId(baseTransaction: F): TransactionId
 
-    abstract fun toEvent(baseTransaction: BaseTransaction): Mono<E>
+    abstract fun storeEventAndUpdateView(transaction: F, newStatus: TransactionStatusDto): Mono<E>
+
+    abstract fun toEvent(baseTransaction: F): Mono<E>
+
+    protected fun mergeTransaction(
+        baseTransactionsWithRequestedAuthorization: List<F>,
+        baseTransactionUserCanceled: List<F>,
+        baseTransactionActivatedOnly: List<F>
+    ): List<Pair<F, TransactionStatusDto>> {
+        val mergedTransactions =
+            baseTransactionsWithRequestedAuthorization
+                .map { Pair(it, TransactionStatusDto.EXPIRED) }
+                .plus(
+                    baseTransactionUserCanceled.map {
+                        Pair(it, TransactionStatusDto.CANCELLATION_EXPIRED)
+                    }
+                )
+                .plus(
+                    baseTransactionActivatedOnly.map {
+                        Pair(it, TransactionStatusDto.EXPIRED_NOT_AUTHORIZED)
+                    }
+                )
+        logger.info(
+            "Total expired transactions: [${mergedTransactions.size}], of which [${baseTransactionsWithRequestedAuthorization.size}] with requested authorization, [${baseTransactionActivatedOnly.size}] activated only and [${baseTransactionUserCanceled.size}] canceled by user"
+        )
+        return mergedTransactions
+    }
 
     protected fun publishAllEvents(
-        transactions: List<Pair<BaseTransaction, TransactionStatusDto>>,
+        transactions: List<Pair<F, TransactionStatusDto>>,
         batchExecutionWindowMillis: Long,
         totalRecordFound: Long,
-        page: Pageable
+        alreadyProcessedTransactions: Long
     ): Mono<Boolean> {
-        val alreadyProcessedTransactions = page.pageNumber * page.pageSize
         val offsetIncrement = batchExecutionWindowMillis / totalRecordFound
-        val eventOffset = AtomicLong(alreadyProcessedTransactions.toLong() * offsetIncrement)
+        val eventOffset = AtomicLong(alreadyProcessedTransactions * offsetIncrement)
         return Flux.fromIterable(transactions)
             .parallel(parallelEventsToProcess)
             .runOn(Schedulers.parallel())
@@ -82,5 +103,6 @@ abstract class EventPublisher<E>(
             .sequential()
             .collectList()
             .map { it.none { eventSent -> !eventSent } }
+            .switchIfEmpty(Mono.just(true))
     }
 }

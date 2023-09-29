@@ -1,6 +1,6 @@
 package it.pagopa.ecommerce.transactions.scheduler.repositories
 
-import it.pagopa.ecommerce.commons.documents.v1.Transaction
+import it.pagopa.ecommerce.commons.documents.BaseTransactionView
 import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
 import org.springframework.data.domain.Pageable
 import org.springframework.data.mongodb.repository.Query
@@ -10,7 +10,7 @@ import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
 @Repository
-interface TransactionsViewRepository : ReactiveCrudRepository<Transaction, String> {
+interface TransactionsViewRepository : ReactiveCrudRepository<BaseTransactionView, String> {
 
     @Query("{'creationDate': {'\$gte': '?0','\$lte': '?1'}, 'status':{'\$nin':?2}}")
     fun findTransactionInTimeRangeWithExcludedStatusesPaginated(
@@ -18,7 +18,7 @@ interface TransactionsViewRepository : ReactiveCrudRepository<Transaction, Strin
         to: String,
         excludedStatuses: Set<TransactionStatusDto>,
         pagination: Pageable
-    ): Flux<Transaction>
+    ): Flux<BaseTransactionView>
 
     @Query("{'creationDate': {'\$gte': '?0','\$lte': '?1'}, 'status':{'\$nin':?2}}", count = true)
     fun countTransactionInTimeRangeWithExcludedStatuses(
@@ -27,5 +27,5 @@ interface TransactionsViewRepository : ReactiveCrudRepository<Transaction, Strin
         excludedStatuses: Set<TransactionStatusDto>
     ): Mono<Long>
 
-    fun findByTransactionId(transactionId: String): Mono<Transaction>
+    fun findByTransactionId(transactionId: String): Mono<BaseTransactionView>
 }

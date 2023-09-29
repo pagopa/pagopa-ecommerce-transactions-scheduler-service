@@ -1,24 +1,16 @@
 package it.pagopa.ecommerce.transactions.scheduler.transactionanalyzer
 
-import it.pagopa.ecommerce.commons.documents.v1.TransactionClosureData
-import it.pagopa.ecommerce.commons.documents.v1.TransactionEvent
-import it.pagopa.ecommerce.commons.documents.v1.TransactionUserReceiptData
-import it.pagopa.ecommerce.commons.domain.v1.EmptyTransaction
-import it.pagopa.ecommerce.commons.domain.v1.pojos.BaseTransaction
-import it.pagopa.ecommerce.commons.generated.server.model.AuthorizationResultDto
+import it.pagopa.ecommerce.commons.documents.BaseTransactionEvent
+import it.pagopa.ecommerce.commons.documents.BaseTransactionView
 import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
-import it.pagopa.ecommerce.commons.v1.TransactionTestUtils
-import it.pagopa.ecommerce.transactions.scheduler.publishers.TransactionExpiredEventPublisher
+import it.pagopa.ecommerce.transactions.scheduler.publishers.v1.TransactionExpiredEventPublisher as TransactionExpiredEventPublisherV1
+import it.pagopa.ecommerce.transactions.scheduler.publishers.v2.TransactionExpiredEventPublisher as TransactionExpiredEventPublisherV2
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsEventStoreRepository
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsViewRepository
-import java.time.Duration
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
 import java.util.*
-import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -37,7 +29,11 @@ import reactor.test.StepVerifier
 @ExtendWith(MockitoExtension::class)
 class PendingTransactionAnalyzerTests {
 
-    @Mock private lateinit var transactionExpiredEventPublisher: TransactionExpiredEventPublisher
+    @Mock
+    private lateinit var transactionExpiredEventPublisherV1: TransactionExpiredEventPublisherV1
+
+    @Mock
+    private lateinit var transactionExpiredEventPublisherV2: TransactionExpiredEventPublisherV2
 
     @Mock private lateinit var viewRepository: TransactionsViewRepository
 
@@ -55,33 +51,12 @@ class PendingTransactionAnalyzerTests {
 
     private val sendPaymentResultTimeout = 120
 
-    companion object {
-        val testedStatuses: MutableSet<TransactionStatusDto> = HashSet()
-
-        @JvmStatic
-        @BeforeAll
-        fun beforeAll() {
-            testedStatuses.clear()
-        }
-
-        @JvmStatic
-        @AfterAll
-        fun afterAll() {
-            TransactionStatusDto.values().forEach {
-                assertTrue(
-                    testedStatuses.contains(it),
-                    "Error: Transaction in status [$it] NOT covered by tests!"
-                )
-            }
-            testedStatuses.clear()
-        }
-    }
-
     @BeforeEach
     fun `init`() {
         pendingTransactionAnalyzer =
             PendingTransactionAnalyzer(
-                expiredTransactionEventPublisher = transactionExpiredEventPublisher,
+                expiredTransactionEventPublisherV1 = transactionExpiredEventPublisherV1,
+                expiredTransactionEventPublisherV2 = transactionExpiredEventPublisherV2,
                 viewRepository = viewRepository,
                 eventStoreRepository = eventStoreRepository,
                 transactionStatusesForSendExpiryEvent = transactionStatusesForSendExpiryEventMocked,
@@ -93,7 +68,8 @@ class PendingTransactionAnalyzerTests {
          */
         transactionStatusesForSendExpiryEventOriginal =
             PendingTransactionAnalyzer(
-                    expiredTransactionEventPublisher = transactionExpiredEventPublisher,
+                    expiredTransactionEventPublisherV1 = transactionExpiredEventPublisherV1,
+                    expiredTransactionEventPublisherV2 = transactionExpiredEventPublisherV2,
                     viewRepository = viewRepository,
                     eventStoreRepository = eventStoreRepository,
                     sendPaymentResultTimeoutSeconds = sendPaymentResultTimeout
@@ -102,481 +78,43 @@ class PendingTransactionAnalyzerTests {
     }
 
     @Test
-    fun `Should send event for pending transaction in ACTIVATED state`() {
+    fun `Should send expiration event calculating already processed transactions correctly for V1 and V2 found transactions in time window`() {
         // assertions
-        val events =
-            listOf(TransactionTestUtils.transactionActivateEvent()) as List<TransactionEvent<Any>>
-
-        checkThatExpiryEventIsSent(events, TransactionStatusDto.ACTIVATED)
-    }
-
-    @Test
-    fun `Should send event for pending transaction in AUTHORIZATION_REQUESTED state`() {
-        // assertions
-        val events =
-            listOf(
-                TransactionTestUtils.transactionActivateEvent(),
-                TransactionTestUtils.transactionAuthorizationRequestedEvent()
+        val v1Transactions = 8
+        val v2Transactions = 6
+        val events = ArrayList<BaseTransactionEvent<Any>>()
+        repeat(v1Transactions) { _ ->
+            events.add(
+                it.pagopa.ecommerce.commons.v1.TransactionTestUtils.transactionActivateEvent()
+                    as BaseTransactionEvent<Any>
             )
-                as List<TransactionEvent<Any>>
-
-        checkThatExpiryEventIsSent(events, TransactionStatusDto.AUTHORIZATION_REQUESTED)
-    }
-
-    @Test
-    fun `Should send event for pending transaction in AUTHORIZATION_COMPLETED state`() {
-        // assertions
-        val events =
-            listOf(
-                TransactionTestUtils.transactionActivateEvent(),
-                TransactionTestUtils.transactionAuthorizationRequestedEvent(),
-                TransactionTestUtils.transactionAuthorizationCompletedEvent()
+        }
+        repeat(v2Transactions) { _ ->
+            events.add(
+                it.pagopa.ecommerce.commons.v2.TransactionTestUtils.transactionActivateEvent()
+                    as BaseTransactionEvent<Any>
             )
-                as List<TransactionEvent<Any>>
+        }
 
-        checkThatExpiryEventIsSent(events, TransactionStatusDto.AUTHORIZATION_COMPLETED)
-    }
+        val transactions = ArrayList<BaseTransactionView>()
 
-    @Test
-    fun `Should send event for pending transaction in CLOSURE_ERROR state`() {
-        // assertions
-        val events =
-            listOf(
-                TransactionTestUtils.transactionActivateEvent(),
-                TransactionTestUtils.transactionAuthorizationRequestedEvent(),
-                TransactionTestUtils.transactionAuthorizationCompletedEvent(),
-                TransactionTestUtils.transactionClosureErrorEvent()
-            )
-                as List<TransactionEvent<Any>>
-
-        checkThatExpiryEventIsSent(events, TransactionStatusDto.CLOSURE_ERROR)
-    }
-
-    @Test
-    fun `Should send event for pending transaction in CANCELLATION_REQUESTED state`() {
-        // assertions
-        val events =
-            listOf(
-                TransactionTestUtils.transactionActivateEvent(),
-                TransactionTestUtils.transactionUserCanceledEvent()
-            )
-                as List<TransactionEvent<Any>>
-
-        checkThatExpiryEventIsSent(events, TransactionStatusDto.CANCELLATION_REQUESTED)
-    }
-
-    @Test
-    fun `Should send event for pending transaction in CLOSED state outcome OK`() {
-        // assertions
-        val closedEvent =
-            TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK)
-        closedEvent.creationDate =
-            ZonedDateTime.now()
-                .minus(Duration.ofSeconds(sendPaymentResultTimeout.toLong() + 1))
-                .toString()
-        val events =
-            listOf(
-                TransactionTestUtils.transactionActivateEvent(),
-                TransactionTestUtils.transactionAuthorizationRequestedEvent(),
-                TransactionTestUtils.transactionAuthorizationCompletedEvent(),
-                closedEvent
-            )
-                as List<TransactionEvent<Any>>
-
-        checkThatExpiryEventIsSent(events, TransactionStatusDto.CLOSED)
-    }
-
-    @Test
-    fun `Should send event for pending transaction in CLOSED state outcome KO`() {
-        // assertions
-        val events =
-            listOf(
-                TransactionTestUtils.transactionActivateEvent(),
-                TransactionTestUtils.transactionAuthorizationRequestedEvent(),
-                TransactionTestUtils.transactionAuthorizationCompletedEvent(),
-                TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.KO)
-            )
-                as List<TransactionEvent<Any>>
-
-        checkThatExpiryEventIsSent(events, TransactionStatusDto.CLOSED)
-    }
-
-    @Test
-    fun `Should send event for pending transaction in NOTIFICATION_ERROR user receipt OK state`() {
-        // assertions
-        val events =
-            listOf(
-                TransactionTestUtils.transactionActivateEvent(),
-                TransactionTestUtils.transactionAuthorizationRequestedEvent(),
-                TransactionTestUtils.transactionAuthorizationCompletedEvent(),
-                TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK),
-                TransactionTestUtils.transactionUserReceiptRequestedEvent(
-                    TransactionTestUtils.transactionUserReceiptData(
-                        TransactionUserReceiptData.Outcome.OK
-                    )
-                ),
-                TransactionTestUtils.transactionUserReceiptAddErrorEvent(
-                    TransactionTestUtils.transactionUserReceiptData(
-                        TransactionUserReceiptData.Outcome.OK
-                    )
-                )
-            )
-                as List<TransactionEvent<Any>>
-
-        checkThatExpiryEventIsSent(events, TransactionStatusDto.NOTIFICATION_ERROR)
-    }
-
-    @Test
-    fun `Should send event for pending transaction in NOTIFICATION_ERROR user receipt KO state`() {
-        // assertions
-        val events =
-            listOf(
-                TransactionTestUtils.transactionActivateEvent(),
-                TransactionTestUtils.transactionAuthorizationRequestedEvent(),
-                TransactionTestUtils.transactionAuthorizationCompletedEvent(),
-                TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK),
-                TransactionTestUtils.transactionUserReceiptRequestedEvent(
-                    TransactionTestUtils.transactionUserReceiptData(
-                        TransactionUserReceiptData.Outcome.KO
-                    )
-                ),
-                TransactionTestUtils.transactionUserReceiptAddErrorEvent(
-                    TransactionTestUtils.transactionUserReceiptData(
-                        TransactionUserReceiptData.Outcome.KO
-                    )
-                )
-            )
-                as List<TransactionEvent<Any>>
-
-        checkThatExpiryEventIsSent(events, TransactionStatusDto.NOTIFICATION_ERROR)
-    }
-
-    @Test
-    fun `Should send event for pending transaction in NOTIFICATION_REQUESTED user receipt OK state`() {
-        // assertions
-        val events =
-            listOf(
-                TransactionTestUtils.transactionActivateEvent(),
-                TransactionTestUtils.transactionAuthorizationRequestedEvent(),
-                TransactionTestUtils.transactionAuthorizationCompletedEvent(),
-                TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK),
-                TransactionTestUtils.transactionUserReceiptRequestedEvent(
-                    TransactionTestUtils.transactionUserReceiptData(
-                        TransactionUserReceiptData.Outcome.OK
-                    )
-                )
-            )
-                as List<TransactionEvent<Any>>
-
-        checkThatExpiryEventIsSent(events, TransactionStatusDto.NOTIFICATION_REQUESTED)
-    }
-
-    @Test
-    fun `Should send event for pending transaction in NOTIFICATION_REQUESTED user receipt KO state`() {
-        // assertions
-        val events =
-            listOf(
-                TransactionTestUtils.transactionActivateEvent(),
-                TransactionTestUtils.transactionAuthorizationRequestedEvent(),
-                TransactionTestUtils.transactionAuthorizationCompletedEvent(),
-                TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK),
-                TransactionTestUtils.transactionUserReceiptRequestedEvent(
-                    TransactionTestUtils.transactionUserReceiptData(
-                        TransactionUserReceiptData.Outcome.KO
-                    )
-                )
-            )
-                as List<TransactionEvent<Any>>
-
-        checkThatExpiryEventIsSent(events, TransactionStatusDto.NOTIFICATION_REQUESTED)
-    }
-
-    @Test
-    fun `Should not send event for pending transaction in EXPIRED_NOT_AUTHORIZED state`() {
-        // assertions
-        val events =
-            listOf(
-                TransactionTestUtils.transactionActivateEvent(),
-                TransactionTestUtils.transactionExpiredEvent(
-                    TransactionTestUtils.transactionActivated(ZonedDateTime.now().toString())
-                )
-            )
-                as List<TransactionEvent<Any>>
-
-        checkThatExpiryEventIsNotSent(events, TransactionStatusDto.EXPIRED_NOT_AUTHORIZED)
-    }
-
-    @Test
-    fun `Should not send event for pending transaction in CANCELED state`() {
-        // assertions
-        val events =
-            listOf(
-                TransactionTestUtils.transactionActivateEvent(),
-                TransactionTestUtils.transactionUserCanceledEvent(),
-                TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK)
-            )
-                as List<TransactionEvent<Any>>
-
-        checkThatExpiryEventIsNotSent(events, TransactionStatusDto.CANCELED)
-    }
-
-    @Test
-    fun `Should not send event for pending transaction in UNAUTHORIZED state`() {
-        // assertions
-        val events =
-            listOf(
-                TransactionTestUtils.transactionActivateEvent(),
-                TransactionTestUtils.transactionAuthorizationRequestedEvent(),
-                TransactionTestUtils.transactionAuthorizationCompletedEvent(
-                    AuthorizationResultDto.KO
-                ),
-                TransactionTestUtils.transactionClosureFailedEvent(
-                    TransactionClosureData.Outcome.OK
-                )
-            )
-                as List<TransactionEvent<Any>>
-
-        checkThatExpiryEventIsNotSent(events, TransactionStatusDto.UNAUTHORIZED)
-    }
-
-    @Test
-    fun `Should not send event for pending transaction in NOTIFIED_OK state`() {
-        // assertions
-        val events =
-            listOf(
-                TransactionTestUtils.transactionActivateEvent(),
-                TransactionTestUtils.transactionAuthorizationRequestedEvent(),
-                TransactionTestUtils.transactionAuthorizationCompletedEvent(
-                    AuthorizationResultDto.OK
-                ),
-                TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK),
-                TransactionTestUtils.transactionUserReceiptRequestedEvent(
-                    TransactionTestUtils.transactionUserReceiptData(
-                        TransactionUserReceiptData.Outcome.OK
-                    )
-                ),
-                TransactionTestUtils.transactionUserReceiptAddedEvent(
-                    TransactionTestUtils.transactionUserReceiptData(
-                        TransactionUserReceiptData.Outcome.OK
-                    )
-                )
-            )
-                as List<TransactionEvent<Any>>
-
-        checkThatExpiryEventIsNotSent(events, TransactionStatusDto.NOTIFIED_OK)
-    }
-
-    @Test
-    fun `Should send event for pending transaction in NOTIFIED_KO state`() {
-        // assertions
-        val events =
-            listOf(
-                TransactionTestUtils.transactionActivateEvent(),
-                TransactionTestUtils.transactionAuthorizationRequestedEvent(),
-                TransactionTestUtils.transactionAuthorizationCompletedEvent(
-                    AuthorizationResultDto.OK
-                ),
-                TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK),
-                TransactionTestUtils.transactionUserReceiptRequestedEvent(
-                    TransactionTestUtils.transactionUserReceiptData(
-                        TransactionUserReceiptData.Outcome.KO
-                    )
-                ),
-                TransactionTestUtils.transactionUserReceiptAddedEvent(
-                    TransactionTestUtils.transactionUserReceiptData(
-                        TransactionUserReceiptData.Outcome.KO
-                    )
-                )
-            )
-                as List<TransactionEvent<Any>>
-
-        checkThatExpiryEventIsSent(events, TransactionStatusDto.NOTIFIED_KO)
-    }
-
-    @Test
-    fun `Should not send event for pending transaction in EXPIRED state`() {
-        // assertions
-
-        var events =
-            listOf(
-                TransactionTestUtils.transactionActivateEvent(),
-                TransactionTestUtils.transactionAuthorizationRequestedEvent(),
-                TransactionTestUtils.transactionAuthorizationCompletedEvent(
-                    AuthorizationResultDto.OK
-                ),
-                TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK),
-            )
-                as List<TransactionEvent<Any>>
-        events =
-            events.plus(
-                TransactionTestUtils.transactionExpiredEvent(reduceEvents(events))
-                    as TransactionEvent<Any>
-            )
-
-        checkThatExpiryEventIsNotSent(events, TransactionStatusDto.EXPIRED)
-    }
-
-    @Test
-    fun `Should not send event for pending transaction in REFUND_REQUESTED state`() {
-        // assertions
-        var events =
-            listOf(
-                TransactionTestUtils.transactionActivateEvent(),
-                TransactionTestUtils.transactionAuthorizationRequestedEvent(),
-                TransactionTestUtils.transactionAuthorizationCompletedEvent(
-                    AuthorizationResultDto.OK
-                ),
-                TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK),
-            )
-                as List<TransactionEvent<Any>>
-        events =
-            events.plus(
-                TransactionTestUtils.transactionExpiredEvent(reduceEvents(events))
-                    as TransactionEvent<Any>
-            )
-        events =
-            events.plus(
-                TransactionTestUtils.transactionRefundRequestedEvent(reduceEvents(events))
-                    as TransactionEvent<Any>
-            )
-
-        checkThatExpiryEventIsNotSent(events, TransactionStatusDto.REFUND_REQUESTED)
-    }
-
-    @Test
-    fun `Should not send event for pending transaction in REFUND_ERROR state`() {
-        // assertions
-        var events =
-            listOf(
-                TransactionTestUtils.transactionActivateEvent(),
-                TransactionTestUtils.transactionAuthorizationRequestedEvent(),
-                TransactionTestUtils.transactionAuthorizationCompletedEvent(
-                    AuthorizationResultDto.OK
-                ),
-                TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK),
-            )
-                as List<TransactionEvent<Any>>
-        events =
-            events.plus(
-                TransactionTestUtils.transactionExpiredEvent(reduceEvents(events))
-                    as TransactionEvent<Any>
-            )
-        events =
-            events.plus(
-                TransactionTestUtils.transactionRefundRequestedEvent(reduceEvents(events))
-                    as TransactionEvent<Any>
-            )
-
-        events =
-            events.plus(
-                TransactionTestUtils.transactionRefundErrorEvent(reduceEvents(events))
-                    as TransactionEvent<Any>
-            )
-
-        checkThatExpiryEventIsNotSent(events, TransactionStatusDto.REFUND_ERROR)
-    }
-
-    @Test
-    fun `Should not send event for pending transaction in REFUNDED state`() {
-        // assertions
-        var events =
-            listOf(
-                TransactionTestUtils.transactionActivateEvent(),
-                TransactionTestUtils.transactionAuthorizationRequestedEvent(),
-                TransactionTestUtils.transactionAuthorizationCompletedEvent(
-                    AuthorizationResultDto.OK
-                ),
-                TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK),
-            )
-                as List<TransactionEvent<Any>>
-        events =
-            events.plus(
-                TransactionTestUtils.transactionExpiredEvent(reduceEvents(events))
-                    as TransactionEvent<Any>
-            )
-        events =
-            events.plus(
-                TransactionTestUtils.transactionRefundRequestedEvent(reduceEvents(events))
-                    as TransactionEvent<Any>
-            )
-        events =
-            events.plus(
-                TransactionTestUtils.transactionRefundedEvent(reduceEvents(events))
-                    as TransactionEvent<Any>
-            )
-
-        checkThatExpiryEventIsNotSent(events, TransactionStatusDto.REFUNDED)
-    }
-
-    @Test
-    fun `Should not send event for pending transaction in CANCELLATION_EXPIRED state`() {
-        // assertions
-        var events =
-            listOf(
-                TransactionTestUtils.transactionActivateEvent(),
-                TransactionTestUtils.transactionUserCanceledEvent(),
-            )
-                as List<TransactionEvent<Any>>
-
-        events =
-            events.plus(
-                TransactionTestUtils.transactionExpiredEvent(reduceEvents(events))
-                    as TransactionEvent<Any>
-            )
-
-        checkThatExpiryEventIsNotSent(events, TransactionStatusDto.CANCELLATION_EXPIRED)
-    }
-
-    @Test
-    fun `Should send event for pending transaction in CLOSED state with outcome OK timed out waiting for send payment result`() {
-        // assertions
-        val closedEvent =
-            TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.OK)
-        closedEvent.creationDate = ZonedDateTime.now().toString()
-        val events =
-            listOf(
-                TransactionTestUtils.transactionActivateEvent(),
-                TransactionTestUtils.transactionAuthorizationRequestedEvent(),
-                TransactionTestUtils.transactionAuthorizationCompletedEvent(),
-                closedEvent
-            )
-                as List<TransactionEvent<Any>>
-
-        checkThatExpiryEventIsNotSent(events, TransactionStatusDto.CLOSED)
-    }
-
-    @Test
-    fun `Should perform query for get total transaction count in time window`() {
-        val currentDate = ZonedDateTime.now()
-        val startTime = currentDate.toLocalDateTime()
-        val endTime = currentDate.plus(Duration.ofHours(2)).toLocalDateTime()
-        val totalTransactions = 20L
-        given(
-                viewRepository.countTransactionInTimeRangeWithExcludedStatuses(
-                    eq(startTime.toString()),
-                    eq(endTime.toString()),
-                    any()
-                )
-            )
-            .willReturn(Mono.just(totalTransactions))
-
-        StepVerifier.create(pendingTransactionAnalyzer.getTotalTransactionCount(startTime, endTime))
-            .expectNext(totalTransactions)
-            .verifyComplete()
-    }
-
-    private fun checkThatExpiryEventIsSent(
-        events: List<TransactionEvent<Any>>,
-        expectedTransactionStatus: TransactionStatusDto
-    ) {
-
-        val transactions =
-            listOf(
-                TransactionTestUtils.transactionDocument(
-                    expectedTransactionStatus,
+        repeat(v1Transactions) { _ ->
+            transactions.add(
+                it.pagopa.ecommerce.commons.v1.TransactionTestUtils.transactionDocument(
+                    TransactionStatusDto.EXPIRED,
                     ZonedDateTime.now()
                 )
             )
+        }
+        repeat(v2Transactions) { _ ->
+            transactions.add(
+                it.pagopa.ecommerce.commons.v2.TransactionTestUtils.transactionDocument(
+                    TransactionStatusDto.EXPIRED,
+                    ZonedDateTime.now()
+                )
+            )
+        }
+
         given(
                 transactionStatusesForSendExpiryEventMocked.contains(
                     transactionStatusArgumentCaptor.capture()
@@ -594,9 +132,12 @@ class PendingTransactionAnalyzerTests {
             .willReturn(Flux.just(*transactions.toTypedArray()))
         given(eventStoreRepository.findByTransactionIdOrderByCreationDateAsc(any()))
             .willReturn(Flux.just(*events.toTypedArray()))
-        given(transactionExpiredEventPublisher.publishExpiryEvents(any(), any(), any(), any()))
+        given(transactionExpiredEventPublisherV1.publishExpiryEvents(any(), any(), any(), any()))
+            .willReturn(Mono.just(true))
+        given(transactionExpiredEventPublisherV2.publishExpiryEvents(any(), any(), any(), any()))
             .willReturn(Mono.just(true))
         // test
+
         StepVerifier.create(
                 pendingTransactionAnalyzer.searchPendingTransactions(
                     LocalDateTime.now(),
@@ -608,83 +149,19 @@ class PendingTransactionAnalyzerTests {
             )
             .expectNext(true)
             .verifyComplete()
-        verify(transactionExpiredEventPublisher, times(1))
-            .publishExpiryEvents(any(), any(), any(), any())
-        // This check has the purpose of check that the test list of events effectively cover the
-        // wanted scenario.
-        // The wanted scenario, in fact, is taken as input parameter by this method so developer
-        // must explicitly declare
-        // what transaction status scenario wanted to be tested, avoiding false positive tests where
-        // the input event list
-        // does not cover the wanted scenario. Ex: test written for cover CLOSURE ERROR case but the
-        // input event list does
-        // not generate a transaction in CLOSURE_ERROR state just because the closure error event
-        // was missing from the event list
-        assertEquals(expectedTransactionStatus, transactionStatusArgumentCaptor.value)
-        testedStatuses.add(transactionStatusArgumentCaptor.value)
-    }
-
-    private fun checkThatExpiryEventIsNotSent(
-        events: List<TransactionEvent<Any>>,
-        expectedTransactionStatus: TransactionStatusDto
-    ) {
-        val transactions =
-            listOf(
-                TransactionTestUtils.transactionDocument(
-                    expectedTransactionStatus,
-                    ZonedDateTime.now()
-                )
+        // V1 events should be sent with offset = 0
+        verify(transactionExpiredEventPublisherV1, times(1))
+            .publishExpiryEvents(any(), any(), eq(transactions.size.toLong()), eq(0))
+        // V2 events should be sent with offset valued based on already processed events + V1 ones
+        verify(transactionExpiredEventPublisherV2, times(1))
+            .publishExpiryEvents(
+                any(),
+                any(),
+                eq(transactions.size.toLong()),
+                eq(v1Transactions.toLong())
             )
-        given(
-                transactionStatusesForSendExpiryEventMocked.contains(
-                    transactionStatusArgumentCaptor.capture()
-                )
-            )
-            .willAnswer { transactionStatusesForSendExpiryEventOriginal.contains(it.arguments[0]) }
-        given(
-                viewRepository.findTransactionInTimeRangeWithExcludedStatusesPaginated(
-                    any(),
-                    any(),
-                    any(),
-                    any()
-                )
-            )
-            .willReturn(Flux.just(*transactions.toTypedArray()))
-        given(eventStoreRepository.findByTransactionIdOrderByCreationDateAsc(any()))
-            .willReturn(Flux.just(*events.toTypedArray()))
-        // test
-        StepVerifier.create(
-                pendingTransactionAnalyzer.searchPendingTransactions(
-                    LocalDateTime.now(),
-                    LocalDateTime.now(),
-                    1000,
-                    transactions.size.toLong(),
-                    Pageable.ofSize(1000)
-                )
-            )
-            .expectNext(true)
-            .verifyComplete()
-        verify(transactionExpiredEventPublisher, times(0))
-            .publishExpiryEvents(any(), any(), any(), any())
-        // This check has the purpose of check that the test list of events effectively cover the
-        // wanted scenario.
-        // The wanted scenario, in fact, is taken as input parameter by this method so developer
-        // must explicitly declare
-        // what transaction status scenario wanted to be tested, avoiding false positive tests where
-        // the input event list
-        // does not cover the wanted scenario. Ex: test written for cover CLOSURE ERROR case but the
-        // input event list does
-        // not generate a transaction in CLOSURE_ERROR state just because the closure error event
-        // was missing from the event list
-        assertEquals(expectedTransactionStatus, transactionStatusArgumentCaptor.value)
-        testedStatuses.add(transactionStatusArgumentCaptor.value)
-    }
-
-    private fun reduceEvents(events: List<TransactionEvent<out Any>>): BaseTransaction {
-        val emptyTransaction = EmptyTransaction()
-        val listToReduce: List<Any> = listOf(emptyTransaction).plus(events)
-        return listToReduce.reduce { trx, event ->
-            (trx as it.pagopa.ecommerce.commons.domain.v1.Transaction).applyEvent(event)
-        } as BaseTransaction
+        transactionStatusArgumentCaptor.allValues.forEach {
+            assertEquals(TransactionStatusDto.ACTIVATED, it)
+        }
     }
 }

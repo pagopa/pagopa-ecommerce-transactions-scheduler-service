@@ -1,4 +1,4 @@
-package it.pagopa.ecommerce.transactions.scheduler.publishers
+package it.pagopa.ecommerce.transactions.scheduler.publishers.v2
 
 import com.azure.core.http.rest.Response
 import com.azure.core.http.rest.ResponseBase
@@ -6,15 +6,17 @@ import com.azure.storage.queue.models.QueueStorageException
 import com.azure.storage.queue.models.SendMessageResult
 import com.mongodb.MongoException
 import it.pagopa.ecommerce.commons.client.QueueAsyncClient
-import it.pagopa.ecommerce.commons.documents.v1.Transaction
-import it.pagopa.ecommerce.commons.documents.v1.TransactionExpiredData
-import it.pagopa.ecommerce.commons.documents.v1.TransactionExpiredEvent
-import it.pagopa.ecommerce.commons.domain.v1.*
-import it.pagopa.ecommerce.commons.domain.v1.pojos.BaseTransaction
+import it.pagopa.ecommerce.commons.documents.v2.Transaction
+import it.pagopa.ecommerce.commons.documents.v2.TransactionExpiredData
+import it.pagopa.ecommerce.commons.documents.v2.TransactionExpiredEvent
+import it.pagopa.ecommerce.commons.domain.TransactionId
+import it.pagopa.ecommerce.commons.domain.v2.*
+import it.pagopa.ecommerce.commons.domain.v2.pojos.BaseTransaction
+import it.pagopa.ecommerce.commons.generated.npg.v1.dto.OperationResultDto
 import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
 import it.pagopa.ecommerce.commons.queues.QueueEvent
 import it.pagopa.ecommerce.commons.queues.TracingUtilsTests
-import it.pagopa.ecommerce.commons.v1.TransactionTestUtils
+import it.pagopa.ecommerce.commons.v2.TransactionTestUtils
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsEventStoreRepository
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsViewRepository
 import java.time.Duration
@@ -35,7 +37,6 @@ import org.mockito.Mockito.*
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.willReturn
 import org.mockito.kotlin.willReturnConsecutively
-import org.springframework.data.domain.PageRequest
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
 
@@ -116,12 +117,7 @@ class TransactionExpiredEventPublisherTests {
                         transientQueueTTLSeconds = transientQueueTTLSeconds,
                         tracingUtils = tracingUtils
                     )
-                    .publishExpiryEvents(
-                        baseDocuments,
-                        batchExecutionTimeWindow,
-                        5,
-                        PageRequest.of(0, 5)
-                    )
+                    .publishExpiryEvents(baseDocuments, batchExecutionTimeWindow, 5, 0)
             )
             .expectNext(true)
             .verifyComplete()
@@ -218,7 +214,7 @@ class TransactionExpiredEventPublisherTests {
                         ),
                         batchExecutionTimeWindow,
                         5,
-                        PageRequest.of(0, 5)
+                        0
                     )
             )
             .expectNext(false)
@@ -259,7 +255,7 @@ class TransactionExpiredEventPublisherTests {
                         ),
                         batchExecutionTimeWindow,
                         5,
-                        PageRequest.of(0, 5)
+                        0
                     )
             )
             .expectNext(false)
@@ -316,12 +312,7 @@ class TransactionExpiredEventPublisherTests {
                         transientQueueTTLSeconds = transientQueueTTLSeconds,
                         tracingUtils = tracingUtils
                     )
-                    .publishExpiryEvents(
-                        transactions,
-                        batchExecutionTimeWindow,
-                        5,
-                        PageRequest.of(0, 5)
-                    )
+                    .publishExpiryEvents(transactions, batchExecutionTimeWindow, 5, 0)
             )
             .expectNext(false)
             .verifyComplete()
@@ -414,7 +405,7 @@ class TransactionExpiredEventPublisherTests {
                         allTransactions,
                         batchExecutionTimeWindow,
                         allEvents.size.toLong(),
-                        PageRequest.of(0, allEvents.size)
+                        0
                     )
             )
             .expectNext(false)
@@ -543,7 +534,7 @@ class TransactionExpiredEventPublisherTests {
                         allTransactions,
                         batchExecutionTimeWindow,
                         allEvents.size.toLong(),
-                        PageRequest.of(0, allEvents.size)
+                        0
                     )
             )
             .expectNext(false)
@@ -677,7 +668,7 @@ class TransactionExpiredEventPublisherTests {
                         allTransactions,
                         batchExecutionTimeWindow,
                         allEvents.size.toLong(),
-                        PageRequest.of(0, allEvents.size)
+                        0
                     )
             )
             .expectNext(false)
@@ -791,7 +782,7 @@ class TransactionExpiredEventPublisherTests {
                         baseDocuments,
                         batchExecutionTimeWindow,
                         baseDocuments.size.toLong(),
-                        PageRequest.of(0, baseDocuments.size)
+                        0
                     )
             )
             .expectNext(true)
@@ -961,7 +952,7 @@ class TransactionExpiredEventPublisherTests {
                         baseDocuments,
                         batchExecutionTimeWindow,
                         baseDocuments.size.toLong(),
-                        PageRequest.of(0, baseDocuments.size)
+                        0
                     )
             )
             .expectNext(true)
@@ -1075,7 +1066,7 @@ class TransactionExpiredEventPublisherTests {
                         baseDocuments,
                         batchExecutionTimeWindow,
                         baseDocuments.size.toLong(),
-                        PageRequest.of(0, baseDocuments.size)
+                        0
                     )
             )
             .expectNext(true)
@@ -1189,7 +1180,7 @@ class TransactionExpiredEventPublisherTests {
                         baseDocuments,
                         batchExecutionTimeWindow,
                         baseDocuments.size.toLong(),
-                        PageRequest.of(0, baseDocuments.size)
+                        0
                     )
             )
             .expectNext(true)
@@ -1303,7 +1294,7 @@ class TransactionExpiredEventPublisherTests {
                         baseDocuments,
                         batchExecutionTimeWindow,
                         baseDocuments.size.toLong(),
-                        PageRequest.of(0, baseDocuments.size)
+                        0
                     )
             )
             .expectNext(true)
@@ -1433,54 +1424,62 @@ class TransactionExpiredEventPublisherTests {
         val baseDocuments = ArrayList<BaseTransaction>()
         val transactionActivated =
             TransactionTestUtils.transactionActivated(ZonedDateTime.now().toString())
-        repeat(howMany) {
-            val transactionActivatedWithCustomUUID =
-                TransactionActivated(
-                    TransactionId(transactionId ?: UUID.randomUUID()),
-                    transactionActivated.paymentNotices,
-                    transactionActivated.email,
-                    transactionActivated.transactionActivatedData.faultCode,
-                    transactionActivated.transactionActivatedData.faultCodeString,
-                    transactionActivated.creationDate,
-                    transactionActivated.clientId,
-                    transactionActivated.transactionActivatedData.idCart,
-                    transactionActivated.transactionActivatedData.paymentTokenValiditySeconds
-                )
-            baseDocuments.add(
-                when (transactionType) {
-                    TransactionType.ACTIVATED_ONLY -> transactionActivatedWithCustomUUID
-                    TransactionType.CANCELED_BY_USER ->
-                        TransactionTestUtils.transactionWithCancellationRequested(
-                            transactionActivatedWithCustomUUID,
-                            TransactionTestUtils.transactionUserCanceledEvent()
-                        )
-                    TransactionType.CANCELED_BY_USER_CLOSURE_ERROR ->
-                        TransactionTestUtils.transactionWithClosureError(
-                            TransactionTestUtils.transactionClosureErrorEvent(),
+        val transactionGatewayActivationData =
+            repeat(howMany) {
+                val transactionActivatedWithCustomUUID =
+                    TransactionActivated(
+                        TransactionId(transactionId ?: UUID.randomUUID()),
+                        transactionActivated.paymentNotices,
+                        transactionActivated.email,
+                        transactionActivated.transactionActivatedData.faultCode,
+                        transactionActivated.transactionActivatedData.faultCodeString,
+                        transactionActivated.creationDate,
+                        transactionActivated.clientId,
+                        transactionActivated.transactionActivatedData.idCart,
+                        transactionActivated.transactionActivatedData.paymentTokenValiditySeconds,
+                        transactionActivated.transactionActivatedData
+                            .transactionGatewayActivationData
+                    )
+                baseDocuments.add(
+                    when (transactionType) {
+                        TransactionType.ACTIVATED_ONLY -> transactionActivatedWithCustomUUID
+                        TransactionType.CANCELED_BY_USER ->
                             TransactionTestUtils.transactionWithCancellationRequested(
                                 transactionActivatedWithCustomUUID,
                                 TransactionTestUtils.transactionUserCanceledEvent()
                             )
-                        )
-                    TransactionType.AUTH_REQUESTED ->
-                        TransactionTestUtils.transactionWithRequestedAuthorization(
-                            TransactionTestUtils.transactionAuthorizationRequestedEvent(),
-                            transactionActivatedWithCustomUUID
-                        )
-                    TransactionType.CLOSURE_ERROR_WITH_AUTH_COMPLETED ->
-                        TransactionTestUtils.transactionWithClosureError(
-                            TransactionTestUtils.transactionClosureErrorEvent(),
-                            TransactionTestUtils.transactionAuthorizationCompleted(
-                                TransactionTestUtils.transactionAuthorizationCompletedEvent(),
-                                TransactionTestUtils.transactionWithRequestedAuthorization(
-                                    TransactionTestUtils.transactionAuthorizationRequestedEvent(),
-                                    transactionActivatedWithCustomUUID
+                        TransactionType.CANCELED_BY_USER_CLOSURE_ERROR ->
+                            TransactionTestUtils.transactionWithClosureError(
+                                TransactionTestUtils.transactionClosureErrorEvent(),
+                                TransactionTestUtils.transactionWithCancellationRequested(
+                                    transactionActivatedWithCustomUUID,
+                                    TransactionTestUtils.transactionUserCanceledEvent()
                                 )
                             )
-                        )
-                }
-            )
-        }
+                        TransactionType.AUTH_REQUESTED ->
+                            TransactionTestUtils.transactionWithRequestedAuthorization(
+                                TransactionTestUtils.transactionAuthorizationRequestedEvent(),
+                                transactionActivatedWithCustomUUID
+                            )
+                        TransactionType.CLOSURE_ERROR_WITH_AUTH_COMPLETED ->
+                            TransactionTestUtils.transactionWithClosureError(
+                                TransactionTestUtils.transactionClosureErrorEvent(),
+                                TransactionTestUtils.transactionAuthorizationCompleted(
+                                    TransactionTestUtils.transactionAuthorizationCompletedEvent(
+                                        TransactionTestUtils.npgTransactionGatewayAuthorizationData(
+                                            OperationResultDto.AUTHORIZED
+                                        )
+                                    ),
+                                    TransactionTestUtils.transactionWithRequestedAuthorization(
+                                        TransactionTestUtils
+                                            .transactionAuthorizationRequestedEvent(),
+                                        transactionActivatedWithCustomUUID
+                                    )
+                                )
+                            )
+                    }
+                )
+            }
         return baseDocuments
     }
 }
