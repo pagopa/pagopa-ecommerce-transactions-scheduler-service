@@ -97,7 +97,7 @@ class PendingTransactionAnalyzer(
                 lowerThreshold.toString(),
                 upperThreshold.toString(),
                 transactionStatusesToExcludeFromView,
-                page,
+                pageRequest,
             )
         return searchPendingTransactions(
             baseTransactionViewFlux,
