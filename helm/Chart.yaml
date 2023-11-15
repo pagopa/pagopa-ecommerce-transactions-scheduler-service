@@ -2,8 +2,8 @@ apiVersion: v2
 name: pagopa-ecommerce-transactions-scheduler-service
 description: Microservice that perform scheduled operations on pending transactions
 type: application
-version: 0.5.2
-appVersion: 0.3.9
+version: 0.5.3
+appVersion: 0.3.10
 dependencies:
   - name: microservice-chart
     version: 2.3.1
