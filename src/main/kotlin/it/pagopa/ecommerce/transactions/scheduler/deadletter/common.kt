@@ -23,33 +23,24 @@ fun writeEventToDeadLetterCollection(
 ): Mono<Unit> {
     val eventData = payload.toString(StandardCharsets.UTF_8)
     CommonLogger.logger.debug("Read event from queue: {}", eventData)
-    return Mono.just(checkPointer.success())
-        .then(mono { eventData })
-        .map {
-            DeadLetterEvent(
-                UUID.randomUUID().toString(),
-                queueName,
-                OffsetDateTime.now().toString(),
-                it
-            )
+    return checkPointer
+        .success()
+        .doOnSuccess { CommonLogger.logger.info("Event checkpoint performed successfully") }
+        .doOnError { exception ->
+            CommonLogger.logger.error("Error performing checkpoint for read event", exception)
         }
-        .flatMap {
-            deadLetterEventRepository
-                .save(it)
-                .then(
-                    checkPointer
-                        .success()
-                        .doOnSuccess {
-                            CommonLogger.logger.info("Event checkpoint performed successfully")
-                        }
-                        .doOnError { exception ->
-                            CommonLogger.logger.error(
-                                "Error performing checkpoint for read event",
-                                exception
-                            )
-                        }
+        .then(
+            mono {
+                DeadLetterEvent(
+                    UUID.randomUUID().toString(),
+                    queueName,
+                    OffsetDateTime.now().toString(),
+                    eventData
                 )
-        }
+            }
+        )
+        .flatMap { deadLetterEventRepository.save(it) }
+        .then()
         .onErrorResume {
             CommonLogger.logger.error(
                 "Exception processing dead letter event, performing checkpoint failure",
