@@ -22,7 +22,7 @@ fun writeEventToDeadLetterCollection(
     deadLetterEventRepository: DeadLetterEventRepository
 ): Mono<Unit> {
     val eventData = payload.toString(StandardCharsets.UTF_8)
-    CommonLogger.logger.info("Read event from queue: {}", eventData)
+    CommonLogger.logger.debug("Read event from queue: {}", eventData)
     return Mono.just(checkPointer.success())
         .then(mono { eventData })
         .map {
