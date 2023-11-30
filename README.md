@@ -93,6 +93,13 @@ These are all environment variables needed by the application:
 | PENDING_TRANSACTIONS_SEND_PAYMENT_RESULT_TIMEOUT_SECONDS     | Timeout for a `sendPaymentResult` callback (`POST /user-receipts` on `transactions-service`) to be received. This timeout is evaluated for a transaction stuck in CLOSED status for which an OK authorization outcome has been received by Nodo and inhibits expiration if it is yet to be reached. | int     |         |
 | PENDING_TRANSACTIONS_MAX_TRANSACTIONS_PER_PAGE               | Max transactions to be fetched by paginated query                                                                                                                                                                                                                                                   | int     |         |
 | PENDING_TRANSACTIONS_PAGE_ANALYSIS_DELAY_SECONDS             | Delay for the next pending transaction page to be analyzed (in seconds). This parameter in pair with `PENDING_TRANSACTIONS_MAX_TRANSACTIONS_PER_PAGE` define the max batch tps                                                                                                                      | int     |         |
+| DEAD_LETTER_LISTENER_TRANSACTION_FIXED_DELAY_MILLIS          | Transaction dead letter queue poll delay in milliseconds                                                                                                                                                                                                                                            | int     |         |
+| DEAD_LETTER_LISTENER_TRANSACTION_MAX_MESSAGE_PER_POLL        | Transaction dead letter queue max messages to retrieve per poll                                                                                                                                                                                                                                     | int     |         |
+| DEAD_LETTER_LISTENER_TRANSACTION_QUEUE_NAME                  | Transaction dead letter queue name                                                                                                                                                                                                                                                                  | string  |         |
+| DEAD_LETTER_LISTENER_NOTIFICATION_FIXED_DELAY_MILLIS         | Notification dead letter queue poll delay in milliseconds                                                                                                                                                                                                                                           | int     |         |
+| DEAD_LETTER_LISTENER_NOTIFICATION_MAX_MESSAGE_PER_POLL       | Notification dead letter queue max messages to retrieve per poll                                                                                                                                                                                                                                    | int     |         |
+| DEAD_LETTER_LISTENER_NOTIFICATION_QUEUE_NAME                 | Notification dead letter queue name                                                                                                                                                                                                                                                                 | string  |         |
+| ECOMMERCE_STORAGE_DEAD_LETTER_CONNECTION_STRING              | Dead letter storage account connection string                                                                                                                                                                                                                                                       | string  |         |
 
 ### Pending transaction TPS configuration
 
@@ -100,9 +107,9 @@ Pending transaction are processed at a configurable TPS (transactions per second
 This can be done changing the below parameters:
 
 - `PENDING_TRANSACTIONS_MAX_TRANSACTIONS_PER_PAGE` parameter allow to specify how many transactions to retrieve for each
-page -> chunk size
+  page -> chunk size
 - `PENDING_TRANSACTIONS_PAGE_ANALYSIS_DELAY_SECONDS` parameter allow to specify time to be waited between the next page
-to be analyzed -> chunk rate
+  to be analyzed -> chunk rate
 
 Example of configurations:
 
@@ -134,9 +141,9 @@ FROM:
 ```xml
 
 <configuration>
-	...
-	<scmVersionType>tag</scmVersionType>
-	<scmVersion>${pagopa-ecommerce-commons.version}</scmVersion>
+    ...
+    <scmVersionType>tag</scmVersionType>
+    <scmVersion>${pagopa-ecommerce-commons.version}</scmVersion>
 </configuration>
 ```
 
@@ -145,9 +152,9 @@ TO:
 ```xml
 
 <configuration>
-	...
-	<scmVersionType>branch</scmVersionType>
-	<scmVersion>name-of-a-specific-branch-to-link</scmVersion>
+    ...
+    <scmVersionType>branch</scmVersionType>
+    <scmVersion>name-of-a-specific-branch-to-link</scmVersion>
 </configuration>
 ```
 

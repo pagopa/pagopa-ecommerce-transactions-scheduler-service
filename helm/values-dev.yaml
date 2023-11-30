@@ -34,9 +34,9 @@ microservice-chart:
     servicePort: 8080
   serviceAccount:
     create: false
-    annotations: {}
+    annotations: { }
     name: ""
-  podAnnotations: {}
+  podAnnotations: { }
   podSecurityContext:
     seccompProfile:
       type: RuntimeDefault
@@ -87,15 +87,22 @@ microservice-chart:
     OTEL_TRACES_SAMPLER: "always_on"
     ECS_SERVICE_NAME: pagopa-ecommerce-transactions-scheduler-service
     ECS_SERVICE_ENVIRONMENT: "dev"
+    DEAD_LETTER_LISTENER_TRANSACTION_FIXED_DELAY_MILLIS: "1000"
+    DEAD_LETTER_LISTENER_TRANSACTION_MAX_MESSAGE_PER_POLL: "10"
+    DEAD_LETTER_LISTENER_TRANSACTION_QUEUE_NAME: "pagopa-d-weu-ecommerce-transactions-dead-letter-queue"
+    DEAD_LETTER_LISTENER_NOTIFICATION_FIXED_DELAY_MILLIS: "1000"
+    DEAD_LETTER_LISTENER_NOTIFICATION_MAX_MESSAGE_PER_POLL: "10"
+    DEAD_LETTER_LISTENER_NOTIFICATION_QUEUE_NAME: "pagopa-d-weu-ecommerce-notifications-service-errors-queue"
   envSecret:
     MONGO_PASSWORD: mongo-ecommerce-password
     QUEUE_TRANSIENT_CONNECTION_STRING: ecommerce-storage-transient-connection-string
     OTEL_EXPORTER_OTLP_HEADERS: elastic-otel-token-header
+    ECOMMERCE_STORAGE_DEAD_LETTER_CONNECTION_STRING: ecommerce-storage-deadletter-connection-string
   keyvault:
     name: "pagopa-d-ecommerce-kv"
     tenantId: "7788edaf-0346-4068-9d79-c868aed15b3d"
-  nodeSelector: {}
-  tolerations: []
+  nodeSelector: { }
+  tolerations: [ ]
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
