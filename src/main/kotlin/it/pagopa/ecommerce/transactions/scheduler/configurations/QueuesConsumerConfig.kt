@@ -14,14 +14,17 @@ class QueuesConsumerConfig {
     @Bean
     @InboundChannelAdapter(
         channel = "transactionDeadLetterChannel",
-        poller = [Poller(
-            fixedDelay = "\${deadLetterListener.transaction.fixedDelay}",
-            maxMessagesPerPoll = "\${deadLetterListener.transaction.maxMessagePerPoll}"
-        )]
+        poller =
+            [
+                Poller(
+                    fixedDelay = "\${deadLetterListener.transaction.fixedDelay}",
+                    maxMessagesPerPoll = "\${deadLetterListener.transaction.maxMessagePerPoll}"
+                )
+            ]
     )
     fun storageQueueTransactionDeadLetter(
         storageQueueTemplate: StorageQueueTemplate,
-        @Value("\${deadLetterListener.transaction.fixedDelay.queueName}") queueNameClosureEvents: String
+        @Value("\${deadLetterListener.transaction.queueName}") queueNameClosureEvents: String
     ): StorageQueueMessageSource {
         return StorageQueueMessageSource(queueNameClosureEvents, storageQueueTemplate)
     }
@@ -29,14 +32,17 @@ class QueuesConsumerConfig {
     @Bean
     @InboundChannelAdapter(
         channel = "notificationDeadLetterChannel",
-        poller = [Poller(
-            fixedDelay = "\${deadLetterListener.notification.fixedDelay}",
-            maxMessagesPerPoll = "\${deadLetterListener.notification.maxMessagePerPoll}"
-        )]
+        poller =
+            [
+                Poller(
+                    fixedDelay = "\${deadLetterListener.notification.fixedDelay}",
+                    maxMessagesPerPoll = "\${deadLetterListener.notification.maxMessagePerPoll}"
+                )
+            ]
     )
     fun storageQueueNotificationDeadLetter(
         storageQueueTemplate: StorageQueueTemplate,
-        @Value("\${deadLetterListener.notification.fixedDelay.queueName}") queueNameClosureEvents: String
+        @Value("\${deadLetterListener.notification.queueName}") queueNameClosureEvents: String
     ): StorageQueueMessageSource {
         return StorageQueueMessageSource(queueNameClosureEvents, storageQueueTemplate)
     }
