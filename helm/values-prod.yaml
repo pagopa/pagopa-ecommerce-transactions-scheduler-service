@@ -81,9 +81,9 @@ microservice-chart:
     servicePort: 8080
   serviceAccount:
     create: false
-    annotations: {}
+    annotations: { }
     name: ""
-  podAnnotations: {}
+  podAnnotations: { }
   podSecurityContext:
     seccompProfile:
       type: RuntimeDefault
@@ -98,7 +98,7 @@ microservice-chart:
       cpu: "300m"
   autoscaling:
     enabled: false
-    minReplica: 2
+    minReplica: 1
     maxReplica: 10
     pollingInterval: 30 # seconds
     cooldownPeriod: 300 # seconds
@@ -151,8 +151,8 @@ microservice-chart:
   keyvault:
     name: "pagopa-p-ecommerce-kv"
     tenantId: "7788edaf-0346-4068-9d79-c868aed15b3d"
-  nodeSelector: {}
-  tolerations: []
+  nodeSelector: { }
+  tolerations: [ ]
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
