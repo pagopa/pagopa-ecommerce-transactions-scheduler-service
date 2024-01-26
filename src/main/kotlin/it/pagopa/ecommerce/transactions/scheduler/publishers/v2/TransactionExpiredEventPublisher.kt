@@ -6,6 +6,7 @@ import it.pagopa.ecommerce.commons.documents.v2.TransactionExpiredData as Transa
 import it.pagopa.ecommerce.commons.documents.v2.TransactionExpiredEvent as TransactionExpiredEventV2
 import it.pagopa.ecommerce.commons.domain.TransactionId
 import it.pagopa.ecommerce.commons.domain.v2.TransactionWithClosureError as TransactionWithClosureErrorV2
+import it.pagopa.ecommerce.commons.domain.v2.TransactionWithClosureRequested
 import it.pagopa.ecommerce.commons.domain.v2.pojos.BaseTransaction as BaseTransactionV2
 import it.pagopa.ecommerce.commons.domain.v2.pojos.BaseTransaction
 import it.pagopa.ecommerce.commons.domain.v2.pojos.BaseTransactionWithCancellationRequested as BaseTransactionWithCancellationRequestedV2
@@ -58,6 +59,7 @@ class TransactionExpiredEventPublisher(
         val (baseTransactionsWithRequestedAuthorization, baseTransactionsNotActivated) =
             baseTransactions.partition {
                 it is BaseTransactionWithRequestedAuthorizationV2 ||
+                    it is TransactionWithClosureRequested ||
                     it is TransactionWithClosureErrorV2 &&
                         it.transactionAtPreviousState()
                             .map { txAtPrevStep -> txAtPrevStep.isRight }
