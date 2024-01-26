@@ -83,7 +83,7 @@ class PendingTransactionAnalyzerTests {
                     )
                 } else {
                     logger.warn(
-                        "The CLOSURE_REQUESTED status has been skipped as not handled for v1 pending transaction"
+                        "The [$it] status has been skipped as not handled for v1 pending transaction"
                     )
                 }
             }
