@@ -31,6 +31,7 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
+import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Pageable
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
@@ -62,8 +63,9 @@ class PendingTransactionAnalyzerTests {
     private val sendPaymentResultTimeout = 120
 
     companion object {
+        private val logger = LoggerFactory.getLogger(javaClass)
         val testedStatuses: MutableSet<TransactionStatusDto> = HashSet()
-
+        private val excludedStatusV1 = setOf(TransactionStatusDto.CLOSURE_REQUESTED)
         @JvmStatic
         @BeforeAll
         fun beforeAll() {
@@ -74,10 +76,16 @@ class PendingTransactionAnalyzerTests {
         @AfterAll
         fun afterAll() {
             TransactionStatusDto.values().forEach {
-                assertTrue(
-                    testedStatuses.contains(it),
-                    "Error: Transaction in status [$it] NOT covered by tests!"
-                )
+                if (!excludedStatusV1.contains(it)) {
+                    assertTrue(
+                        testedStatuses.contains(it),
+                        "Error: Transaction in status [$it] NOT covered by tests!"
+                    )
+                } else {
+                    logger.warn(
+                        "The [$it] status has been skipped as not handled for v1 pending transaction"
+                    )
+                }
             }
             testedStatuses.clear()
         }

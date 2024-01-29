@@ -14,6 +14,7 @@ Here a description of when expiration event is sent based on the transaction sta
 | AUTHORIZATION_REQUESTED | ✅                     |
 | AUTHORIZATION_COMPLETED | ✅                     |
 | CANCELLATION_REQUESTED  | ✅                     |
+| CLOSURE_REQUESTED       | ✅                     |
 | CLOSURE_ERROR           | ✅                     |
 | CLOSED                  | ✅                     |
 | NOTIFIED_KO             | ✅                     |

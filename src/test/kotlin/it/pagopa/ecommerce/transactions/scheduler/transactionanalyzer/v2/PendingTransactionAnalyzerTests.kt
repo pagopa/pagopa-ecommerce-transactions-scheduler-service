@@ -161,11 +161,31 @@ class PendingTransactionAnalyzerTests {
                         OperationResultDto.EXECUTED
                     )
                 ),
+                TransactionTestUtils.transactionClosureRequestedEvent(),
                 TransactionTestUtils.transactionClosureErrorEvent()
             )
                 as List<TransactionEventV2<Any>>
 
         checkThatExpiryEventIsSent(events, TransactionStatusDto.CLOSURE_ERROR)
+    }
+
+    @Test
+    fun `Should send event for pending transaction in CLOSURE_REQUESTED state`() {
+        // assertions
+        val events =
+            listOf(
+                TransactionTestUtils.transactionActivateEvent(),
+                TransactionTestUtils.transactionAuthorizationRequestedEvent(),
+                TransactionTestUtils.transactionAuthorizationCompletedEvent(
+                    TransactionTestUtils.npgTransactionGatewayAuthorizationData(
+                        OperationResultDto.EXECUTED
+                    )
+                ),
+                TransactionTestUtils.transactionClosureRequestedEvent()
+            )
+                as List<TransactionEventV2<Any>>
+
+        checkThatExpiryEventIsSent(events, TransactionStatusDto.CLOSURE_REQUESTED)
     }
 
     @Test
@@ -199,6 +219,7 @@ class PendingTransactionAnalyzerTests {
                         OperationResultDto.EXECUTED
                     )
                 ),
+                TransactionTestUtils.transactionClosureRequestedEvent(),
                 closedEvent
             )
                 as List<TransactionEventV2<Any>>
@@ -218,6 +239,7 @@ class PendingTransactionAnalyzerTests {
                         OperationResultDto.EXECUTED
                     )
                 ),
+                TransactionTestUtils.transactionClosureRequestedEvent(),
                 TransactionTestUtils.transactionClosedEvent(TransactionClosureDataV2.Outcome.KO)
             )
                 as List<TransactionEventV2<Any>>
@@ -237,6 +259,7 @@ class PendingTransactionAnalyzerTests {
                         OperationResultDto.EXECUTED
                     )
                 ),
+                TransactionTestUtils.transactionClosureRequestedEvent(),
                 TransactionTestUtils.transactionClosedEvent(TransactionClosureDataV2.Outcome.OK),
                 TransactionTestUtils.transactionUserReceiptRequestedEvent(
                     TransactionTestUtils.transactionUserReceiptData(
@@ -266,6 +289,7 @@ class PendingTransactionAnalyzerTests {
                         OperationResultDto.EXECUTED
                     )
                 ),
+                TransactionTestUtils.transactionClosureRequestedEvent(),
                 TransactionTestUtils.transactionClosedEvent(TransactionClosureDataV2.Outcome.OK),
                 TransactionTestUtils.transactionUserReceiptRequestedEvent(
                     TransactionTestUtils.transactionUserReceiptData(
@@ -295,6 +319,7 @@ class PendingTransactionAnalyzerTests {
                         OperationResultDto.EXECUTED
                     )
                 ),
+                TransactionTestUtils.transactionClosureRequestedEvent(),
                 TransactionTestUtils.transactionClosedEvent(TransactionClosureDataV2.Outcome.OK),
                 TransactionTestUtils.transactionUserReceiptRequestedEvent(
                     TransactionTestUtils.transactionUserReceiptData(
@@ -319,6 +344,7 @@ class PendingTransactionAnalyzerTests {
                         OperationResultDto.EXECUTED
                     )
                 ),
+                TransactionTestUtils.transactionClosureRequestedEvent(),
                 TransactionTestUtils.transactionClosedEvent(TransactionClosureDataV2.Outcome.OK),
                 TransactionTestUtils.transactionUserReceiptRequestedEvent(
                     TransactionTestUtils.transactionUserReceiptData(
@@ -372,6 +398,7 @@ class PendingTransactionAnalyzerTests {
                         OperationResultDto.FAILED
                     )
                 ),
+                TransactionTestUtils.transactionClosureRequestedEvent(),
                 TransactionTestUtils.transactionClosureFailedEvent(
                     TransactionClosureDataV2.Outcome.OK
                 )
@@ -393,6 +420,7 @@ class PendingTransactionAnalyzerTests {
                         OperationResultDto.EXECUTED
                     )
                 ),
+                TransactionTestUtils.transactionClosureRequestedEvent(),
                 TransactionTestUtils.transactionClosedEvent(TransactionClosureDataV2.Outcome.OK),
                 TransactionTestUtils.transactionUserReceiptRequestedEvent(
                     TransactionTestUtils.transactionUserReceiptData(
@@ -422,6 +450,7 @@ class PendingTransactionAnalyzerTests {
                         OperationResultDto.EXECUTED
                     )
                 ),
+                TransactionTestUtils.transactionClosureRequestedEvent(),
                 TransactionTestUtils.transactionClosedEvent(TransactionClosureDataV2.Outcome.OK),
                 TransactionTestUtils.transactionUserReceiptRequestedEvent(
                     TransactionTestUtils.transactionUserReceiptData(
@@ -596,6 +625,7 @@ class PendingTransactionAnalyzerTests {
                         OperationResultDto.EXECUTED
                     )
                 ),
+                TransactionTestUtils.transactionClosureRequestedEvent(),
                 closedEvent
             )
                 as List<TransactionEventV2<Any>>

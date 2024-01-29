@@ -866,12 +866,18 @@ class TransactionExpiredEventPublisherTests {
                 howMany = 5,
                 transactionType = TransactionType.CLOSURE_ERROR_WITH_AUTH_COMPLETED
             )
+        val transactionAuthorizedWithClosureRequested =
+            generateTransactionBaseDocuments(
+                howMany = 5,
+                transactionType = TransactionType.CLOSURE_REQUESTED
+            )
         val baseDocuments =
             transactionOnlyActivatedDocuments
                 .plus(transactionWithRequestedAuthorizationDocuments)
                 .plus(transactionCanceledByUser)
                 .plus(transactionCanceledByUserWithClosureError)
                 .plus(transactionAuthorizedWithClosureError)
+                .plus(transactionAuthorizedWithClosureRequested)
         val expectedTransactionStatusMap =
             transactionOnlyActivatedDocuments
                 .groupBy(
@@ -898,6 +904,12 @@ class TransactionExpiredEventPublisherTests {
                 )
                 .plus(
                     transactionAuthorizedWithClosureError.groupBy(
+                        { it.transactionId.value() },
+                        { TransactionStatusDto.EXPIRED }
+                    )
+                )
+                .plus(
+                    transactionAuthorizedWithClosureRequested.groupBy(
                         { it.transactionId.value() },
                         { TransactionStatusDto.EXPIRED }
                     )
@@ -998,14 +1010,14 @@ class TransactionExpiredEventPublisherTests {
             )
             currentIdx--
         }
-        verify(queueAsyncClient, times(25))
+        verify(queueAsyncClient, times(30))
             .sendMessageWithResponse(
                 any<QueueEvent<*>>(),
                 any(),
                 eq(Duration.ofSeconds(transientQueueTTLSeconds.toLong()))
             )
-        verify(eventStoreRepository, times(25)).save(any())
-        verify(viewRepository, times(25)).save(any())
+        verify(eventStoreRepository, times(30)).save(any())
+        verify(viewRepository, times(30)).save(any())
     }
 
     @Test
@@ -1414,6 +1426,7 @@ class TransactionExpiredEventPublisherTests {
         CANCELED_BY_USER,
         CANCELED_BY_USER_CLOSURE_ERROR,
         CLOSURE_ERROR_WITH_AUTH_COMPLETED,
+        CLOSURE_REQUESTED
     }
 
     private fun generateTransactionBaseDocuments(
@@ -1464,6 +1477,24 @@ class TransactionExpiredEventPublisherTests {
                         TransactionType.CLOSURE_ERROR_WITH_AUTH_COMPLETED ->
                             TransactionTestUtils.transactionWithClosureError(
                                 TransactionTestUtils.transactionClosureErrorEvent(),
+                                TransactionTestUtils.transactionWithClosureRequested(
+                                    TransactionTestUtils.transactionAuthorizationCompleted(
+                                        TransactionTestUtils.transactionAuthorizationCompletedEvent(
+                                            TransactionTestUtils
+                                                .npgTransactionGatewayAuthorizationData(
+                                                    OperationResultDto.AUTHORIZED
+                                                )
+                                        ),
+                                        TransactionTestUtils.transactionWithRequestedAuthorization(
+                                            TransactionTestUtils
+                                                .transactionAuthorizationRequestedEvent(),
+                                            transactionActivatedWithCustomUUID
+                                        )
+                                    )
+                                )
+                            )
+                        TransactionType.CLOSURE_REQUESTED ->
+                            TransactionTestUtils.transactionWithClosureRequested(
                                 TransactionTestUtils.transactionAuthorizationCompleted(
                                     TransactionTestUtils.transactionAuthorizationCompletedEvent(
                                         TransactionTestUtils.npgTransactionGatewayAuthorizationData(

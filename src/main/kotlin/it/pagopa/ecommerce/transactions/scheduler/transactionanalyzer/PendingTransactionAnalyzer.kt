@@ -71,6 +71,7 @@ class PendingTransactionAnalyzer(
             TransactionStatusDto.AUTHORIZATION_REQUESTED,
             TransactionStatusDto.AUTHORIZATION_COMPLETED,
             TransactionStatusDto.CANCELLATION_REQUESTED,
+            TransactionStatusDto.CLOSURE_REQUESTED,
             TransactionStatusDto.CLOSURE_ERROR,
             TransactionStatusDto.CLOSED,
             TransactionStatusDto.NOTIFIED_KO,
