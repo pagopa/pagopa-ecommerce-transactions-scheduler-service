@@ -20,7 +20,7 @@
         <java.version>17</java.version>
         <azure.functions.java.library.version>3.0.0</azure.functions.java.library.version>
         <spring.cloud.azure.dependencies>4.0.0</spring.cloud.azure.dependencies>
-        <pagopa-ecommerce-commons.version>1.8.0</pagopa-ecommerce-commons.version>
+        <pagopa-ecommerce-commons.version>1.9.2</pagopa-ecommerce-commons.version>
         <spotless.version>2.28.0</spotless.version>
         <jacoco.version>0.8.8</jacoco.version>
         <maven.compiler.plugin.version>3.10.1</maven.compiler.plugin.version>
