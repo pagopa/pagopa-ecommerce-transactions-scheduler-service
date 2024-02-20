@@ -83,6 +83,15 @@ These are all environment variables needed by the application:
 | MONGO_USERNAME                                               | Mongo username                                                                                                                                                                                                                                                                                      | string  |         |
 | MONGO_PORT                                                   | Mongo port                                                                                                                                                                                                                                                                                          | int     |         |
 | MONGO_SSL_ENABLED                                            | Mongo SSL enabled                                                                                                                                                                                                                                                                                   | boolean |         |
+| MONGO_PORT                                                   | Port used for connecting to MongoDB instance                                                                                                                                                                                                                                                        | string  |         |
+| MONGO_MIN_POOL_SIZE                                          | Min amount of connections to be retained into connection pool. See docs *                                                                                                                                                                                                                           | string  |         |
+| MONGO_MAX_POOL_SIZE                                          | Max amount of connections to be retained into connection pool.See docs *                                                                                                                                                                                                                            | string  |         |
+| MONGO_MAX_IDLE_TIMEOUT_MS                                    | Max timeout after which an idle connection is killed in milliseconds. See docs *                                                                                                                                                                                                                    | string  |         |
+| MONGO_CONNECTION_TIMEOUT_MS                                  | Max time to wait for a connection to be opened. See docs *                                                                                                                                                                                                                                          | string  |         |
+| MONGO_SOCKET_TIMEOUT_MS                                      | Max time to wait for a command send or receive before timing out. See docs *                                                                                                                                                                                                                        | string  |         |
+| MONGO_SERVER_SELECTION_TIMEOUT_MS                            | Max time to wait for a server to be selected while performing a communication with Mongo in milliseconds. See docs *                                                                                                                                                                                | string  |         |
+| MONGO_WAITING_QUEUE_MS                                       | Max time a thread has to wait for a connection to be available in milliseconds. See docs *                                                                                                                                                                                                          | string  |         |
+| MONGO_HEARTBEAT_FREQUENCY_MS                                 | Hearth beat frequency in milliseconds. This is an hello command that is sent periodically on each active connection to perform an health check. See docs *                                                                                                                                          | string  |         |
 | ECOMMERCE_DATABASE_NAME                                      | Mongo ecommerce database name                                                                                                                                                                                                                                                                       | string  |         |
 | TRANSACTION_EXPIRED_EVENTS_QUEUE_NAME                        | Transaction expired event queue name. This is the queue where transaction expired events will be sent                                                                                                                                                                                               | string  |         |
 | QUEUE_TRANSIENT_CONNECTION_STRING                            | Transient queues connection string                                                                                                                                                                                                                                                                  | string  |         |
@@ -104,15 +113,18 @@ These are all environment variables needed by the application:
 | ECOMMERCE_STORAGE_DEAD_LETTER_QUEUE_ENDPOINT                 | Dead letter storage account endpoint                                                                                                                                                                                                                                                                | string  |         |
 | ECOMMERCE_STORAGE_DEAD_LETTER_QUEUE_KEY                      | Dead letter storage account key                                                                                                                                                                                                                                                                     | string  |         |
 
+(*): for Mongo connection string options
+see [docs](https://www.mongodb.com/docs/drivers/java/sync/v4.3/fundamentals/connection/connection-options/#connection-options)
+
 ### Pending transaction TPS configuration
 
 Pending transaction are processed at a configurable TPS (transactions per seconds) rate.
 This can be done changing the below parameters:
 
 - `PENDING_TRANSACTIONS_MAX_TRANSACTIONS_PER_PAGE` parameter allow to specify how many transactions to retrieve for each
-page -> chunk size
+  page -> chunk size
 - `PENDING_TRANSACTIONS_PAGE_ANALYSIS_DELAY_SECONDS` parameter allow to specify time to be waited between the next page
-to be analyzed -> chunk rate
+  to be analyzed -> chunk rate
 
 Example of configurations:
 
@@ -144,9 +156,9 @@ FROM:
 ```xml
 
 <configuration>
-	...
-	<scmVersionType>tag</scmVersionType>
-	<scmVersion>${pagopa-ecommerce-commons.version}</scmVersion>
+    ...
+    <scmVersionType>tag</scmVersionType>
+    <scmVersion>${pagopa-ecommerce-commons.version}</scmVersion>
 </configuration>
 ```
 
@@ -155,9 +167,9 @@ TO:
 ```xml
 
 <configuration>
-	...
-	<scmVersionType>branch</scmVersionType>
-	<scmVersion>name-of-a-specific-branch-to-link</scmVersion>
+    ...
+    <scmVersionType>branch</scmVersionType>
+    <scmVersion>name-of-a-specific-branch-to-link</scmVersion>
 </configuration>
 ```
 
