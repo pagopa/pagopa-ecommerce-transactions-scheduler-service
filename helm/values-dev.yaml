@@ -4,7 +4,7 @@ microservice-chart:
   fullnameOverride: "pagopaecommercetxschedulerservice-microservice-chart"
   image:
     repository: pagopadcommonacr.azurecr.io/pagopaecommercetransactionsschedulerservice
-    tag: "1.1.4"
+    tag: "1.1.5"
     pullPolicy: Always
   livenessProbe:
     httpGet:
