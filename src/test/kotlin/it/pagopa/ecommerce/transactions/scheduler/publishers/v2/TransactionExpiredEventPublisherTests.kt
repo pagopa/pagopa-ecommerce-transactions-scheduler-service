@@ -1451,7 +1451,8 @@ class TransactionExpiredEventPublisherTests {
                         transactionActivated.transactionActivatedData.idCart,
                         transactionActivated.transactionActivatedData.paymentTokenValiditySeconds,
                         transactionActivated.transactionActivatedData
-                            .transactionGatewayActivationData
+                            .transactionGatewayActivationData,
+                        null
                     )
                 baseDocuments.add(
                     when (transactionType) {
