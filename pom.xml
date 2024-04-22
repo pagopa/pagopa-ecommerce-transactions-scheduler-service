@@ -10,7 +10,7 @@
     </parent>
     <groupId>it.pagopa.ecommerce</groupId>
     <artifactId>pagopa-ecommerce-transactions-scheduler-service</artifactId>
-    <version>1.1.6</version>
+    <version>1.1.7</version>
     <name>pagopa-ecommerce-transactions-scheduler-service</name>
     <description>pagoPA ecommerce microservice to check perform scheduled operations on transactions such as analyze
         pending transactions
