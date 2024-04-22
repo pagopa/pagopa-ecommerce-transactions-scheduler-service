@@ -123,9 +123,9 @@ Pending transaction are processed at a configurable TPS (transactions per second
 This can be done changing the below parameters:
 
 - `PENDING_TRANSACTIONS_MAX_TRANSACTIONS_PER_PAGE` parameter allow to specify how many transactions to retrieve for each
-  page -> chunk size
+page -> chunk size
 - `PENDING_TRANSACTIONS_PAGE_ANALYSIS_DELAY_SECONDS` parameter allow to specify time to be waited between the next page
-  to be analyzed -> chunk rate
+to be analyzed -> chunk rate
 
 Example of configurations:
 
@@ -157,9 +157,9 @@ FROM:
 ```xml
 
 <configuration>
-    ...
-    <scmVersionType>tag</scmVersionType>
-    <scmVersion>${pagopa-ecommerce-commons.version}</scmVersion>
+	...
+	<scmVersionType>tag</scmVersionType>
+	<scmVersion>${pagopa-ecommerce-commons.version}</scmVersion>
 </configuration>
 ```
 
@@ -168,9 +168,9 @@ TO:
 ```xml
 
 <configuration>
-    ...
-    <scmVersionType>branch</scmVersionType>
-    <scmVersion>name-of-a-specific-branch-to-link</scmVersion>
+	...
+	<scmVersionType>branch</scmVersionType>
+	<scmVersion>name-of-a-specific-branch-to-link</scmVersion>
 </configuration>
 ```
 
