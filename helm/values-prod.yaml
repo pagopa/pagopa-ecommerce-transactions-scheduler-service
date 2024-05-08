@@ -60,7 +60,7 @@ microservice-chart:
       ECOMMERCE_STORAGE_DEAD_LETTER_QUEUE_KEY: ecommerce-storage-dead-letter-account-key
   image:
     repository: pagopapcommonacr.azurecr.io/pagopaecommercetransactionsschedulerservice
-    tag: "1.1.7"
+    tag: "1.1.8"
     pullPolicy: Always
   livenessProbe:
     httpGet:
