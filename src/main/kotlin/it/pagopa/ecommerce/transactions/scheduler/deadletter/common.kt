@@ -1,24 +1,24 @@
 package it.pagopa.ecommerce.transactions.scheduler.deadletter
 
+import com.azure.core.util.serializer.JsonSerializerProviders
+import com.azure.core.util.serializer.TypeReference
 import com.azure.spring.messaging.checkpoint.Checkpointer
+import com.fasterxml.jackson.databind.JsonNode
+import it.pagopa.ecommerce.commons.documents.BaseTransactionEvent
 import it.pagopa.ecommerce.commons.documents.DeadLetterEvent
+import it.pagopa.ecommerce.commons.documents.v2.activation.NpgTransactionGatewayActivationData
+import it.pagopa.ecommerce.commons.domain.v2.pojos.BaseTransaction
+import it.pagopa.ecommerce.transactions.scheduler.models.dto.*
 import it.pagopa.ecommerce.transactions.scheduler.repositories.DeadLetterEventRepository
+import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
 import java.time.OffsetDateTime
+import java.time.ZonedDateTime
 import java.util.*
 import kotlinx.coroutines.reactor.mono
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import reactor.core.publisher.Mono
-import com.azure.core.util.serializer.JsonSerializerProviders
-import com.azure.core.util.serializer.TypeReference
-import com.fasterxml.jackson.databind.JsonNode
-import it.pagopa.ecommerce.commons.documents.BaseTransactionEvent
-import it.pagopa.ecommerce.commons.documents.v2.activation.NpgTransactionGatewayActivationData
-import it.pagopa.ecommerce.commons.domain.v2.pojos.BaseTransaction
-import it.pagopa.ecommerce.transactions.scheduler.models.dto.*
-import java.io.ByteArrayInputStream
-import java.time.ZonedDateTime
 
 object CommonLogger {
     val logger: Logger = LoggerFactory.getLogger(CommonLogger::class.java)
@@ -116,7 +116,6 @@ fun baseTransactionToTransactionInfoDto(
         .pspInfo(pspInfo)
 }
 
-
 fun writeEventToDeadLetterCollection(
     payload: ByteArray,
     queueName: String,
@@ -128,11 +127,13 @@ fun writeEventToDeadLetterCollection(
     // extract transaction Id
     val eventDataAsInputStream = ByteArrayInputStream(payload)
     val jsonSerializer = JsonSerializerProviders.createInstance()
-    val jsonNode = jsonSerializer.deserialize(eventDataAsInputStream, object : TypeReference<JsonNode>() {})
+    val jsonNode =
+        jsonSerializer.deserialize(eventDataAsInputStream, object : TypeReference<JsonNode>() {})
     val transactionId = jsonNode["transactionId"].asText()
 
     // recover here info on event based on transactionId
-    val transactionInfo = ""//TransactionInfoBuilder().getTransactionInfoByTransactionId(transactionId);
+    val transactionInfo =
+        "" // TransactionInfoBuilder().getTransactionInfoByTransactionId(transactionId);
 
     CommonLogger.logger.debug("Read event from queue: {}", eventData)
     return checkPointer

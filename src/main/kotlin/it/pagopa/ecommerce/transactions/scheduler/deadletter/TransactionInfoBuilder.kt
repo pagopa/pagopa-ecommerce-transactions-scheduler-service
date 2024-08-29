@@ -9,9 +9,7 @@ class TransactionInfoBuilder(
     @Autowired private val transactionsEventStoreRepository: TransactionsEventStoreRepository<Any>
 ) {
 
-    fun getTransactionInfoByTransactionId(
-        transactionId: String
-    ): Mono<TransactionResultDto> {
+    fun getTransactionInfoByTransactionId(transactionId: String): Mono<TransactionResultDto> {
         val events =
             Mono.just(transactionId).flatMapMany {
                 transactionsEventStoreRepository.findByTransactionIdOrderByCreationDateAsc(
@@ -25,12 +23,9 @@ class TransactionInfoBuilder(
                 it.pagopa.ecommerce.commons.domain.v2.Transaction::applyEvent
             )
             .cast(it.pagopa.ecommerce.commons.domain.v2.pojos.BaseTransaction::class.java)
-            .flatMap { baseTransaction ->
-                events.collectList().map { Pair(baseTransaction, it) }
-            }
+            .flatMap { baseTransaction -> events.collectList().map { Pair(baseTransaction, it) } }
             .map { (baseTransaction, events) ->
                 baseTransactionToTransactionInfoDto(baseTransaction, events)
             }
     }
-
 }

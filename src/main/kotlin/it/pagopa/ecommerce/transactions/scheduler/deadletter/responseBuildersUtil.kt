@@ -21,15 +21,12 @@ fun getTransactionFees(baseTransaction: BaseTransaction): Optional<Int> =
         else -> getTransactionFee(baseTransaction)
     }
 
-fun getTransactionActivatedData(
-    baseTransaction: BaseTransaction
-): TransactionActivatedData? =
+fun getTransactionActivatedData(baseTransaction: BaseTransaction): TransactionActivatedData? =
     if (baseTransaction is BaseTransactionWithPaymentToken) {
         baseTransaction.transactionActivatedData
     } else {
         null
     }
-
 
 fun getTransactionAuthRequestedData(
     baseTransaction: BaseTransaction
@@ -43,7 +40,6 @@ fun getTransactionAuthRequestedData(
             baseTransaction.transactionAuthorizationRequestData
         else -> null
     }
-
 
 fun getTransactionAuthCompletedData(
     baseTransaction: BaseTransaction
@@ -59,7 +55,6 @@ fun getTransactionAuthCompletedData(
             baseTransaction.transactionAuthorizationCompletedData
         else -> null
     }
-
 
 fun getGatewayAuthorizationData(
     transactionGatewayAuthorizationData: TransactionGatewayAuthorizationData?
@@ -100,8 +95,7 @@ fun getAuthorizationOperationId(baseTransaction: BaseTransaction): String? =
             }
         }
         is BaseTransactionWithRefundRequested -> {
-            val authorizationGatewayData =
-                baseTransaction?.transactionAuthorizationGatewayData ?: 0
+            val authorizationGatewayData = baseTransaction?.transactionAuthorizationGatewayData ?: 0
 
             when (authorizationGatewayData) {
                 is NpgTransactionGatewayAuthorizationData -> authorizationGatewayData.operationId
@@ -132,7 +126,6 @@ fun getTransactionDetailsStatus(baseTransaction: BaseTransaction): String =
         else -> "Cancellato"
     }
 
-
 fun getAuthorizationOutcomeV2(baseTransaction: BaseTransaction): AuthorizationResultDto? =
     when (baseTransaction) {
         is BaseTransactionExpired ->
@@ -156,7 +149,7 @@ fun getAuthorizationOutcomeV2(baseTransaction: BaseTransaction): AuthorizationRe
                 is RedirectTransactionGatewayAuthorizationData ->
                     if (
                         gatewayAuthData.outcome ==
-                        RedirectTransactionGatewayAuthorizationData.Outcome.OK
+                            RedirectTransactionGatewayAuthorizationData.Outcome.OK
                     ) {
                         AuthorizationResultDto.OK
                     } else {
