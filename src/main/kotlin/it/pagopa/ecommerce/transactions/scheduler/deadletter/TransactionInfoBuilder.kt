@@ -1,15 +1,16 @@
 package it.pagopa.ecommerce.transactions.scheduler.deadletter
 
-import it.pagopa.ecommerce.transactions.scheduler.models.dto.TransactionResultDto
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsEventStoreRepository
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 
+@Service
 class TransactionInfoBuilder(
     @Autowired private val transactionsEventStoreRepository: TransactionsEventStoreRepository<Any>
 ) {
 
-    fun getTransactionInfoByTransactionId(transactionId: String): Mono<TransactionResultDto> {
+    fun getTransactionInfoByTransactionId(transactionId: String): Mono<Int> {
         val events =
             Mono.just(transactionId).flatMapMany {
                 transactionsEventStoreRepository.findByTransactionIdOrderByCreationDateAsc(

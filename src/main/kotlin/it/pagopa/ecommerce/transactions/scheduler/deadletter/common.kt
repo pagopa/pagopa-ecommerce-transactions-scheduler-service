@@ -13,7 +13,6 @@ import it.pagopa.ecommerce.transactions.scheduler.repositories.DeadLetterEventRe
 import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
 import java.time.OffsetDateTime
-import java.time.ZonedDateTime
 import java.util.*
 import kotlinx.coroutines.reactor.mono
 import org.slf4j.Logger
@@ -27,7 +26,8 @@ object CommonLogger {
 fun baseTransactionToTransactionInfoDto(
     baseTransaction: BaseTransaction,
     events: List<BaseTransactionEvent<Any>>
-): TransactionResultDto {
+): Int {
+
     val amount = baseTransaction.paymentNotices.sumOf { it.transactionAmount.value }
     val fee = getTransactionFees(baseTransaction).orElse(0)
     val totalAmount = amount.plus(fee)
@@ -36,91 +36,44 @@ fun baseTransactionToTransactionInfoDto(
         transactionActivatedData?.transactionGatewayActivationData
     val transactionAuthorizationRequestData = getTransactionAuthRequestedData(baseTransaction)
     val transactionAuthorizationCompletedData = getTransactionAuthCompletedData(baseTransaction)
-    val gatewayAuthorizationData =
-        getGatewayAuthorizationData(
-            transactionAuthorizationCompletedData?.transactionGatewayAuthorizationData
-        )
-    val authorizationOperationId = getAuthorizationOperationId(baseTransaction)
-    val refundOperationId = getRefundOperationId(baseTransaction)
 
-    val eventInfoList =
-        events.map { event ->
-            EventInfoDto()
-                .creationDate(ZonedDateTime.parse(event.creationDate).toOffsetDateTime())
-                .eventCode(event.eventCode)
-        }
+    val transactionId = baseTransaction.transactionId.toString()
+    val authorizationRequestId = transactionAuthorizationRequestData?.authorizationRequestId
+    val eCommerceStatus = TransactionStatusDto.valueOf(baseTransaction.status.toString())
+    val gateway = transactionAuthorizationRequestData?.paymentGateway?.toString()
+    val paymentToken = baseTransaction.paymentNotices.map { it.paymentToken.value }
+    val pspID = transactionAuthorizationRequestData?.pspId.toString()
+    val npgCorrelationId =
+        if (transactionGatewayActivationData is NpgTransactionGatewayActivationData)
+            UUID.fromString(transactionGatewayActivationData.correlationId)
+        else null
+    val paymentMethodName = transactionAuthorizationRequestData?.paymentMethodName
+    val grandTotal = totalAmount
+    val rrn = transactionAuthorizationCompletedData?.rrn
+    // "npgOperationId":"xx",
+    // "npgOperationResult":"xxx"
 
-    // build transaction info
-    val transactionInfo =
-        TransactionInfoDto()
-            .creationDate(baseTransaction.creationDate.toOffsetDateTime())
-            .status(getTransactionDetailsStatus(baseTransaction))
-            .statusDetails(
-                getStatusDetail(
-                    transactionAuthorizationCompletedData?.transactionGatewayAuthorizationData
-                )
-            )
-            .events(eventInfoList)
-            .eventStatus(TransactionStatusDto.valueOf(baseTransaction.status.toString()))
-            .amount(amount)
-            .fee(fee)
-            .grandTotal(totalAmount)
-            .rrn(transactionAuthorizationCompletedData?.rrn)
-            .authorizationCode(transactionAuthorizationCompletedData?.authorizationCode)
-            .authorizationOperationId(authorizationOperationId)
-            .refundOperationId(refundOperationId)
-            .paymentMethodName(transactionAuthorizationRequestData?.paymentMethodName)
-            .brand(
-                getBrand(
-                    transactionAuthorizationRequestData
-                        ?.transactionGatewayAuthorizationRequestedData
-                )
-            )
-            .authorizationRequestId(transactionAuthorizationRequestData?.authorizationRequestId)
-            .paymentGateway(transactionAuthorizationRequestData?.paymentGateway?.toString())
-            .correlationId(
-                if (transactionGatewayActivationData is NpgTransactionGatewayActivationData)
-                    UUID.fromString(transactionGatewayActivationData.correlationId)
-                else null
-            )
-            .gatewayAuthorizationStatus(gatewayAuthorizationData?.authorizationStatus)
-            .gatewayErrorCode(gatewayAuthorizationData?.errorCode)
-    // build payment info
-    val paymentInfo =
-        PaymentInfoDto()
-            .origin(baseTransaction.clientId.toString())
-            .idTransaction(baseTransaction.transactionId.value())
-            .details(
-                baseTransaction.paymentNotices.map {
-                    PaymentDetailInfoDto()
-                        .subject(it.transactionDescription.value)
-                        .rptId(it.rptId.value)
-                        .amount(it.transactionAmount.value)
-                        .paymentToken(it.paymentToken.value)
-                        // TODO here set only the first into transferList or take it from rptId
-                        // object?
-                        .paFiscalCode(it.transferList[0].paFiscalCode)
-                        .creditorInstitution(it.companyName.value)
-                }
-            )
-    // build psp info
-    val pspInfo =
-        PspInfoDto()
-            .pspId(transactionAuthorizationRequestData?.pspId)
-            .idChannel(transactionAuthorizationRequestData?.pspChannelCode)
-            .businessName(transactionAuthorizationRequestData?.pspBusinessName)
-    return TransactionResultDto()
-        .product(ProductDto.ECOMMERCE)
-        .transactionInfo(transactionInfo)
-        .paymentInfo(paymentInfo)
-        .pspInfo(pspInfo)
+    /*val transactionInfoForDeadLetter = TransactionInfo(
+    "",
+    "",
+    it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto.CLOSED,
+    TransactionInfo.Gateway.NPG,
+    "",
+    "",
+    "",
+    BigDecimal(1),
+    "",
+    NpgTransactionInfoDetailsData(OperationResultDto.EXECUTED, "",UUID.randomUUID()))*/
+
+    return 0
 }
 
 fun writeEventToDeadLetterCollection(
     payload: ByteArray,
     queueName: String,
     checkPointer: Checkpointer,
-    deadLetterEventRepository: DeadLetterEventRepository
+    deadLetterEventRepository: DeadLetterEventRepository,
+    transactionInfoBuilder: TransactionInfoBuilder
 ): Mono<Unit> {
     val eventData = payload.toString(StandardCharsets.UTF_8)
 
@@ -132,8 +85,7 @@ fun writeEventToDeadLetterCollection(
     val transactionId = jsonNode["transactionId"].asText()
 
     // recover here info on event based on transactionId
-    val transactionInfo =
-        "" // TransactionInfoBuilder().getTransactionInfoByTransactionId(transactionId);
+    val transactionInfo = transactionInfoBuilder.getTransactionInfoByTransactionId(transactionId)
 
     CommonLogger.logger.debug("Read event from queue: {}", eventData)
     return checkPointer
