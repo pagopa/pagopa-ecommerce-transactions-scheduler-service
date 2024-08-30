@@ -5,13 +5,6 @@ import com.azure.core.util.serializer.TypeReference
 import com.azure.spring.messaging.checkpoint.Checkpointer
 import com.fasterxml.jackson.databind.JsonNode
 import it.pagopa.ecommerce.commons.documents.DeadLetterEvent
-import it.pagopa.ecommerce.commons.documents.v2.TransactionAuthorizationRequestData
-import it.pagopa.ecommerce.commons.documents.v2.activation.NpgTransactionGatewayActivationData
-import it.pagopa.ecommerce.commons.documents.v2.info.NpgTransactionInfoDetailsData
-import it.pagopa.ecommerce.commons.documents.v2.info.TransactionInfo
-import it.pagopa.ecommerce.commons.domain.v2.pojos.BaseTransaction
-import it.pagopa.ecommerce.commons.generated.npg.v1.dto.OperationResultDto
-import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
 import it.pagopa.ecommerce.transactions.scheduler.repositories.DeadLetterEventRepository
 import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
@@ -52,7 +45,7 @@ fun writeEventToDeadLetterCollection(
             CommonLogger.logger.error("Error performing checkpoint for read event", exception)
         }
         .then(
-            mono{
+            mono {
                 DeadLetterEvent(
                     UUID.randomUUID().toString(),
                     queueName,

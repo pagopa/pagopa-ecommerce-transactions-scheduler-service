@@ -11,10 +11,10 @@ import it.pagopa.ecommerce.commons.generated.npg.v1.dto.OperationResultDto
 import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
 import it.pagopa.ecommerce.commons.utils.v2.TransactionUtils.getTransactionFee
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsEventStoreRepository
+import java.util.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
-import java.util.*
 
 @Service
 class TransactionInfoBuilder(
@@ -29,21 +29,26 @@ class TransactionInfoBuilder(
                 )
             }
 
-        val result = events
-            .reduce(
-                it.pagopa.ecommerce.commons.domain.v2.EmptyTransaction(),
-                it.pagopa.ecommerce.commons.domain.v2.Transaction::applyEvent
-            )
-            .cast(it.pagopa.ecommerce.commons.domain.v2.pojos.BaseTransaction::class.java)
-            .flatMap { baseTransaction -> events.collectList().map { baseTransaction } }
-            .map { baseTransaction -> baseTransactionToTransactionInfoDto(baseTransaction) }
-            .blockOptional()
-            .orElseThrow { RuntimeException("TransactionInfo not found") } // Provide a default value or throw an exception
+        val result =
+            events
+                .reduce(
+                    it.pagopa.ecommerce.commons.domain.v2.EmptyTransaction(),
+                    it.pagopa.ecommerce.commons.domain.v2.Transaction::applyEvent
+                )
+                .cast(it.pagopa.ecommerce.commons.domain.v2.pojos.BaseTransaction::class.java)
+                .flatMap { baseTransaction -> events.collectList().map { baseTransaction } }
+                .map { baseTransaction -> baseTransactionToTransactionInfoDto(baseTransaction) }
+                .blockOptional()
+                .orElseThrow {
+                    RuntimeException("TransactionInfo not found")
+                } // Provide a default value or throw an exception
 
         return result
     }
 
-    private fun getTransactionActivatedData(baseTransaction: BaseTransaction): TransactionActivatedData? =
+    private fun getTransactionActivatedData(
+        baseTransaction: BaseTransaction
+    ): TransactionActivatedData? =
         if (baseTransaction is BaseTransactionWithPaymentToken) {
             baseTransaction.transactionActivatedData
         } else {
@@ -52,7 +57,8 @@ class TransactionInfoBuilder(
 
     private fun getTransactionFees(baseTransaction: BaseTransaction): Optional<Int> =
         when (baseTransaction) {
-            is BaseTransactionExpired -> getTransactionFee(baseTransaction.transactionAtPreviousState)
+            is BaseTransactionExpired ->
+                getTransactionFee(baseTransaction.transactionAtPreviousState)
             is BaseTransactionWithClosureError ->
                 getTransactionFee(baseTransaction.transactionAtPreviousState)
             else -> getTransactionFee(baseTransaction)
@@ -86,9 +92,9 @@ class TransactionInfoBuilder(
             else -> null
         }
 
-
-
-    private fun baseTransactionToTransactionInfoDto(baseTransaction: BaseTransaction): TransactionInfo {
+    private fun baseTransactionToTransactionInfoDto(
+        baseTransaction: BaseTransaction
+    ): TransactionInfo {
 
         val amount = baseTransaction.paymentNotices.sumOf { it.transactionAmount.value }
         val fee = getTransactionFees(baseTransaction).orElse(0)
@@ -105,29 +111,32 @@ class TransactionInfoBuilder(
                 UUID.fromString(transactionGatewayActivationData.correlationId)
             else null
 
+        val details =
+            when (gateway) {
+                TransactionAuthorizationRequestData.PaymentGateway.NPG ->
+                    NpgTransactionInfoDetailsData(
+                        OperationResultDto.EXECUTED,
+                        "test",
+                        npgCorrelationId
+                    )
+                // TransactionAuthorizationRequestData.PaymentGateway.REDIRECT -> println("x is 1")
+                else -> null
+            }
 
-        val details = when (gateway) {
-            TransactionAuthorizationRequestData.PaymentGateway.NPG -> NpgTransactionInfoDetailsData(
-                OperationResultDto.EXECUTED,"test",npgCorrelationId)
-            //TransactionAuthorizationRequestData.PaymentGateway.REDIRECT -> println("x is 1")
-            else -> null
-        }
-
-        val transactionInfoForDeadLetter = TransactionInfo(
-            baseTransaction.transactionId.value(),
-            transactionAuthorizationRequestData?.authorizationRequestId,
-            TransactionStatusDto.valueOf(baseTransaction.status.toString()),
-            gateway,
-            baseTransaction.paymentNotices.map { it.paymentToken.value },
-            transactionAuthorizationRequestData?.pspId,
-            transactionAuthorizationRequestData?.paymentMethodName,
-            grandTotal,
-            transactionAuthorizationCompletedData?.rrn,
-            details
-        )
+        val transactionInfoForDeadLetter =
+            TransactionInfo(
+                baseTransaction.transactionId.value(),
+                transactionAuthorizationRequestData?.authorizationRequestId,
+                TransactionStatusDto.valueOf(baseTransaction.status.toString()),
+                gateway,
+                baseTransaction.paymentNotices.map { it.paymentToken.value },
+                transactionAuthorizationRequestData?.pspId,
+                transactionAuthorizationRequestData?.paymentMethodName,
+                grandTotal,
+                transactionAuthorizationCompletedData?.rrn,
+                details
+            )
 
         return transactionInfoForDeadLetter
     }
 }
-
-
