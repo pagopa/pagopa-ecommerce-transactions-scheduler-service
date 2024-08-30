@@ -21,14 +21,36 @@ class TransactionInfoBuilder(
     @Autowired private val transactionsEventStoreRepository: TransactionsEventStoreRepository<Any>
 ) {
 
-    fun getTransactionActivatedData(baseTransaction: BaseTransaction): TransactionActivatedData? =
+    fun getTransactionInfoByTransactionId(transactionId: String): TransactionInfo {
+        val events =
+            Mono.just(transactionId).flatMapMany {
+                transactionsEventStoreRepository.findByTransactionIdOrderByCreationDateAsc(
+                    transactionId
+                )
+            }
+
+        val result = events
+            .reduce(
+                it.pagopa.ecommerce.commons.domain.v2.EmptyTransaction(),
+                it.pagopa.ecommerce.commons.domain.v2.Transaction::applyEvent
+            )
+            .cast(it.pagopa.ecommerce.commons.domain.v2.pojos.BaseTransaction::class.java)
+            .flatMap { baseTransaction -> events.collectList().map { baseTransaction } }
+            .map { baseTransaction -> baseTransactionToTransactionInfoDto(baseTransaction) }
+            .blockOptional()
+            .orElseThrow { RuntimeException("TransactionInfo not found") } // Provide a default value or throw an exception
+
+        return result
+    }
+
+    private fun getTransactionActivatedData(baseTransaction: BaseTransaction): TransactionActivatedData? =
         if (baseTransaction is BaseTransactionWithPaymentToken) {
             baseTransaction.transactionActivatedData
         } else {
             null
         }
 
-    fun getTransactionFees(baseTransaction: BaseTransaction): Optional<Int> =
+    private fun getTransactionFees(baseTransaction: BaseTransaction): Optional<Int> =
         when (baseTransaction) {
             is BaseTransactionExpired -> getTransactionFee(baseTransaction.transactionAtPreviousState)
             is BaseTransactionWithClosureError ->
@@ -36,7 +58,7 @@ class TransactionInfoBuilder(
             else -> getTransactionFee(baseTransaction)
         }
 
-    fun getTransactionAuthRequestedData(
+    private fun getTransactionAuthRequestedData(
         baseTransaction: BaseTransaction
     ): TransactionAuthorizationRequestData? =
         when (baseTransaction) {
@@ -49,7 +71,7 @@ class TransactionInfoBuilder(
             else -> null
         }
 
-    fun getTransactionAuthCompletedData(
+    private fun getTransactionAuthCompletedData(
         baseTransaction: BaseTransaction
     ): TransactionAuthorizationCompletedData? =
         when (baseTransaction) {
@@ -66,7 +88,7 @@ class TransactionInfoBuilder(
 
 
 
-    fun baseTransactionToTransactionInfoDto(baseTransaction: BaseTransaction): TransactionInfo {
+    private fun baseTransactionToTransactionInfoDto(baseTransaction: BaseTransaction): TransactionInfo {
 
         val amount = baseTransaction.paymentNotices.sumOf { it.transactionAmount.value }
         val fee = getTransactionFees(baseTransaction).orElse(0)
@@ -105,29 +127,6 @@ class TransactionInfoBuilder(
         )
 
         return transactionInfoForDeadLetter
-    }
-
-
-    fun getTransactionInfoByTransactionId(transactionId: String): TransactionInfo {
-        val events =
-            Mono.just(transactionId).flatMapMany {
-                transactionsEventStoreRepository.findByTransactionIdOrderByCreationDateAsc(
-                    transactionId
-                )
-            }
-
-        val result = events
-            .reduce(
-                it.pagopa.ecommerce.commons.domain.v2.EmptyTransaction(),
-                it.pagopa.ecommerce.commons.domain.v2.Transaction::applyEvent
-            )
-            .cast(it.pagopa.ecommerce.commons.domain.v2.pojos.BaseTransaction::class.java)
-            .flatMap { baseTransaction -> events.collectList().map { baseTransaction } }
-            .map { baseTransaction -> baseTransactionToTransactionInfoDto(baseTransaction) }
-            .blockOptional()
-            .orElseThrow { RuntimeException("TransactionInfo not found") } // Provide a default value or throw an exception
-
-        return result
     }
 }
 
