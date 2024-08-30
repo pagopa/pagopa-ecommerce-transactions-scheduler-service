@@ -4,7 +4,6 @@ import com.azure.core.util.serializer.JsonSerializerProviders
 import com.azure.core.util.serializer.TypeReference
 import com.azure.spring.messaging.checkpoint.Checkpointer
 import com.fasterxml.jackson.databind.JsonNode
-import it.pagopa.ecommerce.commons.documents.BaseTransactionEvent
 import it.pagopa.ecommerce.commons.documents.DeadLetterEvent
 import it.pagopa.ecommerce.commons.documents.v2.activation.NpgTransactionGatewayActivationData
 import it.pagopa.ecommerce.commons.domain.v2.pojos.BaseTransaction
@@ -25,9 +24,7 @@ object CommonLogger {
     val logger: Logger = LoggerFactory.getLogger(CommonLogger::class.java)
 }
 
-fun baseTransactionToTransactionInfoDto(
-    baseTransaction: BaseTransaction
-): Int {
+fun baseTransactionToTransactionInfoDto(baseTransaction: BaseTransaction): Int {
 
     val amount = baseTransaction.paymentNotices.sumOf { it.transactionAmount.value }
     val fee = getTransactionFees(baseTransaction).orElse(0)

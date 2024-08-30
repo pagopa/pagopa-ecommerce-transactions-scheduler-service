@@ -13,6 +13,7 @@ import reactor.test.StepVerifier
 
 class TransactionDeadLetterConsumerTest {
 
+    private val transactionInfoBuilder: TransactionInfoBuilder = mock()
     private val deadLetterEventRepository: DeadLetterEventRepository = mock()
     private val queueName = "transactions-dead-letter-queue"
     private val checkPointer: Checkpointer = mock()
@@ -21,7 +22,8 @@ class TransactionDeadLetterConsumerTest {
     private val transactionDeadLetterConsumer =
         TransactionDeadLetterConsumer(
             deadLetterEventRepository = deadLetterEventRepository,
-            queueName = queueName
+            queueName = queueName,
+            transactionInfoBuilder = transactionInfoBuilder
         )
 
     @Test
