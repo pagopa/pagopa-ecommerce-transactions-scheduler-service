@@ -1,19 +1,13 @@
 package it.pagopa.ecommerce.transactions.scheduler.deadletter
 
-import com.azure.core.util.serializer.JsonSerializerProviders
+import com.azure.core.util.BinaryData
 import com.azure.core.util.serializer.TypeReference
 import com.azure.spring.messaging.checkpoint.Checkpointer
-import com.fasterxml.jackson.databind.JsonNode
 import it.pagopa.ecommerce.commons.documents.DeadLetterEvent
-import it.pagopa.ecommerce.commons.documents.v2.TransactionAuthorizationRequestData
-import it.pagopa.ecommerce.commons.documents.v2.activation.NpgTransactionGatewayActivationData
-import it.pagopa.ecommerce.commons.documents.v2.info.NpgTransactionInfoDetailsData
-import it.pagopa.ecommerce.commons.documents.v2.info.TransactionInfo
-import it.pagopa.ecommerce.commons.domain.v2.pojos.BaseTransaction
-import it.pagopa.ecommerce.commons.generated.npg.v1.dto.OperationResultDto
-import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
+import it.pagopa.ecommerce.commons.documents.v2.TransactionEvent
+import it.pagopa.ecommerce.commons.queues.QueueEvent
+import it.pagopa.ecommerce.commons.queues.StrictJsonSerializerProvider
 import it.pagopa.ecommerce.transactions.scheduler.repositories.DeadLetterEventRepository
-import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
 import java.time.OffsetDateTime
 import java.util.*
@@ -33,16 +27,19 @@ fun writeEventToDeadLetterCollection(
     queueName: String,
     checkPointer: Checkpointer,
     deadLetterEventRepository: DeadLetterEventRepository,
-    transactionInfoBuilder: TransactionInfoBuilder
+    transactionInfoBuilder: TransactionInfoBuilder,
+    strictSerializerProviderV2: StrictJsonSerializerProvider
 ): Mono<Unit> {
-    val eventData = payload.toString(StandardCharsets.UTF_8)
+    val transactionId =
+        BinaryData.fromBytes(payload)
+            .toObject(
+                object : TypeReference<QueueEvent<TransactionEvent<Void>>>() {},
+                strictSerializerProviderV2.createInstance()
+            )
+            .event
+            .transactionId
 
-    // extract transaction Id
-    val eventDataAsInputStream = ByteArrayInputStream(payload)
-    val jsonSerializer = JsonSerializerProviders.createInstance()
-    val jsonNode =
-        jsonSerializer.deserialize(eventDataAsInputStream, object : TypeReference<JsonNode>() {})
-    val transactionId = jsonNode["transactionId"].asText()
+    val eventData = payload.toString(StandardCharsets.UTF_8)
 
     // recover here info on event based on transactionId
     val transactionInfo = transactionInfoBuilder.getTransactionInfoByTransactionId(transactionId)

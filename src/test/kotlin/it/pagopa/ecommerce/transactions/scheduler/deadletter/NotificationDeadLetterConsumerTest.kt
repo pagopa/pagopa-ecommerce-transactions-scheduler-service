@@ -2,6 +2,7 @@ package it.pagopa.ecommerce.transactions.scheduler.deadletter
 
 import com.azure.spring.messaging.checkpoint.Checkpointer
 import it.pagopa.ecommerce.commons.documents.DeadLetterEvent
+import it.pagopa.ecommerce.transactions.scheduler.configurations.QueuesConsumerConfig
 import it.pagopa.ecommerce.transactions.scheduler.repositories.DeadLetterEventRepository
 import java.nio.charset.StandardCharsets
 import kotlinx.coroutines.reactor.mono
@@ -13,8 +14,10 @@ import reactor.test.StepVerifier
 
 class NotificationDeadLetterConsumerTest {
 
+    private val queueConsumerConfig = QueuesConsumerConfig()
     private val transactionInfoBuilder: TransactionInfoBuilder = mock()
     private val deadLetterEventRepository: DeadLetterEventRepository = mock()
+    private val strictJsonSerializerProvider = queueConsumerConfig.strictSerializerProviderV2()
     private val queueName = "notification-dead-letter-queue"
     private val checkPointer: Checkpointer = mock()
     private val deadLetterArgumentCaptor: KArgumentCaptor<DeadLetterEvent> =
@@ -23,7 +26,8 @@ class NotificationDeadLetterConsumerTest {
         NotificationDeadLetterConsumer(
             deadLetterEventRepository = deadLetterEventRepository,
             queueName = queueName,
-            transactionInfoBuilder = transactionInfoBuilder
+            transactionInfoBuilder = transactionInfoBuilder,
+            strictSerializerProviderV2 = strictJsonSerializerProvider
         )
 
     @Test

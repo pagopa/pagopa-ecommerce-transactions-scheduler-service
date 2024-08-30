@@ -2,6 +2,8 @@ package it.pagopa.ecommerce.transactions.scheduler.deadletter
 
 import com.azure.spring.messaging.checkpoint.Checkpointer
 import it.pagopa.ecommerce.commons.documents.DeadLetterEvent
+import it.pagopa.ecommerce.transactions.scheduler.TransactionSchedulerTestUtil
+import it.pagopa.ecommerce.transactions.scheduler.configurations.QueuesConsumerConfig
 import it.pagopa.ecommerce.transactions.scheduler.repositories.DeadLetterEventRepository
 import java.nio.charset.StandardCharsets
 import kotlinx.coroutines.reactor.mono
@@ -13,8 +15,10 @@ import reactor.test.StepVerifier
 
 class TransactionDeadLetterConsumerTest {
 
+    private val queueConsumerConfig = QueuesConsumerConfig()
     private val transactionInfoBuilder: TransactionInfoBuilder = mock()
     private val deadLetterEventRepository: DeadLetterEventRepository = mock()
+    private val strictJsonSerializerProvider = queueConsumerConfig.strictSerializerProviderV2()
     private val queueName = "transactions-dead-letter-queue"
     private val checkPointer: Checkpointer = mock()
     private val deadLetterArgumentCaptor: KArgumentCaptor<DeadLetterEvent> =
@@ -23,16 +27,20 @@ class TransactionDeadLetterConsumerTest {
         TransactionDeadLetterConsumer(
             deadLetterEventRepository = deadLetterEventRepository,
             queueName = queueName,
-            transactionInfoBuilder = transactionInfoBuilder
+            transactionInfoBuilder = transactionInfoBuilder,
+            strictSerializerProviderV2 = strictJsonSerializerProvider
         )
 
     @Test
     fun `Should dequeue event from dead letter successfully saving it into dead letter queue`() {
-        val event = "dead letter queue event"
+        val event = TransactionSchedulerTestUtil.getEventJsonString()
         val payload = event.toByteArray(StandardCharsets.UTF_8)
         given(checkPointer.success()).willReturn(Mono.empty())
         given(deadLetterEventRepository.save(deadLetterArgumentCaptor.capture())).willAnswer {
             mono { it.arguments[0] }
+        }
+        given(transactionInfoBuilder.getTransactionInfoByTransactionId(any())).willAnswer {
+            mono { TransactionSchedulerTestUtil.buildNpgTransactionInfo(it.arguments[0] as String) }
         }
         StepVerifier.create(
                 transactionDeadLetterConsumer.messageReceiver(
