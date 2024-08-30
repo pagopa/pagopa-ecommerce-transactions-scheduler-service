@@ -108,7 +108,7 @@ class TransactionInfoBuilder(
     }
 
 
-    fun getTransactionInfoByTransactionId(transactionId: String): Mono<TransactionInfo> {
+    fun getTransactionInfoByTransactionId(transactionId: String): TransactionInfo {
         val events =
             Mono.just(transactionId).flatMapMany {
                 transactionsEventStoreRepository.findByTransactionIdOrderByCreationDateAsc(
@@ -116,7 +116,7 @@ class TransactionInfoBuilder(
                 )
             }
 
-        return events
+        val result = events
             .reduce(
                 it.pagopa.ecommerce.commons.domain.v2.EmptyTransaction(),
                 it.pagopa.ecommerce.commons.domain.v2.Transaction::applyEvent
@@ -124,6 +124,10 @@ class TransactionInfoBuilder(
             .cast(it.pagopa.ecommerce.commons.domain.v2.pojos.BaseTransaction::class.java)
             .flatMap { baseTransaction -> events.collectList().map { baseTransaction } }
             .map { baseTransaction -> baseTransactionToTransactionInfoDto(baseTransaction) }
+            .blockOptional()
+            .orElseThrow { RuntimeException("TransactionInfo not found") } // Provide a default value or throw an exception
+
+        return result
     }
 }
 

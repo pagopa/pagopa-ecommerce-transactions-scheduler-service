@@ -55,13 +55,13 @@ fun writeEventToDeadLetterCollection(
             CommonLogger.logger.error("Error performing checkpoint for read event", exception)
         }
         .then(
-            transactionInfo.map { info ->
+            mono{
                 DeadLetterEvent(
                     UUID.randomUUID().toString(),
                     queueName,
                     OffsetDateTime.now().toString(),
                     eventData,
-                    info
+                    transactionInfo
                 )
             }
         )
