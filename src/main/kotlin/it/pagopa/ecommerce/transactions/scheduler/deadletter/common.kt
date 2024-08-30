@@ -28,56 +28,6 @@ object CommonLogger {
     val logger: Logger = LoggerFactory.getLogger(CommonLogger::class.java)
 }
 
-fun baseTransactionToTransactionInfoDto(baseTransaction: BaseTransaction): TransactionInfo {
-
-    val amount = baseTransaction.paymentNotices.sumOf { it.transactionAmount.value }
-    val fee = getTransactionFees(baseTransaction).orElse(0)
-    val totalAmount = amount.plus(fee)
-    val transactionActivatedData = getTransactionActivatedData(baseTransaction)
-    val transactionGatewayActivationData =
-        transactionActivatedData?.transactionGatewayActivationData
-    val transactionAuthorizationRequestData = getTransactionAuthRequestedData(baseTransaction)
-    val transactionAuthorizationCompletedData = getTransactionAuthCompletedData(baseTransaction)
-
-    val transactionId = baseTransaction.transactionId.value()
-    val authorizationRequestId = transactionAuthorizationRequestData?.authorizationRequestId
-    val eCommerceStatus = TransactionStatusDto.valueOf(baseTransaction.status.toString())
-    val gateway = transactionAuthorizationRequestData?.paymentGateway
-    val paymentToken = baseTransaction.paymentNotices.map { it.paymentToken.value }
-    val pspID = transactionAuthorizationRequestData?.pspId
-    val npgCorrelationId =
-        if (transactionGatewayActivationData is NpgTransactionGatewayActivationData)
-            UUID.fromString(transactionGatewayActivationData.correlationId)
-        else null
-    val paymentMethodName = transactionAuthorizationRequestData?.paymentMethodName
-    val grandTotal = totalAmount
-    val rrn = transactionAuthorizationCompletedData?.rrn
-    // "npgOperationId":"xx",
-    // "npgOperationResult":"xxx"
-
-    val details = when (gateway) {
-        TransactionAuthorizationRequestData.PaymentGateway.NPG -> NpgTransactionInfoDetailsData(
-            OperationResultDto.EXECUTED,"test",npgCorrelationId)
-        //TransactionAuthorizationRequestData.PaymentGateway.REDIRECT -> println("x is 1")
-        else -> null
-    }
-
-    val transactionInfoForDeadLetter = TransactionInfo(
-        transactionId,
-        authorizationRequestId,
-        eCommerceStatus,
-        gateway,
-        paymentToken,
-        pspID,
-        paymentMethodName,
-        grandTotal,
-        rrn,
-        details
-        )
-
-    return transactionInfoForDeadLetter
-}
-
 fun writeEventToDeadLetterCollection(
     payload: ByteArray,
     queueName: String,
