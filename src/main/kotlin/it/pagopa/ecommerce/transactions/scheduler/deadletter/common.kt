@@ -44,9 +44,6 @@ fun writeEventToDeadLetterCollection(
         jsonSerializer.deserialize(eventDataAsInputStream, object : TypeReference<JsonNode>() {})
     val transactionId = jsonNode["transactionId"].asText()
 
-    // recover here info on event based on transactionId
-    val transactionInfo = transactionInfoBuilder.getTransactionInfoByTransactionId(transactionId)
-
     CommonLogger.logger.debug("Read event from queue: {}", eventData)
     return checkPointer
         .success()
@@ -61,7 +58,7 @@ fun writeEventToDeadLetterCollection(
                     queueName,
                     OffsetDateTime.now().toString(),
                     eventData,
-                    transactionInfo
+                    transactionInfoBuilder.getTransactionInfoByTransactionId(transactionId)
                 )
             }
         )
