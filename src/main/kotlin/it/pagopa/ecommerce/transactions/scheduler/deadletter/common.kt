@@ -26,8 +26,7 @@ object CommonLogger {
 }
 
 fun baseTransactionToTransactionInfoDto(
-    baseTransaction: BaseTransaction,
-    events: List<BaseTransactionEvent<Any>>
+    baseTransaction: BaseTransaction
 ): Int {
 
     val amount = baseTransaction.paymentNotices.sumOf { it.transactionAmount.value }
@@ -39,7 +38,7 @@ fun baseTransactionToTransactionInfoDto(
     val transactionAuthorizationRequestData = getTransactionAuthRequestedData(baseTransaction)
     val transactionAuthorizationCompletedData = getTransactionAuthCompletedData(baseTransaction)
 
-    val transactionId = baseTransaction.transactionId.toString()
+    val transactionId = baseTransaction.transactionId.value()
     val authorizationRequestId = transactionAuthorizationRequestData?.authorizationRequestId
     val eCommerceStatus = TransactionStatusDto.valueOf(baseTransaction.status.toString())
     val gateway = transactionAuthorizationRequestData?.paymentGateway?.toString()

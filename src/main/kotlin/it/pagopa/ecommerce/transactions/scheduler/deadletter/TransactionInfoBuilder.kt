@@ -24,9 +24,7 @@ class TransactionInfoBuilder(
                 it.pagopa.ecommerce.commons.domain.v2.Transaction::applyEvent
             )
             .cast(it.pagopa.ecommerce.commons.domain.v2.pojos.BaseTransaction::class.java)
-            .flatMap { baseTransaction -> events.collectList().map { Pair(baseTransaction, it) } }
-            .map { (baseTransaction, events) ->
-                baseTransactionToTransactionInfoDto(baseTransaction, events)
-            }
+            .flatMap { baseTransaction -> events.collectList().map { baseTransaction } }
+            .map { baseTransaction -> baseTransactionToTransactionInfoDto(baseTransaction) }
     }
 }

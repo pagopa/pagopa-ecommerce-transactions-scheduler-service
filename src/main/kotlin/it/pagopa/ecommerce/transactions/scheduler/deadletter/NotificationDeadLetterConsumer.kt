@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service
 
 @Service
 class NotificationDeadLetterConsumer(
+    @Autowired val transactionInfoBuilder: TransactionInfoBuilder,
     @Autowired val deadLetterEventRepository: DeadLetterEventRepository,
     @Value("\${deadLetterListener.notification.queueName}") val queueName: String
 ) {
@@ -25,6 +26,7 @@ class NotificationDeadLetterConsumer(
             payload = payload,
             queueName = queueName,
             deadLetterEventRepository = deadLetterEventRepository,
-            checkPointer = checkPointer
+            checkPointer = checkPointer,
+            transactionInfoBuilder = transactionInfoBuilder
         )
 }
