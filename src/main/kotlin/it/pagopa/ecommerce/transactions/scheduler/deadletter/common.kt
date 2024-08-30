@@ -8,7 +8,7 @@ import it.pagopa.ecommerce.commons.documents.BaseTransactionEvent
 import it.pagopa.ecommerce.commons.documents.DeadLetterEvent
 import it.pagopa.ecommerce.commons.documents.v2.activation.NpgTransactionGatewayActivationData
 import it.pagopa.ecommerce.commons.domain.v2.pojos.BaseTransaction
-import it.pagopa.ecommerce.transactions.scheduler.models.dto.*
+import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
 import it.pagopa.ecommerce.transactions.scheduler.repositories.DeadLetterEventRepository
 import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
@@ -18,6 +18,8 @@ import kotlinx.coroutines.reactor.mono
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import reactor.core.publisher.Mono
+
+data class GatewayAuthorizationData(val authorizationStatus: String, val errorCode: String?)
 
 object CommonLogger {
     val logger: Logger = LoggerFactory.getLogger(CommonLogger::class.java)
@@ -42,7 +44,7 @@ fun baseTransactionToTransactionInfoDto(
     val eCommerceStatus = TransactionStatusDto.valueOf(baseTransaction.status.toString())
     val gateway = transactionAuthorizationRequestData?.paymentGateway?.toString()
     val paymentToken = baseTransaction.paymentNotices.map { it.paymentToken.value }
-    val pspID = transactionAuthorizationRequestData?.pspId.toString()
+    val pspID = transactionAuthorizationRequestData?.pspId
     val npgCorrelationId =
         if (transactionGatewayActivationData is NpgTransactionGatewayActivationData)
             UUID.fromString(transactionGatewayActivationData.correlationId)
