@@ -15,6 +15,7 @@ import kotlinx.coroutines.reactor.mono
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import reactor.core.publisher.Mono
+import reactor.kotlin.core.publisher.onErrorResume
 
 object CommonLogger {
     val logger: Logger = LoggerFactory.getLogger(CommonLogger::class.java)
@@ -28,19 +29,29 @@ fun writeEventToDeadLetterCollection(
     transactionInfoBuilder: TransactionInfoBuilder,
     strictSerializerProviderV2: StrictJsonSerializerProvider
 ): Mono<Unit> {
-    val transactionId =
+    val transactionInfo =
         BinaryData.fromBytes(payload)
-            .toObject(
+            .toObjectAsync(
                 object : TypeReference<QueueEvent<TransactionEvent<Void>>>() {},
                 strictSerializerProviderV2.createInstance()
             )
-            .event
-            .transactionId
+            .map{ it.event.transactionId }
+            .onErrorResume{ error ->
+                CommonLogger.logger.error(
+                    "Exception processing dead letter event, could not read transactionId",
+                    error
+                )
+                Mono.just("no-transaction-id")
+            }
+            .flatMap {
+                if(it != "no-transaction-id"){
+                    transactionInfoBuilder.getTransactionInfoByTransactionId(it)
+                }else{
+                    Mono.just(null)
+                }
+            }
 
     val eventData = payload.toString(StandardCharsets.UTF_8)
-
-    // recover here info on event based on transactionId
-    val transactionInfo = transactionInfoBuilder.getTransactionInfoByTransactionId(transactionId)
 
     CommonLogger.logger.debug("Read event from queue: {}", eventData)
     return checkPointer

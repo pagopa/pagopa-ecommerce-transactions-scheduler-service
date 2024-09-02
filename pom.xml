@@ -285,7 +285,6 @@
                         <plugin>spring</plugin>
                         <plugin>lombok</plugin>
                     </compilerPlugins>
-                    <jvmTarget>1.8</jvmTarget>
                 </configuration>
                 <dependencies>
                     <dependency>
