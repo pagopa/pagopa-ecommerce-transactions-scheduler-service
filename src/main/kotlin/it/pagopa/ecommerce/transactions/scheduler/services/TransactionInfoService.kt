@@ -1,4 +1,4 @@
-package it.pagopa.ecommerce.transactions.scheduler.deadletter
+package it.pagopa.ecommerce.transactions.scheduler.services
 
 import it.pagopa.ecommerce.commons.documents.v2.TransactionActivatedData
 import it.pagopa.ecommerce.commons.documents.v2.TransactionAuthorizationCompletedData

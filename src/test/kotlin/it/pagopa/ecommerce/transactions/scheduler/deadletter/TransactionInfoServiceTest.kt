@@ -4,11 +4,12 @@ import com.azure.spring.messaging.checkpoint.Checkpointer
 import it.pagopa.ecommerce.commons.documents.v2.*
 import it.pagopa.ecommerce.commons.documents.v2.activation.NpgTransactionGatewayActivationData
 import it.pagopa.ecommerce.commons.documents.v2.refund.NpgGatewayRefundData
-import it.pagopa.ecommerce.commons.domain.v2.pojos.*
 import it.pagopa.ecommerce.commons.generated.npg.v1.dto.OperationResultDto
 import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
 import it.pagopa.ecommerce.commons.v2.TransactionTestUtils
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsEventStoreRepository
+import it.pagopa.ecommerce.transactions.scheduler.services.TransactionInfoBuilder
+import it.pagopa.ecommerce.transactions.scheduler.services.baseTransactionToTransactionInfoDto
 import java.time.ZonedDateTime
 import java.util.*
 import org.junit.jupiter.api.Test
