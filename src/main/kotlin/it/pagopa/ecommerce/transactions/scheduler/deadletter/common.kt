@@ -16,8 +16,6 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import reactor.core.publisher.Mono
 
-data class GatewayAuthorizationData(val authorizationStatus: String, val errorCode: String?)
-
 object CommonLogger {
     val logger: Logger = LoggerFactory.getLogger(CommonLogger::class.java)
 }
