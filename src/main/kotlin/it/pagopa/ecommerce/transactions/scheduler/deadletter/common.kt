@@ -9,7 +9,7 @@ import it.pagopa.ecommerce.commons.documents.v2.info.TransactionInfo
 import it.pagopa.ecommerce.commons.queues.QueueEvent
 import it.pagopa.ecommerce.commons.queues.StrictJsonSerializerProvider
 import it.pagopa.ecommerce.transactions.scheduler.repositories.DeadLetterEventRepository
-import it.pagopa.ecommerce.transactions.scheduler.services.TransactionInfoBuilder
+import it.pagopa.ecommerce.transactions.scheduler.services.TransactionInfoService
 import java.nio.charset.StandardCharsets
 import java.time.OffsetDateTime
 import java.util.*
@@ -27,7 +27,7 @@ fun writeEventToDeadLetterCollection(
     queueName: String,
     checkPointer: Checkpointer,
     deadLetterEventRepository: DeadLetterEventRepository,
-    transactionInfoBuilder: TransactionInfoBuilder,
+    transactionInfoService: TransactionInfoService,
     strictSerializerProviderV2: StrictJsonSerializerProvider
 ): Mono<Unit> {
 
@@ -41,7 +41,7 @@ fun writeEventToDeadLetterCollection(
                 strictSerializerProviderV2.createInstance()
             )
             .flatMap {
-                transactionInfoBuilder.getTransactionInfoByTransactionId(it.event.transactionId)
+                transactionInfoService.getTransactionInfoByTransactionId(it.event.transactionId)
             }
             .onErrorResume { exception ->
                 CommonLogger.logger.error("Error processing event info", exception)

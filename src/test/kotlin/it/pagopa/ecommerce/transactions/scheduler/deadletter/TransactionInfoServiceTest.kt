@@ -8,7 +8,7 @@ import it.pagopa.ecommerce.commons.generated.npg.v1.dto.OperationResultDto
 import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
 import it.pagopa.ecommerce.commons.v2.TransactionTestUtils
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsEventStoreRepository
-import it.pagopa.ecommerce.transactions.scheduler.services.TransactionInfoBuilder
+import it.pagopa.ecommerce.transactions.scheduler.services.TransactionInfoService
 import it.pagopa.ecommerce.transactions.scheduler.services.baseTransactionToTransactionInfoDto
 import java.time.ZonedDateTime
 import java.util.*
@@ -18,12 +18,12 @@ import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
 
-class TransactionInfoBuilderTest {
+class TransactionInfoServiceTest {
 
     private val transactionEventRepository: TransactionsEventStoreRepository<Any> = mock()
     private val checkPointer: Checkpointer = mock()
-    private val transactionInfoBuilder =
-        TransactionInfoBuilder(transactionsEventStoreRepository = transactionEventRepository)
+    private val transactionInfoService =
+        TransactionInfoService(transactionsEventStoreRepository = transactionEventRepository)
 
     @Test
     fun `Should process correctly the event into a transaction info`() {
@@ -71,7 +71,7 @@ class TransactionInfoBuilderTest {
         val expected = baseTransactionToTransactionInfoDto(baseTransaction)
 
         StepVerifier.create(
-                transactionInfoBuilder.getTransactionInfoByTransactionId(
+                transactionInfoService.getTransactionInfoByTransactionId(
                     transactionView.transactionId
                 )
             )
@@ -170,7 +170,7 @@ class TransactionInfoBuilderTest {
         val expected = baseTransactionToTransactionInfoDto(baseTransaction)
 
         StepVerifier.create(
-                transactionInfoBuilder.getTransactionInfoByTransactionId(
+                transactionInfoService.getTransactionInfoByTransactionId(
                     transactionView.transactionId
                 )
             )

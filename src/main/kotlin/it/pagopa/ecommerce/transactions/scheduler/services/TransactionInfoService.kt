@@ -17,7 +17,7 @@ import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 
 @Service
-class TransactionInfoBuilder(
+class TransactionInfoService(
     @Autowired private val transactionsEventStoreRepository: TransactionsEventStoreRepository<Any>
 ) {
 

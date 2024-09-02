@@ -5,7 +5,7 @@ import it.pagopa.ecommerce.commons.documents.DeadLetterEvent
 import it.pagopa.ecommerce.transactions.scheduler.TransactionSchedulerTestUtil
 import it.pagopa.ecommerce.transactions.scheduler.configurations.QueuesConsumerConfig
 import it.pagopa.ecommerce.transactions.scheduler.repositories.DeadLetterEventRepository
-import it.pagopa.ecommerce.transactions.scheduler.services.TransactionInfoBuilder
+import it.pagopa.ecommerce.transactions.scheduler.services.TransactionInfoService
 import java.nio.charset.StandardCharsets
 import kotlinx.coroutines.reactor.mono
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -17,7 +17,7 @@ import reactor.test.StepVerifier
 class TransactionDeadLetterConsumerTest {
 
     private val queueConsumerConfig = QueuesConsumerConfig()
-    private val transactionInfoBuilder: TransactionInfoBuilder = mock()
+    private val transactionInfoService: TransactionInfoService = mock()
     private val deadLetterEventRepository: DeadLetterEventRepository = mock()
     private val strictJsonSerializerProvider = queueConsumerConfig.strictSerializerProviderV2()
     private val queueName = "transactions-dead-letter-queue"
@@ -28,7 +28,7 @@ class TransactionDeadLetterConsumerTest {
         TransactionDeadLetterConsumer(
             deadLetterEventRepository = deadLetterEventRepository,
             queueName = queueName,
-            transactionInfoBuilder = transactionInfoBuilder,
+            transactionInfoService = transactionInfoService,
             strictSerializerProviderV2 = strictJsonSerializerProvider
         )
 
@@ -40,7 +40,7 @@ class TransactionDeadLetterConsumerTest {
         given(deadLetterEventRepository.save(deadLetterArgumentCaptor.capture())).willAnswer {
             mono { it.arguments[0] }
         }
-        given(transactionInfoBuilder.getTransactionInfoByTransactionId(any())).willAnswer {
+        given(transactionInfoService.getTransactionInfoByTransactionId(any())).willAnswer {
             mono { TransactionSchedulerTestUtil.buildNpgTransactionInfo(it.arguments[0] as String) }
         }
         StepVerifier.create(
@@ -68,7 +68,7 @@ class TransactionDeadLetterConsumerTest {
         given(deadLetterEventRepository.save(deadLetterArgumentCaptor.capture())).willReturn {
             Mono.error(RuntimeException("Error saving event to queue"))
         }
-        given(transactionInfoBuilder.getTransactionInfoByTransactionId(any())).willAnswer {
+        given(transactionInfoService.getTransactionInfoByTransactionId(any())).willAnswer {
             mono { TransactionSchedulerTestUtil.buildNpgTransactionInfo(it.arguments[0] as String) }
         }
         StepVerifier.create(
@@ -94,7 +94,7 @@ class TransactionDeadLetterConsumerTest {
         given(deadLetterEventRepository.save(deadLetterArgumentCaptor.capture())).willAnswer {
             mono { it.arguments[0] }
         }
-        given(transactionInfoBuilder.getTransactionInfoByTransactionId(any())).willAnswer {
+        given(transactionInfoService.getTransactionInfoByTransactionId(any())).willAnswer {
             mono { TransactionSchedulerTestUtil.buildNpgTransactionInfo(it.arguments[0] as String) }
         }
         StepVerifier.create(
@@ -121,7 +121,7 @@ class TransactionDeadLetterConsumerTest {
         given(deadLetterEventRepository.save(deadLetterArgumentCaptor.capture())).willAnswer {
             mono { it.arguments[0] }
         }
-        given(transactionInfoBuilder.getTransactionInfoByTransactionId(any())).willAnswer {
+        given(transactionInfoService.getTransactionInfoByTransactionId(any())).willAnswer {
             mono { TransactionSchedulerTestUtil.buildNpgTransactionInfo(it.arguments[0] as String) }
         }
         StepVerifier.create(
