@@ -4,7 +4,9 @@ import com.azure.core.util.BinaryData
 import com.azure.core.util.serializer.TypeReference
 import com.azure.spring.messaging.checkpoint.Checkpointer
 import it.pagopa.ecommerce.commons.documents.DeadLetterEvent
+import it.pagopa.ecommerce.commons.documents.v2.Transaction
 import it.pagopa.ecommerce.commons.documents.v2.TransactionEvent
+import it.pagopa.ecommerce.commons.documents.v2.info.TransactionInfo
 import it.pagopa.ecommerce.commons.queues.QueueEvent
 import it.pagopa.ecommerce.commons.queues.StrictJsonSerializerProvider
 import it.pagopa.ecommerce.transactions.scheduler.repositories.DeadLetterEventRepository
@@ -28,19 +30,18 @@ fun writeEventToDeadLetterCollection(
     transactionInfoBuilder: TransactionInfoBuilder,
     strictSerializerProviderV2: StrictJsonSerializerProvider
 ): Mono<Unit> {
-    val transactionId =
+    val transactionInfo =
         BinaryData.fromBytes(payload)
-            .toObject(
+            .toObjectAsync(
                 object : TypeReference<QueueEvent<TransactionEvent<Void>>>() {},
                 strictSerializerProviderV2.createInstance()
             )
-            .event
-            .transactionId
-
+            .flatMap{ transactionInfoBuilder.getTransactionInfoByTransactionId(it.event.transactionId) }
+            .onErrorResume { exception ->
+                CommonLogger.logger.error("Error processing event info", exception)
+                Mono.just(TransactionInfo())
+            }
     val eventData = payload.toString(StandardCharsets.UTF_8)
-
-    // recover here info on event based on transactionId
-    val transactionInfo = transactionInfoBuilder.getTransactionInfoByTransactionId(transactionId)
 
     CommonLogger.logger.debug("Read event from queue: {}", eventData)
     return checkPointer
