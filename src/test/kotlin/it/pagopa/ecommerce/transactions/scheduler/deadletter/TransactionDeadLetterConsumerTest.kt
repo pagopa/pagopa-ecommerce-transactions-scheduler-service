@@ -60,12 +60,15 @@ class TransactionDeadLetterConsumerTest {
 
     @Test
     fun `Should handle error saving event to collection`() {
-        val event = "dead letter queue event"
+        val event = TransactionSchedulerTestUtil.getEventJsonString()
         val payload = event.toByteArray(StandardCharsets.UTF_8)
         given(checkPointer.success()).willReturn(Mono.empty())
         given(checkPointer.failure()).willReturn(Mono.empty())
         given(deadLetterEventRepository.save(deadLetterArgumentCaptor.capture())).willReturn {
             Mono.error(RuntimeException("Error saving event to queue"))
+        }
+        given(transactionInfoBuilder.getTransactionInfoByTransactionId(any())).willAnswer {
+            mono { TransactionSchedulerTestUtil.buildNpgTransactionInfo(it.arguments[0] as String) }
         }
         StepVerifier.create(
                 transactionDeadLetterConsumer.messageReceiver(
@@ -82,13 +85,16 @@ class TransactionDeadLetterConsumerTest {
 
     @Test
     fun `Should not save event to collection when an error occurs performing success check point`() {
-        val event = "dead letter queue event"
+        val event = TransactionSchedulerTestUtil.getEventJsonString()
         val payload = event.toByteArray(StandardCharsets.UTF_8)
         given(checkPointer.success())
             .willReturn(Mono.error(RuntimeException("Error performing checkpoint")))
         given(checkPointer.failure()).willReturn(Mono.empty())
         given(deadLetterEventRepository.save(deadLetterArgumentCaptor.capture())).willAnswer {
             mono { it.arguments[0] }
+        }
+        given(transactionInfoBuilder.getTransactionInfoByTransactionId(any())).willAnswer {
+            mono { TransactionSchedulerTestUtil.buildNpgTransactionInfo(it.arguments[0] as String) }
         }
         StepVerifier.create(
                 transactionDeadLetterConsumer.messageReceiver(
@@ -105,7 +111,7 @@ class TransactionDeadLetterConsumerTest {
 
     @Test
     fun `Should return error for error performing checkPointer failure`() {
-        val event = "dead letter queue event"
+        val event = TransactionSchedulerTestUtil.getEventJsonString()
         val payload = event.toByteArray(StandardCharsets.UTF_8)
         given(checkPointer.success())
             .willReturn(Mono.error(RuntimeException("Error performing checkpoint success")))
@@ -113,6 +119,9 @@ class TransactionDeadLetterConsumerTest {
             .willReturn(Mono.error(RuntimeException("Error performing checkpoint failure")))
         given(deadLetterEventRepository.save(deadLetterArgumentCaptor.capture())).willAnswer {
             mono { it.arguments[0] }
+        }
+        given(transactionInfoBuilder.getTransactionInfoByTransactionId(any())).willAnswer {
+            mono { TransactionSchedulerTestUtil.buildNpgTransactionInfo(it.arguments[0] as String) }
         }
         StepVerifier.create(
                 transactionDeadLetterConsumer.messageReceiver(
