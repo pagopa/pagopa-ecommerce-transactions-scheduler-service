@@ -1,8 +1,8 @@
 package it.pagopa.ecommerce.transactions.scheduler
 
 import it.pagopa.ecommerce.commons.documents.v2.TransactionAuthorizationRequestData
-import it.pagopa.ecommerce.commons.documents.v2.info.NpgTransactionInfoDetailsData
-import it.pagopa.ecommerce.commons.documents.v2.info.TransactionInfo
+import it.pagopa.ecommerce.commons.documents.v2.deadletter.DeadLetterNpgTransactionInfoDetailsData
+import it.pagopa.ecommerce.commons.documents.v2.deadletter.DeadLetterTransactionInfo
 import it.pagopa.ecommerce.commons.generated.npg.v1.dto.OperationResultDto
 import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
 import java.util.UUID
@@ -10,7 +10,7 @@ import java.util.UUID
 object TransactionSchedulerTestUtil {
 
     fun buildNpgTransactionInfo(transactionId: String) =
-        TransactionInfo(
+        DeadLetterTransactionInfo(
             transactionId,
             "auth request id",
             TransactionStatusDto.EXPIRED,
@@ -20,7 +20,11 @@ object TransactionSchedulerTestUtil {
             "payment method name",
             100,
             "rrn",
-            NpgTransactionInfoDetailsData(OperationResultDto.EXECUTED, "id", UUID.randomUUID())
+            DeadLetterNpgTransactionInfoDetailsData(
+                OperationResultDto.EXECUTED,
+                "id",
+                UUID.randomUUID().toString()
+            )
         )
 
     fun getEventJsonString() =

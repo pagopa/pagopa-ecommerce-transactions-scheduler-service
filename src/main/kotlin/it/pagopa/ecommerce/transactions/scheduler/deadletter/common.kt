@@ -5,7 +5,7 @@ import com.azure.core.util.serializer.TypeReference
 import com.azure.spring.messaging.checkpoint.Checkpointer
 import it.pagopa.ecommerce.commons.documents.DeadLetterEvent
 import it.pagopa.ecommerce.commons.documents.v2.TransactionEvent
-import it.pagopa.ecommerce.commons.documents.v2.info.TransactionInfo
+import it.pagopa.ecommerce.commons.documents.v2.deadletter.DeadLetterTransactionInfo
 import it.pagopa.ecommerce.commons.queues.QueueEvent
 import it.pagopa.ecommerce.commons.queues.StrictJsonSerializerProvider
 import it.pagopa.ecommerce.transactions.scheduler.repositories.DeadLetterEventRepository
@@ -45,7 +45,7 @@ fun writeEventToDeadLetterCollection(
             }
             .onErrorResume { exception ->
                 CommonLogger.logger.error("Error processing event info", exception)
-                Mono.just(TransactionInfo())
+                Mono.just(DeadLetterTransactionInfo())
             }
 
     return checkPointer

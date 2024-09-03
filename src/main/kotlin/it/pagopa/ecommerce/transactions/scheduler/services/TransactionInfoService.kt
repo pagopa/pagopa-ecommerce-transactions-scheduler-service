@@ -4,10 +4,9 @@ import it.pagopa.ecommerce.commons.documents.v2.TransactionActivatedData
 import it.pagopa.ecommerce.commons.documents.v2.TransactionAuthorizationCompletedData
 import it.pagopa.ecommerce.commons.documents.v2.TransactionAuthorizationRequestData
 import it.pagopa.ecommerce.commons.documents.v2.activation.NpgTransactionGatewayActivationData
-import it.pagopa.ecommerce.commons.documents.v2.info.NpgTransactionInfoDetailsData
-import it.pagopa.ecommerce.commons.documents.v2.info.TransactionInfo
+import it.pagopa.ecommerce.commons.documents.v2.deadletter.DeadLetterNpgTransactionInfoDetailsData
+import it.pagopa.ecommerce.commons.documents.v2.deadletter.DeadLetterTransactionInfo
 import it.pagopa.ecommerce.commons.domain.v2.pojos.*
-import it.pagopa.ecommerce.commons.generated.npg.v1.dto.OperationResultDto
 import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
 import it.pagopa.ecommerce.commons.utils.v2.TransactionUtils.getTransactionFee
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsEventStoreRepository
@@ -21,7 +20,7 @@ class TransactionInfoService(
     @Autowired private val transactionsEventStoreRepository: TransactionsEventStoreRepository<Any>
 ) {
 
-    fun getTransactionInfoByTransactionId(transactionId: String): Mono<TransactionInfo> {
+    fun getTransactionInfoByTransactionId(transactionId: String): Mono<DeadLetterTransactionInfo> {
         val events =
             Mono.just(transactionId).flatMapMany {
                 transactionsEventStoreRepository.findByTransactionIdOrderByCreationDateAsc(
@@ -83,7 +82,9 @@ fun getTransactionAuthCompletedData(
         else -> null
     }
 
-fun baseTransactionToTransactionInfoDto(baseTransaction: BaseTransaction): TransactionInfo {
+fun baseTransactionToTransactionInfoDto(
+    baseTransaction: BaseTransaction
+): DeadLetterTransactionInfo {
 
     val amount = baseTransaction.paymentNotices.sumOf { it.transactionAmount.value }
     val fee = getTransactionFees(baseTransaction).orElse(0)
@@ -103,12 +104,12 @@ fun baseTransactionToTransactionInfoDto(baseTransaction: BaseTransaction): Trans
     val details =
         when (gateway) {
             TransactionAuthorizationRequestData.PaymentGateway.NPG ->
-                NpgTransactionInfoDetailsData(OperationResultDto.EXECUTED, "test", npgCorrelationId)
+                DeadLetterNpgTransactionInfoDetailsData()
             // TransactionAuthorizationRequestData.PaymentGateway.REDIRECT -> println("x is 1")
             else -> null
         }
 
-    return TransactionInfo(
+    return DeadLetterTransactionInfo(
         baseTransaction.transactionId.value(),
         transactionAuthorizationRequestData?.authorizationRequestId,
         TransactionStatusDto.valueOf(baseTransaction.status.toString()),
