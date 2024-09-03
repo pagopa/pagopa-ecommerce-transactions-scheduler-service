@@ -6,10 +6,10 @@ import it.pagopa.ecommerce.commons.documents.v2.TransactionActivatedData
 import it.pagopa.ecommerce.commons.documents.v2.TransactionAuthorizationCompletedData
 import it.pagopa.ecommerce.commons.documents.v2.TransactionAuthorizationRequestData
 import it.pagopa.ecommerce.commons.documents.v2.activation.NpgTransactionGatewayActivationData
-import it.pagopa.ecommerce.commons.documents.v2.info.NpgTransactionInfoDetailsData
-import it.pagopa.ecommerce.commons.documents.v2.info.RedirectTransactionInfoDetailsData
-import it.pagopa.ecommerce.commons.documents.v2.info.TransactionInfo
-import it.pagopa.ecommerce.commons.documents.v2.info.TransactionInfoDetailsData
+import it.pagopa.ecommerce.commons.documents.v2.deadletter.DeadLetterNpgTransactionInfoDetailsData
+import it.pagopa.ecommerce.commons.documents.v2.deadletter.DeadLetterRedirectTransactionInfoDetailsData
+import it.pagopa.ecommerce.commons.documents.v2.deadletter.DeadLetterTransactionInfo
+import it.pagopa.ecommerce.commons.documents.v2.deadletter.DeadLetterTransactionInfoDetailsData
 import it.pagopa.ecommerce.commons.domain.TransactionId
 import it.pagopa.ecommerce.commons.domain.v2.pojos.*
 import it.pagopa.ecommerce.commons.exceptions.NpgResponseException
@@ -103,8 +103,8 @@ class TransactionInfoService(
 
     fun baseTransactionToTransactionInfoDto(
         baseTransaction: BaseTransaction,
-        details: TransactionInfoDetailsData
-    ): TransactionInfo {
+        details: DeadLetterTransactionInfoDetailsData
+    ): DeadLetterTransactionInfo {
 
         val amount = baseTransaction.paymentNotices.sumOf { it.transactionAmount.value }
         val fee = getTransactionFees(baseTransaction).orElse(0)
@@ -130,7 +130,7 @@ class TransactionInfoService(
 
     fun getTransactionInfoDetails(
         baseTransaction: BaseTransaction
-    ): Mono<TransactionInfoDetailsData> {
+    ): Mono<DeadLetterTransactionInfoDetailsData> {
         val transactionActivatedData = getTransactionActivatedData(baseTransaction)
         val transactionAuthorizationRequestData = getTransactionAuthRequestedData(baseTransaction)
         val correlationId =
@@ -192,26 +192,26 @@ class TransactionInfoService(
                         when {
                             it is NgpOrderAuthorized ->
                                 sink.next(
-                                    NpgTransactionInfoDetailsData(
+                                    DeadLetterNpgTransactionInfoDetailsData(
                                         it.authorization.operationResult,
                                         it.authorization.operationId,
-                                        UUID.fromString(correlationId)
+                                        correlationId
                                     )
                                 )
                             it is NgpOrderNotAuthorized ->
                                 sink.next(
-                                    NpgTransactionInfoDetailsData(
+                                    DeadLetterNpgTransactionInfoDetailsData(
                                         it.operation.operationResult,
                                         it.operation.operationId,
-                                        UUID.fromString(correlationId)
+                                        correlationId
                                     )
                                 )
                             it is NpgOrderRefunded ->
                                 sink.next(
-                                    NpgTransactionInfoDetailsData(
+                                    DeadLetterNpgTransactionInfoDetailsData(
                                         it.refundOperation.operationResult,
                                         it.refundOperation.operationId,
-                                        UUID.fromString(correlationId)
+                                        correlationId
                                     )
                                 )
                             else ->
@@ -223,7 +223,7 @@ class TransactionInfoService(
                         }
                     }
             TransactionAuthorizationRequestData.PaymentGateway.REDIRECT ->
-                Mono.just(RedirectTransactionInfoDetailsData(""))
+                Mono.just(DeadLetterRedirectTransactionInfoDetailsData(""))
             else ->
                 Mono.error(
                     NullPointerException(

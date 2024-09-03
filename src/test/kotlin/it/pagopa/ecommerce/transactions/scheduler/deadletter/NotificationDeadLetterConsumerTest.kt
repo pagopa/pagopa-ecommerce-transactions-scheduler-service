@@ -2,7 +2,7 @@ package it.pagopa.ecommerce.transactions.scheduler.deadletter
 
 import com.azure.spring.messaging.checkpoint.Checkpointer
 import it.pagopa.ecommerce.commons.documents.DeadLetterEvent
-import it.pagopa.ecommerce.commons.documents.v2.info.NpgTransactionInfoDetailsData
+import it.pagopa.ecommerce.commons.documents.v2.deadletter.DeadLetterNpgTransactionInfoDetailsData
 import it.pagopa.ecommerce.commons.generated.npg.v1.dto.OperationResultDto
 import it.pagopa.ecommerce.transactions.scheduler.TransactionSchedulerTestUtil
 import it.pagopa.ecommerce.transactions.scheduler.configurations.QueuesConsumerConfig
@@ -35,7 +35,11 @@ class NotificationDeadLetterConsumerTest {
             strictSerializerProviderV2 = strictJsonSerializerProvider
         )
     private val transactionInfoDetailsData =
-        NpgTransactionInfoDetailsData(OperationResultDto.EXECUTED, "operationId", UUID.randomUUID())
+        DeadLetterNpgTransactionInfoDetailsData(
+            OperationResultDto.EXECUTED,
+            "operationId",
+            UUID.randomUUID().toString()
+        )
 
     @Test
     fun `Should dequeue event from dead letter successfully saving it into dead letter queue`() {

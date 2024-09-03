@@ -8,9 +8,7 @@ import it.pagopa.ecommerce.commons.client.NpgClient
 import it.pagopa.ecommerce.commons.documents.v2.*
 import it.pagopa.ecommerce.commons.documents.v2.activation.NpgTransactionGatewayActivationData
 import it.pagopa.ecommerce.commons.documents.v2.authorization.NpgTransactionGatewayAuthorizationRequestedData
-import it.pagopa.ecommerce.commons.documents.v2.info.NpgTransactionInfoDetailsData
-import it.pagopa.ecommerce.commons.documents.v2.info.RedirectTransactionInfoDetailsData
-import it.pagopa.ecommerce.commons.documents.v2.info.TransactionInfoDetailsData
+import it.pagopa.ecommerce.commons.documents.v2.deadletter.*
 import it.pagopa.ecommerce.commons.documents.v2.refund.NpgGatewayRefundData
 import it.pagopa.ecommerce.commons.exceptions.NpgResponseException
 import it.pagopa.ecommerce.commons.generated.npg.v1.dto.OperationResultDto
@@ -47,7 +45,7 @@ import reactor.test.StepVerifier
 class TransactionInfoServiceTest {
 
     companion object {
-        private val correlationId = UUID.randomUUID()
+        private val correlationId = UUID.randomUUID().toString()
 
         @JvmStatic
         private fun retriverArgsTest() =
@@ -55,7 +53,7 @@ class TransactionInfoServiceTest {
                 Arguments.of(
                     TransactionAuthorizationRequestData.PaymentGateway.NPG,
                     buildOrderResponseDtoForNgpOrderNotAuthorized(),
-                    NpgTransactionInfoDetailsData(
+                    DeadLetterNpgTransactionInfoDetailsData(
                         OperationResultDto.FAILED,
                         "operationId",
                         correlationId
@@ -64,7 +62,7 @@ class TransactionInfoServiceTest {
                 Arguments.of(
                     TransactionAuthorizationRequestData.PaymentGateway.NPG,
                     buildOrderResponseDtoForNgpOrderAuthorized(),
-                    NpgTransactionInfoDetailsData(
+                    DeadLetterNpgTransactionInfoDetailsData(
                         OperationResultDto.EXECUTED,
                         "operationId",
                         correlationId
@@ -73,7 +71,7 @@ class TransactionInfoServiceTest {
                 Arguments.of(
                     TransactionAuthorizationRequestData.PaymentGateway.NPG,
                     buildOrderResponseDtoForNpgOrderRefunded(),
-                    NpgTransactionInfoDetailsData(
+                    DeadLetterNpgTransactionInfoDetailsData(
                         OperationResultDto.VOIDED,
                         "operationId",
                         correlationId
@@ -82,7 +80,7 @@ class TransactionInfoServiceTest {
                 Arguments.of(
                     TransactionAuthorizationRequestData.PaymentGateway.REDIRECT,
                     buildOrderResponseDtoForNpgOrderRefunded(),
-                    RedirectTransactionInfoDetailsData("")
+                    DeadLetterRedirectTransactionInfoDetailsData("")
                 ),
             )
     }
@@ -173,7 +171,7 @@ class TransactionInfoServiceTest {
         val expected =
             transactionInfoService.baseTransactionToTransactionInfoDto(
                 baseTransaction,
-                NpgTransactionInfoDetailsData(
+                DeadLetterNpgTransactionInfoDetailsData(
                     OperationResultDto.VOIDED,
                     "operationId",
                     correlationId
@@ -280,7 +278,7 @@ class TransactionInfoServiceTest {
         val expected =
             transactionInfoService.baseTransactionToTransactionInfoDto(
                 baseTransaction,
-                NpgTransactionInfoDetailsData(
+                DeadLetterNpgTransactionInfoDetailsData(
                     OperationResultDto.VOIDED,
                     "operationId",
                     Companion.correlationId
@@ -302,7 +300,7 @@ class TransactionInfoServiceTest {
     fun `Should retrieve gateway info and put it into TransactionInfo object`(
         gateway: TransactionAuthorizationRequestData.PaymentGateway,
         orderResponseMock: Mono<OrderResponseDto>,
-        detailsExpected: TransactionInfoDetailsData
+        detailsExpected: DeadLetterTransactionInfoDetailsData
     ) {
         val orderId = "orderId"
         val refundOperationId = "refundOperationId"
