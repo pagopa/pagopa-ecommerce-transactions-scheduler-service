@@ -216,6 +216,7 @@
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
+
     </dependencies>
 
     <dependencyManagement>
@@ -239,7 +240,6 @@
     </dependencyManagement>
 
     <build>
-        <testSourceDirectory>src/test/kotlin</testSourceDirectory>
         <pluginManagement>
             <plugins>
                 <plugin>
@@ -294,8 +294,7 @@
                         </goals>
                         <configuration>
                             <sourceDirs>
-                                <source>src/main/kotlin</source>
-                                <source>target/generated-sources/annotations</source>
+                                <sourceDir>${project.basedir}/src/main/kotlin</sourceDir>
                             </sourceDirs>
                         </configuration>
                     </execution>
@@ -320,21 +319,17 @@
                 <executions>
                     <execution>
                         <id>compile</id>
+                        <phase>compile</phase>
                         <goals>
                             <goal>compile</goal>
                         </goals>
                     </execution>
                     <execution>
                         <id>testCompile</id>
+                        <phase>test-compile</phase>
                         <goals>
                             <goal>testCompile</goal>
                         </goals>
-                    </execution>
-                    <execution>
-                        <id>default-compile</id>
-                    </execution>
-                    <execution>
-                        <id>default-testCompile</id>
                     </execution>
                 </executions>
                 <configuration>
@@ -369,6 +364,7 @@
                     </execution>
                     <execution>
                         <id>jacoco-site</id>
+                        <phase>package</phase>
                         <goals>
                             <goal>report</goal>
                         </goals>
@@ -392,6 +388,7 @@
                 <executions>
                     <execution>
                         <id>add-source</id>
+                        <phase>generate-sources</phase>
                         <goals>
                             <goal>add-source</goal>
                         </goals>
@@ -416,6 +413,7 @@
                 </configuration>
                 <executions>
                     <execution>
+                        <phase>validate</phase>
                         <goals>
                             <goal>bootstrap</goal>
                         </goals>
@@ -471,6 +469,7 @@
                         <goals>
                             <goal>check</goal>
                         </goals>
+                        <phase>compile</phase>
                     </execution>
                 </executions>
             </plugin>
