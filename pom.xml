@@ -20,7 +20,7 @@
         <java.version>17</java.version>
         <azure.functions.java.library.version>3.0.0</azure.functions.java.library.version>
         <spring.cloud.azure.dependencies>4.0.0</spring.cloud.azure.dependencies>
-        <pagopa-ecommerce-commons.version>1.23.1</pagopa-ecommerce-commons.version>
+        <pagopa-ecommerce-commons.version>1.25.0</pagopa-ecommerce-commons.version>
         <spotless.version>2.28.0</spotless.version>
         <jacoco.version>0.8.8</jacoco.version>
         <maven.compiler.plugin.version>3.10.1</maven.compiler.plugin.version>
@@ -216,17 +216,6 @@
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-stdlib-jdk8</artifactId>
-            <version>${kotlin.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-test</artifactId>
-            <version>${kotlin.version}</version>
-            <scope>test</scope>
-        </dependency>
 
     </dependencies>
 
@@ -251,7 +240,6 @@
     </dependencyManagement>
 
     <build>
-        <testSourceDirectory>src/test/kotlin</testSourceDirectory>
         <pluginManagement>
             <plugins>
                 <plugin>
@@ -306,8 +294,7 @@
                         </goals>
                         <configuration>
                             <sourceDirs>
-                                <source>src/main/kotlin</source>
-                                <source>target/generated-sources/annotations</source>
+                                <sourceDir>${project.basedir}/src/main/kotlin</sourceDir>
                             </sourceDirs>
                         </configuration>
                     </execution>
@@ -332,21 +319,17 @@
                 <executions>
                     <execution>
                         <id>compile</id>
+                        <phase>compile</phase>
                         <goals>
                             <goal>compile</goal>
                         </goals>
                     </execution>
                     <execution>
                         <id>testCompile</id>
+                        <phase>test-compile</phase>
                         <goals>
                             <goal>testCompile</goal>
                         </goals>
-                    </execution>
-                    <execution>
-                        <id>default-compile</id>
-                    </execution>
-                    <execution>
-                        <id>default-testCompile</id>
                     </execution>
                 </executions>
                 <configuration>
@@ -381,6 +364,7 @@
                     </execution>
                     <execution>
                         <id>jacoco-site</id>
+                        <phase>package</phase>
                         <goals>
                             <goal>report</goal>
                         </goals>
@@ -404,6 +388,7 @@
                 <executions>
                     <execution>
                         <id>add-source</id>
+                        <phase>generate-sources</phase>
                         <goals>
                             <goal>add-source</goal>
                         </goals>
@@ -422,12 +407,13 @@
                 <configuration>
                     <skipCheckoutIfExists>false</skipCheckoutIfExists>
                     <connectionUrl>scm:git:https://github.com/pagopa/pagopa-ecommerce-commons.git</connectionUrl>
-                    <scmVersionType>branch</scmVersionType>
-                    <scmVersion>CHK-3193-add-transactioninfo-into-deadletter</scmVersion>
+                    <scmVersionType>tag</scmVersionType>
+                    <scmVersion>${pagopa-ecommerce-commons.version}</scmVersion>
                     <goals>install -DskipTests</goals>
                 </configuration>
                 <executions>
                     <execution>
+                        <phase>validate</phase>
                         <goals>
                             <goal>bootstrap</goal>
                         </goals>
@@ -483,6 +469,7 @@
                         <goals>
                             <goal>check</goal>
                         </goals>
+                        <phase>compile</phase>
                     </execution>
                 </executions>
             </plugin>

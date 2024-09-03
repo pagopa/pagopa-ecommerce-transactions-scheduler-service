@@ -35,7 +35,7 @@ class TransactionInfoService(
     @Autowired private val npgApiKeyConfiguration: NpgApiKeyConfiguration
 ) {
 
-    fun getTransactionInfoByTransactionId(transactionId: String): Mono<TransactionInfo> {
+    fun getTransactionInfoByTransactionId(transactionId: String): Mono<DeadLetterTransactionInfo> {
         val events =
             Mono.just(transactionId).flatMapMany {
                 transactionsEventStoreRepository.findByTransactionIdOrderByCreationDateAsc(
@@ -114,7 +114,7 @@ class TransactionInfoService(
 
         val gateway = transactionAuthorizationRequestData?.paymentGateway
 
-        return TransactionInfo(
+        return DeadLetterTransactionInfo(
             baseTransaction.transactionId.value(),
             transactionAuthorizationRequestData?.authorizationRequestId,
             TransactionStatusDto.valueOf(baseTransaction.status.toString()),
