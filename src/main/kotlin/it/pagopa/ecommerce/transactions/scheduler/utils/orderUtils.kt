@@ -1,4 +1,4 @@
-package it.pagopa.ecommerce.transactions.scheduler.services
+package it.pagopa.ecommerce.transactions.scheduler.utils
 
 import it.pagopa.ecommerce.commons.generated.npg.v1.dto.OperationDto
 import it.pagopa.ecommerce.commons.generated.npg.v1.dto.OperationResultDto

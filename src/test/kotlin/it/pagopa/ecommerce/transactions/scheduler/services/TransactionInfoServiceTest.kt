@@ -1,4 +1,4 @@
-package it.pagopa.ecommerce.transactions.scheduler.deadletter
+package it.pagopa.ecommerce.transactions.scheduler.services
 
 import com.azure.spring.messaging.checkpoint.Checkpointer
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -9,17 +9,16 @@ import it.pagopa.ecommerce.commons.documents.v2.*
 import it.pagopa.ecommerce.commons.documents.v2.activation.NpgTransactionGatewayActivationData
 import it.pagopa.ecommerce.commons.documents.v2.authorization.NpgTransactionGatewayAuthorizationRequestedData
 import it.pagopa.ecommerce.commons.documents.v2.deadletter.*
+import it.pagopa.ecommerce.commons.exceptions.NpgApiKeyConfigurationException
 import it.pagopa.ecommerce.commons.exceptions.NpgResponseException
 import it.pagopa.ecommerce.commons.generated.npg.v1.dto.OperationResultDto
 import it.pagopa.ecommerce.commons.generated.npg.v1.dto.OrderResponseDto
 import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
 import it.pagopa.ecommerce.commons.utils.NpgApiKeyConfiguration
-import it.pagopa.ecommerce.commons.v2.TransactionTestUtils
-import it.pagopa.ecommerce.commons.v2.TransactionTestUtils.AUTHORIZATION_REQUEST_ID
-import it.pagopa.ecommerce.commons.v2.TransactionTestUtils.TRANSACTION_ID
+import it.pagopa.ecommerce.commons.v2.TransactionTestUtils.*
 import it.pagopa.ecommerce.transactions.scheduler.configurations.PaymentGatewayConfig
+import it.pagopa.ecommerce.transactions.scheduler.exceptions.*
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsEventStoreRepository
-import it.pagopa.ecommerce.transactions.scheduler.services.TransactionInfoService
 import it.pagopa.ecommerce.transactions.scheduler.utils.TransactionInfoUtils
 import it.pagopa.ecommerce.transactions.scheduler.utils.TransactionInfoUtils.Companion.buildOrderResponseDtoForNgpOrderAuthorized
 import it.pagopa.ecommerce.transactions.scheduler.utils.TransactionInfoUtils.Companion.buildOrderResponseDtoForNgpOrderNotAuthorized
@@ -121,29 +120,22 @@ class TransactionInfoServiceTest {
     fun `Should process correctly the event into a transaction info`() {
 
         val transactionView =
-            TransactionTestUtils.transactionDocument(
-                TransactionStatusDto.NOTIFIED_OK,
-                ZonedDateTime.now()
-            )
+            transactionDocument(TransactionStatusDto.NOTIFIED_OK, ZonedDateTime.now())
 
         val transactionUserReceiptData =
-            TransactionTestUtils.transactionUserReceiptData(TransactionUserReceiptData.Outcome.OK)
+            transactionUserReceiptData(TransactionUserReceiptData.Outcome.OK)
         val transactionActivatedEvent =
-            TransactionTestUtils.transactionActivateEvent(
+            transactionActivateEvent(
                 NpgTransactionGatewayActivationData("orderId", correlationId.toString())
             )
         val authorizationRequestedEvent =
-            TransactionTestUtils.transactionAuthorizationRequestedEvent(
+            transactionAuthorizationRequestedEvent(
                 TransactionAuthorizationRequestData.PaymentGateway.NPG
             )
-        val closureSentEvent =
-            TransactionTestUtils.transactionClosedEvent(TransactionClosureData.Outcome.KO)
-        val addUserReceiptEvent =
-            TransactionTestUtils.transactionUserReceiptRequestedEvent(transactionUserReceiptData)
-        val userReceiptAddErrorEvent =
-            TransactionTestUtils.transactionUserReceiptAddErrorEvent(addUserReceiptEvent.data)
-        val userReceiptAddedEvent =
-            TransactionTestUtils.transactionUserReceiptAddedEvent(userReceiptAddErrorEvent.data)
+        val closureSentEvent = transactionClosedEvent(TransactionClosureData.Outcome.KO)
+        val addUserReceiptEvent = transactionUserReceiptRequestedEvent(transactionUserReceiptData)
+        val userReceiptAddErrorEvent = transactionUserReceiptAddErrorEvent(addUserReceiptEvent.data)
+        val userReceiptAddedEvent = transactionUserReceiptAddedEvent(userReceiptAddErrorEvent.data)
         val events =
             listOf(
                 transactionActivatedEvent,
@@ -155,7 +147,7 @@ class TransactionInfoServiceTest {
             )
                 as List<TransactionEvent<Any>>
 
-        val baseTransaction = TransactionTestUtils.reduceEvents(*events.toTypedArray())
+        val baseTransaction = reduceEvents(*events.toTypedArray())
         val expected =
             transactionInfoService.baseTransactionToTransactionInfoDto(
                 baseTransaction,
@@ -193,7 +185,7 @@ class TransactionInfoServiceTest {
                 correlationId,
                 TransactionAuthorizationRequestData.PaymentGateway.NPG
             )
-        val baseTransaction = TransactionTestUtils.reduceEvents(*events.toTypedArray())
+        val baseTransaction = reduceEvents(*events.toTypedArray())
         val expected =
             transactionInfoService.baseTransactionToTransactionInfoDto(
                 baseTransaction,
@@ -225,7 +217,7 @@ class TransactionInfoServiceTest {
     ) {
 
         val events = TransactionInfoUtils.buildEventsList(correlationId, gateway)
-        val baseTransaction = TransactionTestUtils.reduceEvents(*events.toTypedArray())
+        val baseTransaction = reduceEvents(*events.toTypedArray())
 
         given(checkPointer.success()).willReturn(Mono.empty())
         given(transactionEventRepository.findByTransactionIdOrderByCreationDateAsc(TRANSACTION_ID))
@@ -240,7 +232,7 @@ class TransactionInfoServiceTest {
     @Test
     fun `Should throw error for gateway param null`() {
         val events = TransactionInfoUtils.buildEventsList(correlationId)
-        val baseTransaction = TransactionTestUtils.reduceEvents(*events.toTypedArray())
+        val baseTransaction = reduceEvents(*events.toTypedArray())
 
         given(npgClient.getOrder(any(), any(), any()))
             .willReturn(buildOrderResponseDtoForNpgOrderRefunded())
@@ -249,7 +241,10 @@ class TransactionInfoServiceTest {
             .willReturn(Flux.fromIterable(events))
 
         StepVerifier.create(transactionInfoService.getTransactionInfoDetails(baseTransaction))
-            .expectError(NullPointerException::class.java)
+            .expectErrorMatches {
+                it is InvalidGatewayException &&
+                    it.message == "Transaction with id: $TRANSACTION_ID has invalid gateway"
+            }
             .verify()
     }
 
@@ -260,7 +255,7 @@ class TransactionInfoServiceTest {
                 correlationId,
                 TransactionAuthorizationRequestData.PaymentGateway.NPG
             )
-        val baseTransaction = TransactionTestUtils.reduceEvents(*events.toTypedArray())
+        val baseTransaction = reduceEvents(*events.toTypedArray())
 
         given(npgClient.getOrder(any(), any(), any()))
             .willReturn(buildOrderResponseDtoInvalidOrder())
@@ -270,7 +265,7 @@ class TransactionInfoServiceTest {
 
         StepVerifier.create(transactionInfoService.getTransactionInfoDetails(baseTransaction))
             .expectErrorMatches {
-                it is RuntimeException &&
+                it is InvalidNpgOrderException &&
                     it.message ==
                         "Invalid operation retrived from gateway for transaction: ${TRANSACTION_ID}"
             }
@@ -284,7 +279,7 @@ class TransactionInfoServiceTest {
                 correlationId,
                 TransactionAuthorizationRequestData.PaymentGateway.NPG
             )
-        val baseTransaction = TransactionTestUtils.reduceEvents(*events.toTypedArray())
+        val baseTransaction = reduceEvents(*events.toTypedArray())
 
         given(npgClient.getOrder(any(), any(), any()))
             .willReturn(buildOrderResponseDtoForNpgOrderRefundedFaulty())
@@ -294,7 +289,7 @@ class TransactionInfoServiceTest {
 
         StepVerifier.create(transactionInfoService.getTransactionInfoDetails(baseTransaction))
             .expectErrorMatches {
-                it is RuntimeException &&
+                it is InvalidNpgOrderException &&
                     it.message ==
                         "Invalid operation retrived from gateway for transaction: ${TRANSACTION_ID}"
             }
@@ -308,7 +303,7 @@ class TransactionInfoServiceTest {
                 correlationId,
                 TransactionAuthorizationRequestData.PaymentGateway.NPG
             )
-        val baseTransaction = TransactionTestUtils.reduceEvents(*events.toTypedArray())
+        val baseTransaction = reduceEvents(*events.toTypedArray())
 
         given(npgClient.getOrder(any(), any(), any()))
             .willReturn(buildOrderResponseDtoForNpgOrderVoid())
@@ -318,7 +313,7 @@ class TransactionInfoServiceTest {
 
         StepVerifier.create(transactionInfoService.getTransactionInfoDetails(baseTransaction))
             .expectErrorMatches {
-                it is RuntimeException &&
+                it is InvalidNpgOrderException &&
                     it.message ==
                         "Invalid operation retrived from gateway for transaction: ${TRANSACTION_ID}"
             }
@@ -332,7 +327,7 @@ class TransactionInfoServiceTest {
                 correlationId,
                 TransactionAuthorizationRequestData.PaymentGateway.NPG
             )
-        val baseTransaction = TransactionTestUtils.reduceEvents(*events.toTypedArray())
+        val baseTransaction = reduceEvents(*events.toTypedArray())
 
         given(checkPointer.success()).willReturn(Mono.empty())
         given(transactionEventRepository.findByTransactionIdOrderByCreationDateAsc(TRANSACTION_ID))
@@ -342,9 +337,8 @@ class TransactionInfoServiceTest {
 
         StepVerifier.create(transactionInfoService.getTransactionInfoDetails(baseTransaction))
             .expectErrorMatches {
-                it is RuntimeException &&
-                    it.message ==
-                        "No operations found for transaction with id: ${TransactionTestUtils.TRANSACTION_ID}"
+                it is NoOperationFoundException &&
+                    it.message == "No operations found for transaction with id: $TRANSACTION_ID"
             }
             .verify()
     }
@@ -374,7 +368,7 @@ class TransactionInfoServiceTest {
                     )
                 )
             )
-        val baseTransaction = TransactionTestUtils.reduceEvents(*events.toTypedArray())
+        val baseTransaction = reduceEvents(*events.toTypedArray())
 
         given(npgClient.getOrder(any(), any(), any()))
             .willReturn(buildOrderResponseDtoForNpgOrderRefunded())
@@ -384,7 +378,7 @@ class TransactionInfoServiceTest {
 
         StepVerifier.create(transactionInfoService.getTransactionInfoDetails(baseTransaction))
             .expectErrorMatches {
-                it is RuntimeException &&
+                it is NpgApiKeyConfigurationException &&
                     it.message ==
                         "Cannot retrieve api key for payment method: [CARDS]. Cause: Requested API key for PSP: [pspId2]. Available PSPs: [pspId]"
             }
@@ -398,7 +392,7 @@ class TransactionInfoServiceTest {
                 correlationId,
                 TransactionAuthorizationRequestData.PaymentGateway.NPG
             )
-        val baseTransaction = TransactionTestUtils.reduceEvents(*events.toTypedArray())
+        val baseTransaction = reduceEvents(*events.toTypedArray())
 
         given(npgClient.getOrder(any(), any(), any()))
             .willReturn(
@@ -417,7 +411,7 @@ class TransactionInfoServiceTest {
 
         StepVerifier.create(transactionInfoService.getTransactionInfoDetails(baseTransaction))
             .expectErrorMatches {
-                it is RuntimeException &&
+                it is NpgBadGatewayException &&
                     it.message ==
                         "Bad gateway : Received HTTP error code from NPG: 500 INTERNAL_SERVER_ERROR"
             }
@@ -431,7 +425,7 @@ class TransactionInfoServiceTest {
                 correlationId,
                 TransactionAuthorizationRequestData.PaymentGateway.NPG
             )
-        val baseTransaction = TransactionTestUtils.reduceEvents(*events.toTypedArray())
+        val baseTransaction = reduceEvents(*events.toTypedArray())
 
         given(npgClient.getOrder(any(), any(), any()))
             .willReturn(
@@ -450,9 +444,9 @@ class TransactionInfoServiceTest {
 
         StepVerifier.create(transactionInfoService.getTransactionInfoDetails(baseTransaction))
             .expectErrorMatches {
-                it is RuntimeException &&
+                it is NpgBadRequestException &&
                     it.message ==
-                        "Transaction with id ${TRANSACTION_ID} npg state cannot be retrieved. Reason: Received HTTP error code from NPG: 400 BAD_REQUEST"
+                        "Transaction with id $TRANSACTION_ID npg state cannot be retrieved. Reason: Received HTTP error code from NPG: 400 BAD_REQUEST"
             }
             .verify()
     }
@@ -465,7 +459,7 @@ class TransactionInfoServiceTest {
                 TransactionAuthorizationRequestData.PaymentGateway.NPG
             )
 
-        val baseTransaction = TransactionTestUtils.reduceEvents(*events.toTypedArray())
+        val baseTransaction = reduceEvents(*events.toTypedArray())
         val expected =
             transactionInfoService.baseTransactionToTransactionInfoDto(
                 baseTransaction,

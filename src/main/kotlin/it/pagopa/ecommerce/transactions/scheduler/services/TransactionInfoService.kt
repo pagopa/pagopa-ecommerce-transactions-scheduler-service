@@ -21,7 +21,9 @@ import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
 import it.pagopa.ecommerce.commons.utils.NpgApiKeyConfiguration
 import it.pagopa.ecommerce.commons.utils.v2.TransactionUtils.getTransactionFee
 import it.pagopa.ecommerce.transactions.scheduler.deadletter.CommonLogger
+import it.pagopa.ecommerce.transactions.scheduler.exceptions.*
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsEventStoreRepository
+import it.pagopa.ecommerce.transactions.scheduler.utils.*
 import java.util.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
@@ -193,14 +195,12 @@ class TransactionInfoService(
                                 }
                             }
                             ?: Mono.error(
-                                RuntimeException(
-                                    "No operations found for transaction with id: ${baseTransaction.transactionId.value()}"
-                                )
+                                NoOperationFoundException(baseTransaction.transactionId.value())
                             )
                     }
                     .handle { it, sink ->
-                        when {
-                            it is NgpOrderAuthorized ->
+                        when (it) {
+                            is NgpOrderAuthorized ->
                                 sink.next(
                                     DeadLetterNpgTransactionInfoDetailsData(
                                         it.authorization.operationResult,
@@ -208,7 +208,7 @@ class TransactionInfoService(
                                         correlationId
                                     )
                                 )
-                            it is NgpOrderNotAuthorized ->
+                            is NgpOrderNotAuthorized ->
                                 sink.next(
                                     DeadLetterNpgTransactionInfoDetailsData(
                                         it.operation.operationResult,
@@ -216,7 +216,7 @@ class TransactionInfoService(
                                         correlationId
                                     )
                                 )
-                            it is NpgOrderRefunded ->
+                            is NpgOrderRefunded ->
                                 sink.next(
                                     DeadLetterNpgTransactionInfoDetailsData(
                                         it.refundOperation.operationResult,
@@ -226,20 +226,13 @@ class TransactionInfoService(
                                 )
                             else ->
                                 sink.error(
-                                    RuntimeException(
-                                        "Invalid operation retrived from gateway for transaction: ${baseTransaction.transactionId.value()}"
-                                    )
+                                    InvalidNpgOrderException(baseTransaction.transactionId.value())
                                 )
                         }
                     }
             TransactionAuthorizationRequestData.PaymentGateway.REDIRECT ->
                 Mono.just(DeadLetterRedirectTransactionInfoDetailsData(""))
-            else ->
-                Mono.error(
-                    NullPointerException(
-                        "Transaction with id: ${baseTransaction.transactionId} has invalid gateway"
-                    )
-                )
+            else -> Mono.error(InvalidGatewayException(baseTransaction.transactionId.value()))
         }
     }
 
@@ -267,13 +260,10 @@ class TransactionInfoService(
                     val responseStatusCode = exception.statusCode
                     responseStatusCode
                         .map {
-                            val errorCodeReason = "Received HTTP error code from NPG: $it"
                             if (it.is5xxServerError) {
-                                RuntimeException("Bad gateway : $errorCodeReason")
+                                NpgBadGatewayException("$it")
                             } else {
-                                RuntimeException(
-                                    "Transaction with id ${transactionId.value()} npg state cannot be retrieved. Reason: $errorCodeReason"
-                                )
+                                NpgBadRequestException(transactionId.value(), "$it")
                             }
                         }
                         .orElse(exception)
