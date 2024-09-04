@@ -2,14 +2,11 @@ package it.pagopa.ecommerce.transactions.scheduler.deadletter
 
 import com.azure.spring.messaging.checkpoint.Checkpointer
 import it.pagopa.ecommerce.commons.documents.DeadLetterEvent
-import it.pagopa.ecommerce.commons.documents.v2.deadletter.DeadLetterNpgTransactionInfoDetailsData
-import it.pagopa.ecommerce.commons.generated.npg.v1.dto.OperationResultDto
 import it.pagopa.ecommerce.transactions.scheduler.TransactionSchedulerTestUtil
 import it.pagopa.ecommerce.transactions.scheduler.configurations.QueuesConsumerConfig
 import it.pagopa.ecommerce.transactions.scheduler.repositories.DeadLetterEventRepository
 import it.pagopa.ecommerce.transactions.scheduler.services.TransactionInfoService
 import java.nio.charset.StandardCharsets
-import java.util.*
 import kotlinx.coroutines.reactor.mono
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -34,12 +31,6 @@ class TransactionDeadLetterConsumerTest {
             transactionInfoService = transactionInfoService,
             strictSerializerProviderV2 = strictJsonSerializerProvider
         )
-    private val transactionInfoDetailsData =
-        DeadLetterNpgTransactionInfoDetailsData(
-            OperationResultDto.EXECUTED,
-            "operationId",
-            UUID.randomUUID().toString()
-        )
     @Test
     fun `Should dequeue event from dead letter successfully saving it into dead letter queue`() {
         val event = TransactionSchedulerTestUtil.getEventJsonString()
@@ -51,8 +42,6 @@ class TransactionDeadLetterConsumerTest {
         given(transactionInfoService.getTransactionInfoByTransactionId(any())).willAnswer {
             mono { TransactionSchedulerTestUtil.buildNpgTransactionInfo(it.arguments[0] as String) }
         }
-        given(transactionInfoService.getTransactionInfoDetails(any()))
-            .willReturn(Mono.just(transactionInfoDetailsData))
         StepVerifier.create(
                 transactionDeadLetterConsumer.messageReceiver(
                     payload = payload,
@@ -81,8 +70,6 @@ class TransactionDeadLetterConsumerTest {
         given(transactionInfoService.getTransactionInfoByTransactionId(any())).willAnswer {
             mono { TransactionSchedulerTestUtil.buildNpgTransactionInfo(it.arguments[0] as String) }
         }
-        given(transactionInfoService.getTransactionInfoDetails(any()))
-            .willReturn(Mono.just(transactionInfoDetailsData))
 
         StepVerifier.create(
                 transactionDeadLetterConsumer.messageReceiver(
@@ -110,8 +97,6 @@ class TransactionDeadLetterConsumerTest {
         given(transactionInfoService.getTransactionInfoByTransactionId(any())).willAnswer {
             mono { TransactionSchedulerTestUtil.buildNpgTransactionInfo(it.arguments[0] as String) }
         }
-        given(transactionInfoService.getTransactionInfoDetails(any()))
-            .willReturn(Mono.just(transactionInfoDetailsData))
         StepVerifier.create(
                 transactionDeadLetterConsumer.messageReceiver(
                     payload = payload,
@@ -139,8 +124,6 @@ class TransactionDeadLetterConsumerTest {
         given(transactionInfoService.getTransactionInfoByTransactionId(any())).willAnswer {
             mono { TransactionSchedulerTestUtil.buildNpgTransactionInfo(it.arguments[0] as String) }
         }
-        given(transactionInfoService.getTransactionInfoDetails(any()))
-            .willReturn(Mono.just(transactionInfoDetailsData))
         StepVerifier.create(
                 transactionDeadLetterConsumer.messageReceiver(
                     payload = payload,
