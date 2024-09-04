@@ -57,76 +57,90 @@ class TransactionInfoService(
             }
     }
 
-    fun getTransactionActivatedData(baseTransaction: BaseTransaction): TransactionActivatedData? =
-        if (baseTransaction is BaseTransactionWithPaymentToken) {
-            baseTransaction.transactionActivatedData
-        } else {
-            null
-        }
+fun getTransactionActivatedData(baseTransaction: BaseTransaction): TransactionActivatedData? =
+    if (baseTransaction is BaseTransactionWithPaymentToken) {
+        baseTransaction.transactionActivatedData
+    } else {
+        null
+    }
 
-    fun getTransactionFees(baseTransaction: BaseTransaction): Optional<Int> =
-        when (baseTransaction) {
-            is BaseTransactionExpired ->
-                getTransactionFee(baseTransaction.transactionAtPreviousState)
-            is BaseTransactionWithClosureError ->
-                getTransactionFee(baseTransaction.transactionAtPreviousState)
-            else -> getTransactionFee(baseTransaction)
-        }
+fun getTransactionFees(baseTransaction: BaseTransaction): Optional<Int> =
+    when (baseTransaction) {
+        is BaseTransactionExpired -> getTransactionFee(baseTransaction.transactionAtPreviousState)
+        is BaseTransactionWithClosureError ->
+            getTransactionFee(baseTransaction.transactionAtPreviousState)
+        else -> getTransactionFee(baseTransaction)
+    }
 
-    fun getTransactionAuthRequestedData(
-        baseTransaction: BaseTransaction
-    ): TransactionAuthorizationRequestData? =
-        when (baseTransaction) {
-            is BaseTransactionExpired ->
-                getTransactionAuthRequestedData(baseTransaction.transactionAtPreviousState)
-            is BaseTransactionWithClosureError ->
-                getTransactionAuthRequestedData(baseTransaction.transactionAtPreviousState)
-            is BaseTransactionWithRequestedAuthorization ->
-                baseTransaction.transactionAuthorizationRequestData
-            else -> null
-        }
+fun getTransactionAuthRequestedData(
+    baseTransaction: BaseTransaction
+): TransactionAuthorizationRequestData? =
+    when (baseTransaction) {
+        is BaseTransactionExpired ->
+            getTransactionAuthRequestedData(baseTransaction.transactionAtPreviousState)
+        is BaseTransactionWithClosureError ->
+            getTransactionAuthRequestedData(baseTransaction.transactionAtPreviousState)
+        is BaseTransactionWithRequestedAuthorization ->
+            baseTransaction.transactionAuthorizationRequestData
+        else -> null
+    }
 
-    fun getTransactionAuthCompletedData(
-        baseTransaction: BaseTransaction
-    ): TransactionAuthorizationCompletedData? =
-        when (baseTransaction) {
-            is BaseTransactionExpired ->
-                getTransactionAuthCompletedData(baseTransaction.transactionAtPreviousState)
-            is BaseTransactionWithClosureError ->
-                getTransactionAuthCompletedData(baseTransaction.transactionAtPreviousState)
-            is BaseTransactionWithRefundRequested ->
-                getTransactionAuthCompletedData(baseTransaction.transactionAtPreviousState)
-            is BaseTransactionWithCompletedAuthorization ->
-                baseTransaction.transactionAuthorizationCompletedData
-            else -> null
-        }
+fun getTransactionAuthCompletedData(
+    baseTransaction: BaseTransaction
+): TransactionAuthorizationCompletedData? =
+    when (baseTransaction) {
+        is BaseTransactionExpired ->
+            getTransactionAuthCompletedData(baseTransaction.transactionAtPreviousState)
+        is BaseTransactionWithClosureError ->
+            getTransactionAuthCompletedData(baseTransaction.transactionAtPreviousState)
+        is BaseTransactionWithRefundRequested ->
+            getTransactionAuthCompletedData(baseTransaction.transactionAtPreviousState)
+        is BaseTransactionWithCompletedAuthorization ->
+            baseTransaction.transactionAuthorizationCompletedData
+        else -> null
+    }
 
     fun baseTransactionToTransactionInfoDto(
         baseTransaction: BaseTransaction,
         details: DeadLetterTransactionInfoDetailsData
     ): DeadLetterTransactionInfo {
 
-        val amount = baseTransaction.paymentNotices.sumOf { it.transactionAmount.value }
-        val fee = getTransactionFees(baseTransaction).orElse(0)
-        val grandTotal = amount.plus(fee)
-        val transactionAuthorizationRequestData = getTransactionAuthRequestedData(baseTransaction)
-        val transactionAuthorizationCompletedData = getTransactionAuthCompletedData(baseTransaction)
+    val amount = baseTransaction.paymentNotices.sumOf { it.transactionAmount.value }
+    val fee = getTransactionFees(baseTransaction).orElse(0)
+    val grandTotal = amount.plus(fee)
+    val transactionActivatedData = getTransactionActivatedData(baseTransaction)
+    val transactionGatewayActivationData =
+        transactionActivatedData?.transactionGatewayActivationData
+    val transactionAuthorizationRequestData = getTransactionAuthRequestedData(baseTransaction)
+    val transactionAuthorizationCompletedData = getTransactionAuthCompletedData(baseTransaction)
 
-        val gateway = transactionAuthorizationRequestData?.paymentGateway
+    val gateway = transactionAuthorizationRequestData?.paymentGateway
+    val npgCorrelationId =
+        if (transactionGatewayActivationData is NpgTransactionGatewayActivationData)
+            UUID.fromString(transactionGatewayActivationData.correlationId)
+        else null
 
-        return DeadLetterTransactionInfo(
-            baseTransaction.transactionId.value(),
-            transactionAuthorizationRequestData?.authorizationRequestId,
-            TransactionStatusDto.valueOf(baseTransaction.status.toString()),
-            gateway,
-            baseTransaction.paymentNotices.map { it.paymentToken.value },
-            transactionAuthorizationRequestData?.pspId,
-            transactionAuthorizationRequestData?.paymentMethodName,
-            grandTotal,
-            transactionAuthorizationCompletedData?.rrn,
-            details
-        )
-    }
+    val details =
+        when (gateway) {
+            TransactionAuthorizationRequestData.PaymentGateway.NPG ->
+                DeadLetterNpgTransactionInfoDetailsData()
+            // TransactionAuthorizationRequestData.PaymentGateway.REDIRECT -> println("x is 1")
+            else -> null
+        }
+
+    return DeadLetterTransactionInfo(
+        baseTransaction.transactionId.value(),
+        transactionAuthorizationRequestData?.authorizationRequestId,
+        TransactionStatusDto.valueOf(baseTransaction.status.toString()),
+        gateway,
+        baseTransaction.paymentNotices.map { it.paymentToken.value },
+        transactionAuthorizationRequestData?.pspId,
+        transactionAuthorizationRequestData?.paymentMethodName,
+        grandTotal,
+        transactionAuthorizationCompletedData?.rrn,
+        details
+    )
+}
 
     fun getTransactionInfoDetails(
         baseTransaction: BaseTransaction

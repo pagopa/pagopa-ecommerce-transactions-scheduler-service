@@ -6,6 +6,8 @@ import it.pagopa.ecommerce.commons.documents.v2.deadletter.DeadLetterNpgTransact
 import it.pagopa.ecommerce.commons.generated.npg.v1.dto.OperationResultDto
 import it.pagopa.ecommerce.transactions.scheduler.TransactionSchedulerTestUtil
 import it.pagopa.ecommerce.transactions.scheduler.configurations.QueuesConsumerConfig
+import it.pagopa.ecommerce.transactions.scheduler.TransactionSchedulerTestUtil
+import it.pagopa.ecommerce.transactions.scheduler.configurations.QueuesConsumerConfig
 import it.pagopa.ecommerce.transactions.scheduler.repositories.DeadLetterEventRepository
 import it.pagopa.ecommerce.transactions.scheduler.services.TransactionInfoService
 import java.nio.charset.StandardCharsets
@@ -51,6 +53,7 @@ class NotificationDeadLetterConsumerTest {
         }
         given(transactionInfoService.getTransactionInfoByTransactionId(any())).willAnswer {
             mono { TransactionSchedulerTestUtil.buildNpgTransactionInfo(it.arguments[0] as String) }
+        }
         }
         given(transactionInfoService.getTransactionInfoDetails(any()))
             .willReturn(Mono.just(transactionInfoDetailsData))

@@ -21,6 +21,7 @@ import it.pagopa.ecommerce.commons.v2.TransactionTestUtils.TRANSACTION_ID
 import it.pagopa.ecommerce.transactions.scheduler.client.PaymentGatewayClient
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsEventStoreRepository
 import it.pagopa.ecommerce.transactions.scheduler.services.TransactionInfoService
+import it.pagopa.ecommerce.transactions.scheduler.services.baseTransactionToTransactionInfoDto
 import it.pagopa.ecommerce.transactions.scheduler.utils.OrderResponseBuilder.Companion.buildOrderResponseDtoForNgpOrderAuthorized
 import it.pagopa.ecommerce.transactions.scheduler.utils.OrderResponseBuilder.Companion.buildOrderResponseDtoForNgpOrderNotAuthorized
 import it.pagopa.ecommerce.transactions.scheduler.utils.OrderResponseBuilder.Companion.buildOrderResponseDtoForNpgOrderRefunded
@@ -118,8 +119,6 @@ class TransactionInfoServiceTest {
             npgApiKeyConfiguration = npgApiKeyConfiguration
         )
 
-    @BeforeEach fun init() {}
-
     @Test
     fun `Should process correctly the event into a transaction info`() {
 
@@ -192,6 +191,7 @@ class TransactionInfoServiceTest {
     fun `Should process the events when they contain refund requests`() {
         val orderId = "orderId"
         val refundOperationId = "refundOperationId"
+        val correlationId = UUID.randomUUID().toString()
 
         val transactionView =
             TransactionTestUtils.transactionDocument(
@@ -200,7 +200,7 @@ class TransactionInfoServiceTest {
             )
         val transactionActivatedEvent =
             TransactionTestUtils.transactionActivateEvent(
-                NpgTransactionGatewayActivationData(orderId, correlationId.toString())
+                NpgTransactionGatewayActivationData(orderId, correlationId)
             )
         val transactionAuthorizationRequestedEvent =
             TransactionTestUtils.transactionAuthorizationRequestedEvent(
