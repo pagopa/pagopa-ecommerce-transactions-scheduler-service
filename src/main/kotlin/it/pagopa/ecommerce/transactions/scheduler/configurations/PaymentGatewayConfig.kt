@@ -1,25 +1,23 @@
-package it.pagopa.ecommerce.transactions.scheduler.client
+package it.pagopa.ecommerce.transactions.scheduler.configurations
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.netty.channel.ChannelOption
 import io.netty.handler.timeout.ReadTimeoutHandler
 import io.opentelemetry.api.trace.Tracer
 import it.pagopa.ecommerce.commons.client.NpgClient
-import it.pagopa.ecommerce.commons.generated.npg.v1.ApiClient as NpgApiClient
+import it.pagopa.ecommerce.commons.generated.npg.v1.ApiClient
 import it.pagopa.ecommerce.commons.generated.npg.v1.api.PaymentServicesApi
-import java.util.*
 import java.util.concurrent.TimeUnit
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Configuration
 import org.springframework.http.client.reactive.ReactorClientHttpConnector
-import org.springframework.stereotype.Component
 import org.springframework.web.util.DefaultUriBuilderFactory
 import reactor.netty.Connection
 import reactor.netty.http.client.HttpClient
 
-@Component
-class PaymentGatewayClient() {
-
+@Configuration
+class PaymentGatewayConfig {
     @Bean(name = ["NpgApiWebClient"])
     fun npgApiWebClient(
         @Value("\${npg.uri}") npgClientUrl: String,
@@ -39,13 +37,13 @@ class PaymentGatewayClient() {
         defaultUriBuilderFactory.encodingMode = DefaultUriBuilderFactory.EncodingMode.NONE
 
         val webClient =
-            NpgApiClient.buildWebClientBuilder()
+            ApiClient.buildWebClientBuilder()
                 .clientConnector(ReactorClientHttpConnector(httpClient))
                 .uriBuilderFactory(defaultUriBuilderFactory)
                 .baseUrl(npgClientUrl)
                 .build()
 
-        return PaymentServicesApi(NpgApiClient(webClient).setBasePath(npgClientUrl))
+        return PaymentServicesApi(ApiClient(webClient).setBasePath(npgClientUrl))
     }
 
     @Bean

@@ -9,7 +9,6 @@ import it.pagopa.ecommerce.commons.documents.v2.*
 import it.pagopa.ecommerce.commons.documents.v2.activation.NpgTransactionGatewayActivationData
 import it.pagopa.ecommerce.commons.documents.v2.authorization.NpgTransactionGatewayAuthorizationRequestedData
 import it.pagopa.ecommerce.commons.documents.v2.deadletter.*
-import it.pagopa.ecommerce.commons.documents.v2.refund.NpgGatewayRefundData
 import it.pagopa.ecommerce.commons.exceptions.NpgResponseException
 import it.pagopa.ecommerce.commons.generated.npg.v1.dto.OperationResultDto
 import it.pagopa.ecommerce.commons.generated.npg.v1.dto.OrderResponseDto
@@ -18,21 +17,20 @@ import it.pagopa.ecommerce.commons.utils.NpgApiKeyConfiguration
 import it.pagopa.ecommerce.commons.v2.TransactionTestUtils
 import it.pagopa.ecommerce.commons.v2.TransactionTestUtils.AUTHORIZATION_REQUEST_ID
 import it.pagopa.ecommerce.commons.v2.TransactionTestUtils.TRANSACTION_ID
-import it.pagopa.ecommerce.transactions.scheduler.client.PaymentGatewayClient
+import it.pagopa.ecommerce.transactions.scheduler.configurations.PaymentGatewayConfig
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsEventStoreRepository
 import it.pagopa.ecommerce.transactions.scheduler.services.TransactionInfoService
-import it.pagopa.ecommerce.transactions.scheduler.services.baseTransactionToTransactionInfoDto
-import it.pagopa.ecommerce.transactions.scheduler.utils.OrderResponseBuilder.Companion.buildOrderResponseDtoForNgpOrderAuthorized
-import it.pagopa.ecommerce.transactions.scheduler.utils.OrderResponseBuilder.Companion.buildOrderResponseDtoForNgpOrderNotAuthorized
-import it.pagopa.ecommerce.transactions.scheduler.utils.OrderResponseBuilder.Companion.buildOrderResponseDtoForNpgOrderRefunded
-import it.pagopa.ecommerce.transactions.scheduler.utils.OrderResponseBuilder.Companion.buildOrderResponseDtoForNpgOrderRefundedFaulty
-import it.pagopa.ecommerce.transactions.scheduler.utils.OrderResponseBuilder.Companion.buildOrderResponseDtoForNpgOrderVoid
-import it.pagopa.ecommerce.transactions.scheduler.utils.OrderResponseBuilder.Companion.buildOrderResponseDtoInvalidOrder
-import it.pagopa.ecommerce.transactions.scheduler.utils.OrderResponseBuilder.Companion.buildOrderResponseDtoNullOperation
+import it.pagopa.ecommerce.transactions.scheduler.utils.TransactionInfoUtils
+import it.pagopa.ecommerce.transactions.scheduler.utils.TransactionInfoUtils.Companion.buildOrderResponseDtoForNgpOrderAuthorized
+import it.pagopa.ecommerce.transactions.scheduler.utils.TransactionInfoUtils.Companion.buildOrderResponseDtoForNgpOrderNotAuthorized
+import it.pagopa.ecommerce.transactions.scheduler.utils.TransactionInfoUtils.Companion.buildOrderResponseDtoForNpgOrderRefunded
+import it.pagopa.ecommerce.transactions.scheduler.utils.TransactionInfoUtils.Companion.buildOrderResponseDtoForNpgOrderRefundedFaulty
+import it.pagopa.ecommerce.transactions.scheduler.utils.TransactionInfoUtils.Companion.buildOrderResponseDtoForNpgOrderVoid
+import it.pagopa.ecommerce.transactions.scheduler.utils.TransactionInfoUtils.Companion.buildOrderResponseDtoInvalidOrder
+import it.pagopa.ecommerce.transactions.scheduler.utils.TransactionInfoUtils.Companion.buildOrderResponseDtoNullOperation
 import java.time.ZonedDateTime
 import java.util.*
 import java.util.stream.Stream
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
@@ -102,7 +100,7 @@ class TransactionInfoServiceTest {
             )
             .build()
     private val paymentServiceApi =
-        PaymentGatewayClient()
+        PaymentGatewayConfig()
             .npgApiWebClient(
                 npgClientUrl = "http://localhost:8080",
                 npgWebClientConnectionTimeout = 10000,
@@ -157,16 +155,7 @@ class TransactionInfoServiceTest {
             )
                 as List<TransactionEvent<Any>>
 
-        given(checkPointer.success()).willReturn(Mono.empty())
-        given(
-                transactionEventRepository.findByTransactionIdOrderByCreationDateAsc(
-                    transactionView.transactionId
-                )
-            )
-            .willReturn(Flux.fromIterable(events))
-
         val baseTransaction = TransactionTestUtils.reduceEvents(*events.toTypedArray())
-
         val expected =
             transactionInfoService.baseTransactionToTransactionInfoDto(
                 baseTransaction,
@@ -176,8 +165,18 @@ class TransactionInfoServiceTest {
                     correlationId
                 )
             )
+
+        given(checkPointer.success()).willReturn(Mono.empty())
+        given(
+                transactionEventRepository.findByTransactionIdOrderByCreationDateAsc(
+                    transactionView.transactionId
+                )
+            )
+            .willReturn(Flux.fromIterable(events))
+
         given(npgClient.getOrder(any(), any(), any()))
             .willReturn(buildOrderResponseDtoForNpgOrderRefunded())
+
         StepVerifier.create(
                 transactionInfoService.getTransactionInfoByTransactionId(
                     transactionView.transactionId
@@ -189,107 +188,29 @@ class TransactionInfoServiceTest {
 
     @Test
     fun `Should process the events when they contain refund requests`() {
-        val orderId = "orderId"
-        val refundOperationId = "refundOperationId"
-        val correlationId = UUID.randomUUID().toString()
-
-        val transactionView =
-            TransactionTestUtils.transactionDocument(
-                TransactionStatusDto.REFUNDED,
-                ZonedDateTime.now()
-            )
-        val transactionActivatedEvent =
-            TransactionTestUtils.transactionActivateEvent(
-                NpgTransactionGatewayActivationData(orderId, correlationId)
-            )
-        val transactionAuthorizationRequestedEvent =
-            TransactionTestUtils.transactionAuthorizationRequestedEvent(
+        val events =
+            TransactionInfoUtils.buildEventsList(
+                correlationId,
                 TransactionAuthorizationRequestData.PaymentGateway.NPG
             )
-
-        val transactionExpiredEvent =
-            TransactionTestUtils.transactionExpiredEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent
-                )
-            )
-        val transactionRefundRequestedEvent =
-            TransactionTestUtils.transactionRefundRequestedEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent,
-                    transactionExpiredEvent
-                ),
-                null // N.B.: Is null when getting error while retrieving authorization data from
-                // gateway
-                )
-        val transactionRefundErrorEvent =
-            TransactionTestUtils.transactionRefundErrorEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent,
-                    transactionExpiredEvent,
-                    transactionRefundRequestedEvent
-                )
-            )
-        val transactionRefundRetryEvent =
-            TransactionTestUtils.transactionRefundRetriedEvent(
-                1,
-                TransactionTestUtils.npgTransactionGatewayAuthorizationData(
-                    OperationResultDto.EXECUTED
-                )
-            )
-        val transactionRefundedEvent =
-            TransactionTestUtils.transactionRefundedEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent,
-                    transactionExpiredEvent,
-                    transactionRefundRequestedEvent,
-                    transactionRefundErrorEvent,
-                    transactionRefundRetryEvent
-                ),
-                NpgGatewayRefundData(refundOperationId)
-            )
-
-        val events =
-            listOf(
-                transactionActivatedEvent,
-                transactionAuthorizationRequestedEvent,
-                transactionExpiredEvent,
-                transactionRefundRequestedEvent,
-                transactionRefundErrorEvent,
-                transactionRefundRetryEvent,
-                transactionRefundedEvent
-            )
-                as List<TransactionEvent<Any>>
-
-        given(checkPointer.success()).willReturn(Mono.empty())
-        given(
-                transactionEventRepository.findByTransactionIdOrderByCreationDateAsc(
-                    transactionView.transactionId
-                )
-            )
-            .willReturn(Flux.fromIterable(events))
-
         val baseTransaction = TransactionTestUtils.reduceEvents(*events.toTypedArray())
-
         val expected =
             transactionInfoService.baseTransactionToTransactionInfoDto(
                 baseTransaction,
                 DeadLetterNpgTransactionInfoDetailsData(
                     OperationResultDto.VOIDED,
                     "operationId",
-                    Companion.correlationId
+                    correlationId
                 )
             )
+
         given(npgClient.getOrder(any(), any(), any()))
             .willReturn(buildOrderResponseDtoForNpgOrderRefunded())
+        given(checkPointer.success()).willReturn(Mono.empty())
+        given(transactionEventRepository.findByTransactionIdOrderByCreationDateAsc(TRANSACTION_ID))
+            .willReturn(Flux.fromIterable(events))
         StepVerifier.create(
-                transactionInfoService.getTransactionInfoByTransactionId(
-                    transactionView.transactionId
-                )
+                transactionInfoService.getTransactionInfoByTransactionId(TRANSACTION_ID)
             )
             .expectNext(expected)
             .verifyComplete()
@@ -302,90 +223,15 @@ class TransactionInfoServiceTest {
         orderResponseMock: Mono<OrderResponseDto>,
         detailsExpected: DeadLetterTransactionInfoDetailsData
     ) {
-        val orderId = "orderId"
-        val refundOperationId = "refundOperationId"
 
-        val transactionView =
-            TransactionTestUtils.transactionDocument(
-                TransactionStatusDto.REFUNDED,
-                ZonedDateTime.now()
-            )
-        val transactionActivatedEvent =
-            TransactionTestUtils.transactionActivateEvent(
-                NpgTransactionGatewayActivationData(orderId, correlationId.toString())
-            )
-        val transactionAuthorizationRequestedEvent =
-            TransactionTestUtils.transactionAuthorizationRequestedEvent(gateway)
-
-        val transactionExpiredEvent =
-            TransactionTestUtils.transactionExpiredEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent
-                )
-            )
-        val transactionRefundRequestedEvent =
-            TransactionTestUtils.transactionRefundRequestedEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent,
-                    transactionExpiredEvent
-                ),
-                null // N.B.: Is null when getting error while retrieving authorization data from
-                // gateway
-                )
-        val transactionRefundErrorEvent =
-            TransactionTestUtils.transactionRefundErrorEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent,
-                    transactionExpiredEvent,
-                    transactionRefundRequestedEvent
-                )
-            )
-        val transactionRefundRetryEvent =
-            TransactionTestUtils.transactionRefundRetriedEvent(
-                1,
-                TransactionTestUtils.npgTransactionGatewayAuthorizationData(
-                    OperationResultDto.EXECUTED
-                )
-            )
-        val transactionRefundedEvent =
-            TransactionTestUtils.transactionRefundedEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent,
-                    transactionExpiredEvent,
-                    transactionRefundRequestedEvent,
-                    transactionRefundErrorEvent,
-                    transactionRefundRetryEvent
-                ),
-                NpgGatewayRefundData(refundOperationId)
-            )
-
-        val events =
-            listOf(
-                transactionActivatedEvent,
-                transactionAuthorizationRequestedEvent,
-                transactionExpiredEvent,
-                transactionRefundRequestedEvent,
-                transactionRefundErrorEvent,
-                transactionRefundRetryEvent,
-                transactionRefundedEvent
-            )
-                as List<TransactionEvent<Any>>
-
-        given(checkPointer.success()).willReturn(Mono.empty())
-        given(
-                transactionEventRepository.findByTransactionIdOrderByCreationDateAsc(
-                    transactionView.transactionId
-                )
-            )
-            .willReturn(Flux.fromIterable(events))
-
+        val events = TransactionInfoUtils.buildEventsList(correlationId, gateway)
         val baseTransaction = TransactionTestUtils.reduceEvents(*events.toTypedArray())
 
+        given(checkPointer.success()).willReturn(Mono.empty())
+        given(transactionEventRepository.findByTransactionIdOrderByCreationDateAsc(TRANSACTION_ID))
+            .willReturn(Flux.fromIterable(events))
         given(npgClient.getOrder(any(), any(), any())).willReturn(orderResponseMock)
+
         StepVerifier.create(transactionInfoService.getTransactionInfoDetails(baseTransaction))
             .expectNext(detailsExpected)
             .verifyComplete()
@@ -393,90 +239,15 @@ class TransactionInfoServiceTest {
 
     @Test
     fun `Should throw error for gateway param null`() {
+        val events = TransactionInfoUtils.buildEventsList(correlationId)
+        val baseTransaction = TransactionTestUtils.reduceEvents(*events.toTypedArray())
+
         given(npgClient.getOrder(any(), any(), any()))
             .willReturn(buildOrderResponseDtoForNpgOrderRefunded())
-        val orderId = "orderId"
-        val refundOperationId = "refundOperationId"
-
-        val transactionView =
-            TransactionTestUtils.transactionDocument(
-                TransactionStatusDto.REFUNDED,
-                ZonedDateTime.now()
-            )
-        val transactionActivatedEvent =
-            TransactionTestUtils.transactionActivateEvent(
-                NpgTransactionGatewayActivationData(orderId, correlationId.toString())
-            )
-        val transactionAuthorizationRequestedEvent =
-            TransactionTestUtils.transactionAuthorizationRequestedEvent()
-
-        val transactionExpiredEvent =
-            TransactionTestUtils.transactionExpiredEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent
-                )
-            )
-        val transactionRefundRequestedEvent =
-            TransactionTestUtils.transactionRefundRequestedEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent,
-                    transactionExpiredEvent
-                ),
-                null // N.B.: Is null when getting error while retrieving authorization data from
-                // gateway
-                )
-        val transactionRefundErrorEvent =
-            TransactionTestUtils.transactionRefundErrorEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent,
-                    transactionExpiredEvent,
-                    transactionRefundRequestedEvent
-                )
-            )
-        val transactionRefundRetryEvent =
-            TransactionTestUtils.transactionRefundRetriedEvent(
-                1,
-                TransactionTestUtils.npgTransactionGatewayAuthorizationData(
-                    OperationResultDto.EXECUTED
-                )
-            )
-        val transactionRefundedEvent =
-            TransactionTestUtils.transactionRefundedEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent,
-                    transactionExpiredEvent,
-                    transactionRefundRequestedEvent,
-                    transactionRefundErrorEvent,
-                    transactionRefundRetryEvent
-                ),
-                NpgGatewayRefundData(refundOperationId)
-            )
-
-        val events =
-            listOf(
-                transactionActivatedEvent,
-                transactionAuthorizationRequestedEvent,
-                transactionExpiredEvent,
-                transactionRefundRequestedEvent,
-                transactionRefundErrorEvent,
-                transactionRefundRetryEvent,
-                transactionRefundedEvent
-            )
-                as List<TransactionEvent<Any>>
-
         given(checkPointer.success()).willReturn(Mono.empty())
-        given(
-                transactionEventRepository.findByTransactionIdOrderByCreationDateAsc(
-                    transactionView.transactionId
-                )
-            )
+        given(transactionEventRepository.findByTransactionIdOrderByCreationDateAsc(TRANSACTION_ID))
             .willReturn(Flux.fromIterable(events))
 
-        val baseTransaction = TransactionTestUtils.reduceEvents(*events.toTypedArray())
         StepVerifier.create(transactionInfoService.getTransactionInfoDetails(baseTransaction))
             .expectError(NullPointerException::class.java)
             .verify()
@@ -484,92 +255,18 @@ class TransactionInfoServiceTest {
 
     @Test
     fun `Should throw error for invalid order`() {
-        given(npgClient.getOrder(any(), any(), any()))
-            .willReturn(buildOrderResponseDtoInvalidOrder())
-        val orderId = "orderId"
-        val refundOperationId = "refundOperationId"
-
-        val transactionView =
-            TransactionTestUtils.transactionDocument(
-                TransactionStatusDto.REFUNDED,
-                ZonedDateTime.now()
-            )
-        val transactionActivatedEvent =
-            TransactionTestUtils.transactionActivateEvent(
-                NpgTransactionGatewayActivationData(orderId, correlationId.toString())
-            )
-        val transactionAuthorizationRequestedEvent =
-            TransactionTestUtils.transactionAuthorizationRequestedEvent(
+        val events =
+            TransactionInfoUtils.buildEventsList(
+                correlationId,
                 TransactionAuthorizationRequestData.PaymentGateway.NPG
             )
-
-        val transactionExpiredEvent =
-            TransactionTestUtils.transactionExpiredEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent
-                )
-            )
-        val transactionRefundRequestedEvent =
-            TransactionTestUtils.transactionRefundRequestedEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent,
-                    transactionExpiredEvent
-                ),
-                null // N.B.: Is null when getting error while retrieving authorization data from
-                // gateway
-                )
-        val transactionRefundErrorEvent =
-            TransactionTestUtils.transactionRefundErrorEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent,
-                    transactionExpiredEvent,
-                    transactionRefundRequestedEvent
-                )
-            )
-        val transactionRefundRetryEvent =
-            TransactionTestUtils.transactionRefundRetriedEvent(
-                1,
-                TransactionTestUtils.npgTransactionGatewayAuthorizationData(
-                    OperationResultDto.EXECUTED
-                )
-            )
-        val transactionRefundedEvent =
-            TransactionTestUtils.transactionRefundedEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent,
-                    transactionExpiredEvent,
-                    transactionRefundRequestedEvent,
-                    transactionRefundErrorEvent,
-                    transactionRefundRetryEvent
-                ),
-                NpgGatewayRefundData(refundOperationId)
-            )
-
-        val events =
-            listOf(
-                transactionActivatedEvent,
-                transactionAuthorizationRequestedEvent,
-                transactionExpiredEvent,
-                transactionRefundRequestedEvent,
-                transactionRefundErrorEvent,
-                transactionRefundRetryEvent,
-                transactionRefundedEvent
-            )
-                as List<TransactionEvent<Any>>
-
-        given(checkPointer.success()).willReturn(Mono.empty())
-        given(
-                transactionEventRepository.findByTransactionIdOrderByCreationDateAsc(
-                    transactionView.transactionId
-                )
-            )
-            .willReturn(Flux.fromIterable(events))
-
         val baseTransaction = TransactionTestUtils.reduceEvents(*events.toTypedArray())
+
+        given(npgClient.getOrder(any(), any(), any()))
+            .willReturn(buildOrderResponseDtoInvalidOrder())
+        given(checkPointer.success()).willReturn(Mono.empty())
+        given(transactionEventRepository.findByTransactionIdOrderByCreationDateAsc(TRANSACTION_ID))
+            .willReturn(Flux.fromIterable(events))
 
         StepVerifier.create(transactionInfoService.getTransactionInfoDetails(baseTransaction))
             .expectErrorMatches {
@@ -582,93 +279,18 @@ class TransactionInfoServiceTest {
 
     @Test
     fun `Should throw error for invalid order refound`() {
+        val events =
+            TransactionInfoUtils.buildEventsList(
+                correlationId,
+                TransactionAuthorizationRequestData.PaymentGateway.NPG
+            )
+        val baseTransaction = TransactionTestUtils.reduceEvents(*events.toTypedArray())
 
         given(npgClient.getOrder(any(), any(), any()))
             .willReturn(buildOrderResponseDtoForNpgOrderRefundedFaulty())
-        val orderId = "orderId"
-        val refundOperationId = "refundOperationId"
-
-        val transactionView =
-            TransactionTestUtils.transactionDocument(
-                TransactionStatusDto.REFUNDED,
-                ZonedDateTime.now()
-            )
-        val transactionActivatedEvent =
-            TransactionTestUtils.transactionActivateEvent(
-                NpgTransactionGatewayActivationData(orderId, correlationId.toString())
-            )
-        val transactionAuthorizationRequestedEvent =
-            TransactionTestUtils.transactionAuthorizationRequestedEvent(
-                TransactionAuthorizationRequestData.PaymentGateway.NPG
-            )
-
-        val transactionExpiredEvent =
-            TransactionTestUtils.transactionExpiredEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent
-                )
-            )
-        val transactionRefundRequestedEvent =
-            TransactionTestUtils.transactionRefundRequestedEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent,
-                    transactionExpiredEvent
-                ),
-                null // N.B.: Is null when getting error while retrieving authorization data from
-                // gateway
-                )
-        val transactionRefundErrorEvent =
-            TransactionTestUtils.transactionRefundErrorEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent,
-                    transactionExpiredEvent,
-                    transactionRefundRequestedEvent
-                )
-            )
-        val transactionRefundRetryEvent =
-            TransactionTestUtils.transactionRefundRetriedEvent(
-                1,
-                TransactionTestUtils.npgTransactionGatewayAuthorizationData(
-                    OperationResultDto.EXECUTED
-                )
-            )
-        val transactionRefundedEvent =
-            TransactionTestUtils.transactionRefundedEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent,
-                    transactionExpiredEvent,
-                    transactionRefundRequestedEvent,
-                    transactionRefundErrorEvent,
-                    transactionRefundRetryEvent
-                ),
-                NpgGatewayRefundData(refundOperationId)
-            )
-
-        val events =
-            listOf(
-                transactionActivatedEvent,
-                transactionAuthorizationRequestedEvent,
-                transactionExpiredEvent,
-                transactionRefundRequestedEvent,
-                transactionRefundErrorEvent,
-                transactionRefundRetryEvent,
-                transactionRefundedEvent
-            )
-                as List<TransactionEvent<Any>>
-
         given(checkPointer.success()).willReturn(Mono.empty())
-        given(
-                transactionEventRepository.findByTransactionIdOrderByCreationDateAsc(
-                    transactionView.transactionId
-                )
-            )
+        given(transactionEventRepository.findByTransactionIdOrderByCreationDateAsc(TRANSACTION_ID))
             .willReturn(Flux.fromIterable(events))
-
-        val baseTransaction = TransactionTestUtils.reduceEvents(*events.toTypedArray())
 
         StepVerifier.create(transactionInfoService.getTransactionInfoDetails(baseTransaction))
             .expectErrorMatches {
@@ -681,92 +303,18 @@ class TransactionInfoServiceTest {
 
     @Test
     fun `Should throw error for invalid order authorized`() {
-        given(npgClient.getOrder(any(), any(), any()))
-            .willReturn(buildOrderResponseDtoForNpgOrderVoid())
-        val orderId = "orderId"
-        val refundOperationId = "refundOperationId"
-
-        val transactionView =
-            TransactionTestUtils.transactionDocument(
-                TransactionStatusDto.REFUNDED,
-                ZonedDateTime.now()
-            )
-        val transactionActivatedEvent =
-            TransactionTestUtils.transactionActivateEvent(
-                NpgTransactionGatewayActivationData(orderId, correlationId.toString())
-            )
-        val transactionAuthorizationRequestedEvent =
-            TransactionTestUtils.transactionAuthorizationRequestedEvent(
+        val events =
+            TransactionInfoUtils.buildEventsList(
+                correlationId,
                 TransactionAuthorizationRequestData.PaymentGateway.NPG
             )
-
-        val transactionExpiredEvent =
-            TransactionTestUtils.transactionExpiredEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent
-                )
-            )
-        val transactionRefundRequestedEvent =
-            TransactionTestUtils.transactionRefundRequestedEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent,
-                    transactionExpiredEvent
-                ),
-                null // N.B.: Is null when getting error while retrieving authorization data from
-                // gateway
-                )
-        val transactionRefundErrorEvent =
-            TransactionTestUtils.transactionRefundErrorEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent,
-                    transactionExpiredEvent,
-                    transactionRefundRequestedEvent
-                )
-            )
-        val transactionRefundRetryEvent =
-            TransactionTestUtils.transactionRefundRetriedEvent(
-                1,
-                TransactionTestUtils.npgTransactionGatewayAuthorizationData(
-                    OperationResultDto.EXECUTED
-                )
-            )
-        val transactionRefundedEvent =
-            TransactionTestUtils.transactionRefundedEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent,
-                    transactionExpiredEvent,
-                    transactionRefundRequestedEvent,
-                    transactionRefundErrorEvent,
-                    transactionRefundRetryEvent
-                ),
-                NpgGatewayRefundData(refundOperationId)
-            )
-
-        val events =
-            listOf(
-                transactionActivatedEvent,
-                transactionAuthorizationRequestedEvent,
-                transactionExpiredEvent,
-                transactionRefundRequestedEvent,
-                transactionRefundErrorEvent,
-                transactionRefundRetryEvent,
-                transactionRefundedEvent
-            )
-                as List<TransactionEvent<Any>>
-
-        given(checkPointer.success()).willReturn(Mono.empty())
-        given(
-                transactionEventRepository.findByTransactionIdOrderByCreationDateAsc(
-                    transactionView.transactionId
-                )
-            )
-            .willReturn(Flux.fromIterable(events))
-
         val baseTransaction = TransactionTestUtils.reduceEvents(*events.toTypedArray())
+
+        given(npgClient.getOrder(any(), any(), any()))
+            .willReturn(buildOrderResponseDtoForNpgOrderVoid())
+        given(checkPointer.success()).willReturn(Mono.empty())
+        given(transactionEventRepository.findByTransactionIdOrderByCreationDateAsc(TRANSACTION_ID))
+            .willReturn(Flux.fromIterable(events))
 
         StepVerifier.create(transactionInfoService.getTransactionInfoDetails(baseTransaction))
             .expectErrorMatches {
@@ -779,92 +327,18 @@ class TransactionInfoServiceTest {
 
     @Test
     fun `Should throw error for null operations`() {
-        given(npgClient.getOrder(any(), any(), any()))
-            .willReturn(buildOrderResponseDtoNullOperation())
-        val orderId = "orderId"
-        val refundOperationId = "refundOperationId"
-
-        val transactionView =
-            TransactionTestUtils.transactionDocument(
-                TransactionStatusDto.REFUNDED,
-                ZonedDateTime.now()
-            )
-        val transactionActivatedEvent =
-            TransactionTestUtils.transactionActivateEvent(
-                NpgTransactionGatewayActivationData(orderId, correlationId.toString())
-            )
-        val transactionAuthorizationRequestedEvent =
-            TransactionTestUtils.transactionAuthorizationRequestedEvent(
+        val events =
+            TransactionInfoUtils.buildEventsList(
+                correlationId,
                 TransactionAuthorizationRequestData.PaymentGateway.NPG
             )
-
-        val transactionExpiredEvent =
-            TransactionTestUtils.transactionExpiredEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent
-                )
-            )
-        val transactionRefundRequestedEvent =
-            TransactionTestUtils.transactionRefundRequestedEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent,
-                    transactionExpiredEvent
-                ),
-                null // N.B.: Is null when getting error while retrieving authorization data from
-                // gateway
-                )
-        val transactionRefundErrorEvent =
-            TransactionTestUtils.transactionRefundErrorEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent,
-                    transactionExpiredEvent,
-                    transactionRefundRequestedEvent
-                )
-            )
-        val transactionRefundRetryEvent =
-            TransactionTestUtils.transactionRefundRetriedEvent(
-                1,
-                TransactionTestUtils.npgTransactionGatewayAuthorizationData(
-                    OperationResultDto.EXECUTED
-                )
-            )
-        val transactionRefundedEvent =
-            TransactionTestUtils.transactionRefundedEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent,
-                    transactionExpiredEvent,
-                    transactionRefundRequestedEvent,
-                    transactionRefundErrorEvent,
-                    transactionRefundRetryEvent
-                ),
-                NpgGatewayRefundData(refundOperationId)
-            )
-
-        val events =
-            listOf(
-                transactionActivatedEvent,
-                transactionAuthorizationRequestedEvent,
-                transactionExpiredEvent,
-                transactionRefundRequestedEvent,
-                transactionRefundErrorEvent,
-                transactionRefundRetryEvent,
-                transactionRefundedEvent
-            )
-                as List<TransactionEvent<Any>>
+        val baseTransaction = TransactionTestUtils.reduceEvents(*events.toTypedArray())
 
         given(checkPointer.success()).willReturn(Mono.empty())
-        given(
-                transactionEventRepository.findByTransactionIdOrderByCreationDateAsc(
-                    transactionView.transactionId
-                )
-            )
+        given(transactionEventRepository.findByTransactionIdOrderByCreationDateAsc(TRANSACTION_ID))
             .willReturn(Flux.fromIterable(events))
-
-        val baseTransaction = TransactionTestUtils.reduceEvents(*events.toTypedArray())
+        given(npgClient.getOrder(any(), any(), any()))
+            .willReturn(buildOrderResponseDtoNullOperation())
 
         StepVerifier.create(transactionInfoService.getTransactionInfoDetails(baseTransaction))
             .expectErrorMatches {
@@ -877,108 +351,36 @@ class TransactionInfoServiceTest {
 
     @Test
     fun `Should throw error for wrong pspId`() {
+        val events =
+            TransactionInfoUtils.buildEventsList(
+                correlationId,
+                TransactionAuthorizationRequestedEvent(
+                    TRANSACTION_ID,
+                    TransactionAuthorizationRequestData(
+                        100,
+                        10,
+                        "paymentInstrumentId",
+                        "pspId2",
+                        "CP",
+                        "brokerName",
+                        "pspChannelCode",
+                        "CARDS",
+                        "pspBusinessName",
+                        false,
+                        AUTHORIZATION_REQUEST_ID,
+                        TransactionAuthorizationRequestData.PaymentGateway.NPG,
+                        "paymentMethodDescription",
+                        NpgTransactionGatewayAuthorizationRequestedData()
+                    )
+                )
+            )
+        val baseTransaction = TransactionTestUtils.reduceEvents(*events.toTypedArray())
+
         given(npgClient.getOrder(any(), any(), any()))
             .willReturn(buildOrderResponseDtoForNpgOrderRefunded())
-        val orderId = "orderId"
-        val refundOperationId = "refundOperationId"
-
-        val transactionView =
-            TransactionTestUtils.transactionDocument(
-                TransactionStatusDto.REFUNDED,
-                ZonedDateTime.now()
-            )
-        val transactionActivatedEvent =
-            TransactionTestUtils.transactionActivateEvent(
-                NpgTransactionGatewayActivationData(orderId, correlationId.toString())
-            )
-        val transactionAuthorizationRequestedEvent =
-            TransactionAuthorizationRequestedEvent(
-                TRANSACTION_ID,
-                TransactionAuthorizationRequestData(
-                    100,
-                    10,
-                    "paymentInstrumentId",
-                    "pspId2",
-                    "CP",
-                    "brokerName",
-                    "pspChannelCode",
-                    "CARDS",
-                    "pspBusinessName",
-                    false,
-                    AUTHORIZATION_REQUEST_ID,
-                    TransactionAuthorizationRequestData.PaymentGateway.NPG,
-                    "paymentMethodDescription",
-                    NpgTransactionGatewayAuthorizationRequestedData()
-                )
-            )
-
-        val transactionExpiredEvent =
-            TransactionTestUtils.transactionExpiredEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent
-                )
-            )
-        val transactionRefundRequestedEvent =
-            TransactionTestUtils.transactionRefundRequestedEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent,
-                    transactionExpiredEvent
-                ),
-                null // N.B.: Is null when getting error while retrieving authorization data from
-                // gateway
-                )
-        val transactionRefundErrorEvent =
-            TransactionTestUtils.transactionRefundErrorEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent,
-                    transactionExpiredEvent,
-                    transactionRefundRequestedEvent
-                )
-            )
-        val transactionRefundRetryEvent =
-            TransactionTestUtils.transactionRefundRetriedEvent(
-                1,
-                TransactionTestUtils.npgTransactionGatewayAuthorizationData(
-                    OperationResultDto.EXECUTED
-                )
-            )
-        val transactionRefundedEvent =
-            TransactionTestUtils.transactionRefundedEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent,
-                    transactionExpiredEvent,
-                    transactionRefundRequestedEvent,
-                    transactionRefundErrorEvent,
-                    transactionRefundRetryEvent
-                ),
-                NpgGatewayRefundData(refundOperationId)
-            )
-
-        val events =
-            listOf(
-                transactionActivatedEvent,
-                transactionAuthorizationRequestedEvent,
-                transactionExpiredEvent,
-                transactionRefundRequestedEvent,
-                transactionRefundErrorEvent,
-                transactionRefundRetryEvent,
-                transactionRefundedEvent
-            )
-                as List<TransactionEvent<Any>>
-
         given(checkPointer.success()).willReturn(Mono.empty())
-        given(
-                transactionEventRepository.findByTransactionIdOrderByCreationDateAsc(
-                    transactionView.transactionId
-                )
-            )
+        given(transactionEventRepository.findByTransactionIdOrderByCreationDateAsc(TRANSACTION_ID))
             .willReturn(Flux.fromIterable(events))
-
-        val baseTransaction = TransactionTestUtils.reduceEvents(*events.toTypedArray())
 
         StepVerifier.create(transactionInfoService.getTransactionInfoDetails(baseTransaction))
             .expectErrorMatches {
@@ -991,6 +393,12 @@ class TransactionInfoServiceTest {
 
     @Test
     fun `Should throw error when getOrder call fails - is5xxServerError is true`() {
+        val events =
+            TransactionInfoUtils.buildEventsList(
+                correlationId,
+                TransactionAuthorizationRequestData.PaymentGateway.NPG
+            )
+        val baseTransaction = TransactionTestUtils.reduceEvents(*events.toTypedArray())
 
         given(npgClient.getOrder(any(), any(), any()))
             .willReturn(
@@ -1003,90 +411,9 @@ class TransactionInfoServiceTest {
                     )
                 )
             )
-        val orderId = "orderId"
-        val refundOperationId = "refundOperationId"
-
-        val transactionView =
-            TransactionTestUtils.transactionDocument(
-                TransactionStatusDto.REFUNDED,
-                ZonedDateTime.now()
-            )
-        val transactionActivatedEvent =
-            TransactionTestUtils.transactionActivateEvent(
-                NpgTransactionGatewayActivationData(orderId, correlationId.toString())
-            )
-        val transactionAuthorizationRequestedEvent =
-            TransactionTestUtils.transactionAuthorizationRequestedEvent(
-                TransactionAuthorizationRequestData.PaymentGateway.NPG
-            )
-
-        val transactionExpiredEvent =
-            TransactionTestUtils.transactionExpiredEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent
-                )
-            )
-        val transactionRefundRequestedEvent =
-            TransactionTestUtils.transactionRefundRequestedEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent,
-                    transactionExpiredEvent
-                ),
-                null // N.B.: Is null when getting error while retrieving authorization data from
-                // gateway
-                )
-        val transactionRefundErrorEvent =
-            TransactionTestUtils.transactionRefundErrorEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent,
-                    transactionExpiredEvent,
-                    transactionRefundRequestedEvent
-                )
-            )
-        val transactionRefundRetryEvent =
-            TransactionTestUtils.transactionRefundRetriedEvent(
-                1,
-                TransactionTestUtils.npgTransactionGatewayAuthorizationData(
-                    OperationResultDto.EXECUTED
-                )
-            )
-        val transactionRefundedEvent =
-            TransactionTestUtils.transactionRefundedEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent,
-                    transactionExpiredEvent,
-                    transactionRefundRequestedEvent,
-                    transactionRefundErrorEvent,
-                    transactionRefundRetryEvent
-                ),
-                NpgGatewayRefundData(refundOperationId)
-            )
-
-        val events =
-            listOf(
-                transactionActivatedEvent,
-                transactionAuthorizationRequestedEvent,
-                transactionExpiredEvent,
-                transactionRefundRequestedEvent,
-                transactionRefundErrorEvent,
-                transactionRefundRetryEvent,
-                transactionRefundedEvent
-            )
-                as List<TransactionEvent<Any>>
-
         given(checkPointer.success()).willReturn(Mono.empty())
-        given(
-                transactionEventRepository.findByTransactionIdOrderByCreationDateAsc(
-                    transactionView.transactionId
-                )
-            )
+        given(transactionEventRepository.findByTransactionIdOrderByCreationDateAsc(TRANSACTION_ID))
             .willReturn(Flux.fromIterable(events))
-
-        val baseTransaction = TransactionTestUtils.reduceEvents(*events.toTypedArray())
 
         StepVerifier.create(transactionInfoService.getTransactionInfoDetails(baseTransaction))
             .expectErrorMatches {
@@ -1099,6 +426,12 @@ class TransactionInfoServiceTest {
 
     @Test
     fun `Should throw error when getOrder call fails - is5xxServerError is false`() {
+        val events =
+            TransactionInfoUtils.buildEventsList(
+                correlationId,
+                TransactionAuthorizationRequestData.PaymentGateway.NPG
+            )
+        val baseTransaction = TransactionTestUtils.reduceEvents(*events.toTypedArray())
 
         given(npgClient.getOrder(any(), any(), any()))
             .willReturn(
@@ -1111,97 +444,53 @@ class TransactionInfoServiceTest {
                     )
                 )
             )
-        val orderId = "orderId"
-        val refundOperationId = "refundOperationId"
-
-        val transactionView =
-            TransactionTestUtils.transactionDocument(
-                TransactionStatusDto.REFUNDED,
-                ZonedDateTime.now()
-            )
-        val transactionActivatedEvent =
-            TransactionTestUtils.transactionActivateEvent(
-                NpgTransactionGatewayActivationData(orderId, correlationId.toString())
-            )
-        val transactionAuthorizationRequestedEvent =
-            TransactionTestUtils.transactionAuthorizationRequestedEvent(
-                TransactionAuthorizationRequestData.PaymentGateway.NPG
-            )
-
-        val transactionExpiredEvent =
-            TransactionTestUtils.transactionExpiredEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent
-                )
-            )
-        val transactionRefundRequestedEvent =
-            TransactionTestUtils.transactionRefundRequestedEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent,
-                    transactionExpiredEvent
-                ),
-                null // N.B.: Is null when getting error while retrieving authorization data from
-                // gateway
-                )
-        val transactionRefundErrorEvent =
-            TransactionTestUtils.transactionRefundErrorEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent,
-                    transactionExpiredEvent,
-                    transactionRefundRequestedEvent
-                )
-            )
-        val transactionRefundRetryEvent =
-            TransactionTestUtils.transactionRefundRetriedEvent(
-                1,
-                TransactionTestUtils.npgTransactionGatewayAuthorizationData(
-                    OperationResultDto.EXECUTED
-                )
-            )
-        val transactionRefundedEvent =
-            TransactionTestUtils.transactionRefundedEvent(
-                TransactionTestUtils.reduceEvents(
-                    transactionActivatedEvent,
-                    transactionAuthorizationRequestedEvent,
-                    transactionExpiredEvent,
-                    transactionRefundRequestedEvent,
-                    transactionRefundErrorEvent,
-                    transactionRefundRetryEvent
-                ),
-                NpgGatewayRefundData(refundOperationId)
-            )
-
-        val events =
-            listOf(
-                transactionActivatedEvent,
-                transactionAuthorizationRequestedEvent,
-                transactionExpiredEvent,
-                transactionRefundRequestedEvent,
-                transactionRefundErrorEvent,
-                transactionRefundRetryEvent,
-                transactionRefundedEvent
-            )
-                as List<TransactionEvent<Any>>
-
         given(checkPointer.success()).willReturn(Mono.empty())
-        given(
-                transactionEventRepository.findByTransactionIdOrderByCreationDateAsc(
-                    transactionView.transactionId
-                )
-            )
+        given(transactionEventRepository.findByTransactionIdOrderByCreationDateAsc(TRANSACTION_ID))
             .willReturn(Flux.fromIterable(events))
-
-        val baseTransaction = TransactionTestUtils.reduceEvents(*events.toTypedArray())
 
         StepVerifier.create(transactionInfoService.getTransactionInfoDetails(baseTransaction))
             .expectErrorMatches {
                 it is RuntimeException &&
                     it.message ==
-                        "Transaction with id ${TransactionTestUtils.TRANSACTION_ID} npg state cannot be retrieved. Reason: Received HTTP error code from NPG: 400 BAD_REQUEST"
+                        "Transaction with id ${TRANSACTION_ID} npg state cannot be retrieved. Reason: Received HTTP error code from NPG: 400 BAD_REQUEST"
             }
             .verify()
+    }
+
+    @Test
+    fun `Should return empty data details when getOrder call fails`() {
+        val events =
+            TransactionInfoUtils.buildEventsList(
+                correlationId,
+                TransactionAuthorizationRequestData.PaymentGateway.NPG
+            )
+
+        val baseTransaction = TransactionTestUtils.reduceEvents(*events.toTypedArray())
+        val expected =
+            transactionInfoService.baseTransactionToTransactionInfoDto(
+                baseTransaction,
+                DeadLetterNpgTransactionInfoDetailsData()
+            )
+
+        given(npgClient.getOrder(any(), any(), any()))
+            .willReturn(
+                Mono.error(
+                    NpgResponseException(
+                        "error",
+                        emptyList(),
+                        Optional.of(HttpStatus.INTERNAL_SERVER_ERROR),
+                        RuntimeException()
+                    )
+                )
+            )
+        given(checkPointer.success()).willReturn(Mono.empty())
+        given(transactionEventRepository.findByTransactionIdOrderByCreationDateAsc(TRANSACTION_ID))
+            .willReturn(Flux.fromIterable(events))
+
+        StepVerifier.create(
+                transactionInfoService.getTransactionInfoByTransactionId(TRANSACTION_ID)
+            )
+            .expectNext(expected)
+            .verifyComplete()
     }
 }
