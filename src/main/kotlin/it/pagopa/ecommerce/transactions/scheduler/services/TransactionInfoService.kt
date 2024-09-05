@@ -57,6 +57,9 @@ class TransactionInfoService(
                     .flatMap { details ->
                         Mono.just(baseTransactionToTransactionInfoDto(baseTransaction, details))
                     }
+                    .doOnError { exception ->
+                        CommonLogger.logger.error("Error performing get transactionInfoDetails", exception)
+                    }
                     .onErrorResume {
                         Mono.just(
                             baseTransactionToTransactionInfoDto(
