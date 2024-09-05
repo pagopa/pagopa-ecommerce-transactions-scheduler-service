@@ -31,7 +31,6 @@ class TransactionDeadLetterConsumerTest {
             transactionInfoService = transactionInfoService,
             strictSerializerProviderV2 = strictJsonSerializerProvider
         )
-
     @Test
     fun `Should dequeue event from dead letter successfully saving it into dead letter queue`() {
         val event = TransactionSchedulerTestUtil.getEventJsonString()
@@ -71,6 +70,7 @@ class TransactionDeadLetterConsumerTest {
         given(transactionInfoService.getTransactionInfoByTransactionId(any())).willAnswer {
             mono { TransactionSchedulerTestUtil.buildNpgTransactionInfo(it.arguments[0] as String) }
         }
+
         StepVerifier.create(
                 transactionDeadLetterConsumer.messageReceiver(
                     payload = payload,

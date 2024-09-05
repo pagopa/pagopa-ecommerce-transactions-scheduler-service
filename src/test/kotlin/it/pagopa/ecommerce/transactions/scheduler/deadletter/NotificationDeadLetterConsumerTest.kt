@@ -43,6 +43,7 @@ class NotificationDeadLetterConsumerTest {
         given(transactionInfoService.getTransactionInfoByTransactionId(any())).willAnswer {
             mono { TransactionSchedulerTestUtil.buildNpgTransactionInfo(it.arguments[0] as String) }
         }
+
         StepVerifier.create(
                 notificationDeadLetterConsumer.messageReceiver(
                     payload = payload,
@@ -71,6 +72,7 @@ class NotificationDeadLetterConsumerTest {
         given(transactionInfoService.getTransactionInfoByTransactionId(any())).willAnswer {
             mono { TransactionSchedulerTestUtil.buildNpgTransactionInfo(it.arguments[0] as String) }
         }
+
         StepVerifier.create(
                 notificationDeadLetterConsumer.messageReceiver(
                     payload = payload,
@@ -97,6 +99,7 @@ class NotificationDeadLetterConsumerTest {
         given(transactionInfoService.getTransactionInfoByTransactionId(any())).willAnswer {
             mono { TransactionSchedulerTestUtil.buildNpgTransactionInfo(it.arguments[0] as String) }
         }
+
         StepVerifier.create(
                 notificationDeadLetterConsumer.messageReceiver(
                     payload = payload,
@@ -124,6 +127,7 @@ class NotificationDeadLetterConsumerTest {
         given(transactionInfoService.getTransactionInfoByTransactionId(any())).willAnswer {
             mono { TransactionSchedulerTestUtil.buildNpgTransactionInfo(it.arguments[0] as String) }
         }
+
         StepVerifier.create(
                 notificationDeadLetterConsumer.messageReceiver(
                     payload = payload,
