@@ -169,7 +169,7 @@ microservice-chart:
     NPG_MYBANK_PSP_LIST: "BCITITMM,UNCRITMM"
     NPG_BANCOMATPAY_PSP_LIST: "BCITITMM"
     NPG_SATISPAY_PSP_LIST: "SATYLUL1"
-    NPG_APPLEPAY_PSP_LIST: "SIGPITM1XXX"
+    NPG_APPLEPAY_PSP_LIST: ""
   envSecret:
     MONGO_PASSWORD: mongo-ecommerce-password
     QUEUE_TRANSIENT_CONNECTION_STRING: ecommerce-storage-transient-connection-string
