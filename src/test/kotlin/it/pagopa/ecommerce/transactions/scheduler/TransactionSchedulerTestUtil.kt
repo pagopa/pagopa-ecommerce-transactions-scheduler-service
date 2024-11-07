@@ -23,7 +23,8 @@ object TransactionSchedulerTestUtil {
             DeadLetterNpgTransactionInfoDetailsData(
                 OperationResultDto.EXECUTED,
                 "id",
-                UUID.randomUUID().toString()
+                UUID.randomUUID().toString(),
+                UUID.randomUUID().toString(),
             )
         )
 

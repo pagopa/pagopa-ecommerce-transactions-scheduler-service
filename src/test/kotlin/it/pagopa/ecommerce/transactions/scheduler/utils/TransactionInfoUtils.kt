@@ -21,6 +21,7 @@ class TransactionInfoUtils {
             val orderResponseDto = OrderResponseDto()
             val operationDto = OperationDto()
             operationDto.operationId = "operationId"
+            operationDto.paymentEndToEndId = "paymentEndToEndId"
             operationDto.operationType = OperationTypeDto.AUTHORIZATION
             operationDto.operationResult = OperationResultDto.FAILED
             orderResponseDto.operations = listOf(operationDto)
@@ -30,6 +31,7 @@ class TransactionInfoUtils {
             val orderResponseDto = OrderResponseDto()
             val operationDto = OperationDto()
             operationDto.operationId = "operationId"
+            operationDto.paymentEndToEndId = "paymentEndToEndId"
             operationDto.operationType = OperationTypeDto.AUTHORIZATION
             operationDto.operationResult = OperationResultDto.EXECUTED
             orderResponseDto.operations = listOf(operationDto)
@@ -39,6 +41,7 @@ class TransactionInfoUtils {
             val orderResponseDto = OrderResponseDto()
             val operationDto = OperationDto()
             operationDto.operationId = "operationId"
+            operationDto.paymentEndToEndId = "paymentEndToEndId"
             operationDto.operationType = OperationTypeDto.VOID
             operationDto.operationResult = OperationResultDto.VOIDED
             orderResponseDto.operations = listOf(operationDto)
@@ -48,6 +51,7 @@ class TransactionInfoUtils {
             val orderResponseDto = OrderResponseDto()
             val operationDto = OperationDto()
             operationDto.operationId = "operationId"
+            operationDto.paymentEndToEndId = "paymentEndToEndId"
             operationDto.operationType = OperationTypeDto.REFUND
             operationDto.operationResult = OperationResultDto.VOIDED
             orderResponseDto.operations = listOf(operationDto)
@@ -57,6 +61,7 @@ class TransactionInfoUtils {
             val orderResponseDto = OrderResponseDto()
             val operationDto = OperationDto()
             operationDto.operationId = "operationId"
+            operationDto.paymentEndToEndId = "paymentEndToEndId"
             operationDto.operationType = OperationTypeDto.REFUND
             operationDto.operationResult = OperationResultDto.EXECUTED
             orderResponseDto.operations = listOf(operationDto)

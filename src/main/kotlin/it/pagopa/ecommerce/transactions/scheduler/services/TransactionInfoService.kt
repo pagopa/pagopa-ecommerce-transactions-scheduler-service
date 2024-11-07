@@ -211,7 +211,8 @@ class TransactionInfoService(
                                     DeadLetterNpgTransactionInfoDetailsData(
                                         it.authorization.operationResult,
                                         it.authorization.operationId,
-                                        correlationId
+                                        correlationId,
+                                        it.authorization.paymentEndToEndId
                                     )
                                 )
                             is NgpOrderNotAuthorized ->
@@ -219,7 +220,8 @@ class TransactionInfoService(
                                     DeadLetterNpgTransactionInfoDetailsData(
                                         it.operation.operationResult,
                                         it.operation.operationId,
-                                        correlationId
+                                        correlationId,
+                                        it.operation.paymentEndToEndId
                                     )
                                 )
                             is NpgOrderRefunded ->
@@ -227,7 +229,8 @@ class TransactionInfoService(
                                     DeadLetterNpgTransactionInfoDetailsData(
                                         it.refundOperation.operationResult,
                                         it.refundOperation.operationId,
-                                        correlationId
+                                        correlationId,
+                                        it.refundOperation.paymentEndToEndId
                                     )
                                 )
                             else ->

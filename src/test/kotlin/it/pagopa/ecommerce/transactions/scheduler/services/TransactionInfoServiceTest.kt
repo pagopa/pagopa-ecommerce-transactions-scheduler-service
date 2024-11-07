@@ -44,6 +44,8 @@ class TransactionInfoServiceTest {
 
     companion object {
         private val correlationId = UUID.randomUUID().toString()
+        private val paymentEndToEndId = "paymentEndToEndId"
+        private val operationId = "operationId"
 
         @JvmStatic
         private fun retriverArgsTest() =
@@ -53,8 +55,9 @@ class TransactionInfoServiceTest {
                     buildOrderResponseDtoForNgpOrderNotAuthorized(),
                     DeadLetterNpgTransactionInfoDetailsData(
                         OperationResultDto.FAILED,
-                        "operationId",
-                        correlationId
+                        operationId,
+                        correlationId,
+                        paymentEndToEndId
                     )
                 ),
                 Arguments.of(
@@ -62,8 +65,9 @@ class TransactionInfoServiceTest {
                     buildOrderResponseDtoForNgpOrderAuthorized(),
                     DeadLetterNpgTransactionInfoDetailsData(
                         OperationResultDto.EXECUTED,
-                        "operationId",
-                        correlationId
+                        operationId,
+                        correlationId,
+                        paymentEndToEndId
                     )
                 ),
                 Arguments.of(
@@ -71,8 +75,9 @@ class TransactionInfoServiceTest {
                     buildOrderResponseDtoForNpgOrderRefunded(),
                     DeadLetterNpgTransactionInfoDetailsData(
                         OperationResultDto.VOIDED,
-                        "operationId",
-                        correlationId
+                        operationId,
+                        correlationId,
+                        paymentEndToEndId
                     )
                 ),
                 Arguments.of(
@@ -125,9 +130,7 @@ class TransactionInfoServiceTest {
         val transactionUserReceiptData =
             transactionUserReceiptData(TransactionUserReceiptData.Outcome.OK)
         val transactionActivatedEvent =
-            transactionActivateEvent(
-                NpgTransactionGatewayActivationData("orderId", correlationId.toString())
-            )
+            transactionActivateEvent(NpgTransactionGatewayActivationData("orderId", correlationId))
         val authorizationRequestedEvent =
             transactionAuthorizationRequestedEvent(
                 TransactionAuthorizationRequestData.PaymentGateway.NPG
@@ -153,8 +156,9 @@ class TransactionInfoServiceTest {
                 baseTransaction,
                 DeadLetterNpgTransactionInfoDetailsData(
                     OperationResultDto.VOIDED,
-                    "operationId",
-                    correlationId
+                    operationId,
+                    correlationId,
+                    paymentEndToEndId
                 )
             )
 
@@ -191,8 +195,9 @@ class TransactionInfoServiceTest {
                 baseTransaction,
                 DeadLetterNpgTransactionInfoDetailsData(
                     OperationResultDto.VOIDED,
-                    "operationId",
-                    correlationId
+                    operationId,
+                    correlationId,
+                    paymentEndToEndId
                 )
             )
 
