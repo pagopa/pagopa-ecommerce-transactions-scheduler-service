@@ -236,7 +236,29 @@ class TransactionInfoServiceTest {
 
     @Test
     fun `Should throw error for gateway param null`() {
-        val events = TransactionInfoUtils.buildEventsList(correlationId)
+        val events =
+            TransactionInfoUtils.buildEventsList(
+                correlationId,
+                TransactionAuthorizationRequestedEvent(
+                    TRANSACTION_ID,
+                    TransactionAuthorizationRequestData(
+                        100,
+                        10,
+                        "paymentInstrumentId",
+                        "pspId2",
+                        "CP",
+                        "brokerName",
+                        "pspChannelCode",
+                        "CARDS",
+                        "pspBusinessName",
+                        false,
+                        AUTHORIZATION_REQUEST_ID,
+                        null,
+                        "paymentMethodDescription",
+                        NpgTransactionGatewayAuthorizationRequestedData()
+                    )
+                )
+            )
         val baseTransaction = reduceEvents(*events.toTypedArray())
 
         given(npgClient.getOrder(any(), any(), any()))
