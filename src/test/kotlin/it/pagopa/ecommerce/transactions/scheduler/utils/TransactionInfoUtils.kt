@@ -21,6 +21,7 @@ class TransactionInfoUtils {
             val orderResponseDto = OrderResponseDto()
             val operationDto = OperationDto()
             operationDto.operationId = "operationId"
+            operationDto.paymentEndToEndId = "paymentEndToEndId"
             operationDto.operationType = OperationTypeDto.AUTHORIZATION
             operationDto.operationResult = OperationResultDto.FAILED
             orderResponseDto.operations = listOf(operationDto)
@@ -30,6 +31,7 @@ class TransactionInfoUtils {
             val orderResponseDto = OrderResponseDto()
             val operationDto = OperationDto()
             operationDto.operationId = "operationId"
+            operationDto.paymentEndToEndId = "paymentEndToEndId"
             operationDto.operationType = OperationTypeDto.AUTHORIZATION
             operationDto.operationResult = OperationResultDto.EXECUTED
             orderResponseDto.operations = listOf(operationDto)
@@ -39,6 +41,7 @@ class TransactionInfoUtils {
             val orderResponseDto = OrderResponseDto()
             val operationDto = OperationDto()
             operationDto.operationId = "operationId"
+            operationDto.paymentEndToEndId = "paymentEndToEndId"
             operationDto.operationType = OperationTypeDto.VOID
             operationDto.operationResult = OperationResultDto.VOIDED
             orderResponseDto.operations = listOf(operationDto)
@@ -48,6 +51,7 @@ class TransactionInfoUtils {
             val orderResponseDto = OrderResponseDto()
             val operationDto = OperationDto()
             operationDto.operationId = "operationId"
+            operationDto.paymentEndToEndId = "paymentEndToEndId"
             operationDto.operationType = OperationTypeDto.REFUND
             operationDto.operationResult = OperationResultDto.VOIDED
             orderResponseDto.operations = listOf(operationDto)
@@ -57,6 +61,7 @@ class TransactionInfoUtils {
             val orderResponseDto = OrderResponseDto()
             val operationDto = OperationDto()
             operationDto.operationId = "operationId"
+            operationDto.paymentEndToEndId = "paymentEndToEndId"
             operationDto.operationType = OperationTypeDto.REFUND
             operationDto.operationResult = OperationResultDto.EXECUTED
             orderResponseDto.operations = listOf(operationDto)
@@ -146,75 +151,6 @@ class TransactionInfoUtils {
                 as List<TransactionEvent<Any>>)
         }
 
-        fun buildEventsList(correlationId: String): List<TransactionEvent<Any>> {
-            val transactionActivatedEvent =
-                TransactionTestUtils.transactionActivateEvent(
-                    NpgTransactionGatewayActivationData(orderId, correlationId)
-                )
-            val transactionAuthorizationRequestedEvent =
-                TransactionTestUtils.transactionAuthorizationRequestedEvent()
-
-            TransactionTestUtils.transactionAuthorizationRequestedEvent()
-
-            val transactionExpiredEvent =
-                TransactionTestUtils.transactionExpiredEvent(
-                    TransactionTestUtils.reduceEvents(
-                        transactionActivatedEvent,
-                        transactionAuthorizationRequestedEvent
-                    )
-                )
-            val transactionRefundRequestedEvent =
-                TransactionTestUtils.transactionRefundRequestedEvent(
-                    TransactionTestUtils.reduceEvents(
-                        transactionActivatedEvent,
-                        transactionAuthorizationRequestedEvent,
-                        transactionExpiredEvent
-                    ),
-                    null // N.B.: Is null when getting error while retrieving authorization data
-                    // from
-                    // gateway
-                    )
-            val transactionRefundErrorEvent =
-                TransactionTestUtils.transactionRefundErrorEvent(
-                    TransactionTestUtils.reduceEvents(
-                        transactionActivatedEvent,
-                        transactionAuthorizationRequestedEvent,
-                        transactionExpiredEvent,
-                        transactionRefundRequestedEvent
-                    )
-                )
-            val transactionRefundRetryEvent =
-                TransactionTestUtils.transactionRefundRetriedEvent(
-                    1,
-                    TransactionTestUtils.npgTransactionGatewayAuthorizationData(
-                        OperationResultDto.EXECUTED
-                    )
-                )
-            val transactionRefundedEvent =
-                TransactionTestUtils.transactionRefundedEvent(
-                    TransactionTestUtils.reduceEvents(
-                        transactionActivatedEvent,
-                        transactionAuthorizationRequestedEvent,
-                        transactionExpiredEvent,
-                        transactionRefundRequestedEvent,
-                        transactionRefundErrorEvent,
-                        transactionRefundRetryEvent
-                    ),
-                    NpgGatewayRefundData(refundOperationId)
-                )
-
-            return (listOf(
-                transactionActivatedEvent,
-                transactionAuthorizationRequestedEvent,
-                transactionExpiredEvent,
-                transactionRefundRequestedEvent,
-                transactionRefundErrorEvent,
-                transactionRefundRetryEvent,
-                transactionRefundedEvent
-            )
-                as List<TransactionEvent<Any>>)
-        }
-
         fun buildEventsList(
             correlationId: String,
             transactionAuthorizationRequestedEvent: TransactionAuthorizationRequestedEvent
@@ -223,7 +159,6 @@ class TransactionInfoUtils {
                 TransactionTestUtils.transactionActivateEvent(
                     NpgTransactionGatewayActivationData(orderId, correlationId)
                 )
-            TransactionTestUtils.transactionAuthorizationRequestedEvent()
             val transactionExpiredEvent =
                 TransactionTestUtils.transactionExpiredEvent(
                     TransactionTestUtils.reduceEvents(
