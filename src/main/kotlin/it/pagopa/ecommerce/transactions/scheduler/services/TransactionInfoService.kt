@@ -19,6 +19,7 @@ import it.pagopa.ecommerce.commons.generated.npg.v1.dto.OperationTypeDto
 import it.pagopa.ecommerce.commons.generated.npg.v1.dto.OrderResponseDto
 import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
 import it.pagopa.ecommerce.commons.utils.NpgApiKeyConfiguration
+import it.pagopa.ecommerce.commons.utils.NpgClientUtils
 import it.pagopa.ecommerce.commons.utils.v2.TransactionUtils.getTransactionFee
 import it.pagopa.ecommerce.transactions.scheduler.deadletter.CommonLogger
 import it.pagopa.ecommerce.transactions.scheduler.exceptions.*
@@ -212,7 +213,7 @@ class TransactionInfoService(
                                         it.authorization.operationResult,
                                         it.authorization.operationId,
                                         correlationId,
-                                        it.authorization.paymentEndToEndId
+                                        NpgClientUtils.getPaymentEndToEndId(it.authorization)
                                     )
                                 )
                             is NgpOrderNotAuthorized ->
@@ -221,7 +222,7 @@ class TransactionInfoService(
                                         it.operation.operationResult,
                                         it.operation.operationId,
                                         correlationId,
-                                        it.operation.paymentEndToEndId
+                                        NpgClientUtils.getPaymentEndToEndId(it.operation)
                                     )
                                 )
                             is NpgOrderRefunded ->
@@ -230,7 +231,7 @@ class TransactionInfoService(
                                         it.refundOperation.operationResult,
                                         it.refundOperation.operationId,
                                         correlationId,
-                                        it.refundOperation.paymentEndToEndId
+                                        NpgClientUtils.getPaymentEndToEndId(it.refundOperation)
                                     )
                                 )
                             else ->
