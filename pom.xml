@@ -303,6 +303,39 @@
                 </executions>
             </plugin>
             <plugin>
+                <groupId>org.openapitools</groupId>
+                <artifactId>openapi-generator-maven-plugin</artifactId>
+                <version>7.1.0</version>
+                <executions>
+                    <execution>
+                        <id>event-dispatcher-api</id>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <inputSpec>${project.basedir}/api-spec/scheduler-service-api.yaml</inputSpec>
+                            <generatorName>kotlin-spring</generatorName>
+                            <library>spring-boot</library>
+                            <modelNameSuffix>Dto</modelNameSuffix>
+                            <generateApiTests>false</generateApiTests>
+                            <generateModelTests>false</generateModelTests>
+                            <configOptions>
+                                <basePackage>it.pagopa.generated.scheduler.server</basePackage>
+                                <modelPackage>it.pagopa.generated.scheduler.server.model</modelPackage>
+                                <apiPackage>it.pagopa.generated.scheduler.server.api</apiPackage>
+                                <configPackage>it.pagopa.generated.scheduler.server.config</configPackage>
+                                <interfaceOnly>true</interfaceOnly>
+                                <hideGenerationTimestamp>true</hideGenerationTimestamp>
+                                <skipDefaultInterface>true</skipDefaultInterface>
+                                <useSwaggerUI>false</useSwaggerUI>
+                                <reactive>true</reactive>
+                                <enumPropertyNaming>UPPERCASE</enumPropertyNaming>
+                            </configOptions>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.jetbrains.kotlin</groupId>
                 <artifactId>kotlin-maven-plugin</artifactId>
                 <version>${kotlin.version}</version>

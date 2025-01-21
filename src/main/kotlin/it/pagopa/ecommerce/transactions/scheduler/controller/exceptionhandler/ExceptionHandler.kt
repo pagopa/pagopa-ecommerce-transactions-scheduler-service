@@ -1,9 +1,9 @@
 package it.pagopa.ecommerce.transactions.scheduler.controller.exceptionhandler
 
+
 import it.pagopa.ecommerce.transactions.scheduler.exceptions.NoEventReceiverStatusFound
 import it.pagopa.generated.scheduler.server.model.ProblemJsonDto
 import jakarta.xml.bind.ValidationException
-import javax.validation.ConstraintViolationException
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice
 import org.springframework.web.bind.support.WebExchangeBindException
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
 import org.springframework.web.server.ServerWebInputException
+import javax.validation.ConstraintViolationException
 
 /** Rest controller exception handler class */
 @RestControllerAdvice
@@ -25,8 +26,8 @@ class ExceptionHandler {
     val invalidRequestDefaultMessage = "Input request is invalid."
 
     /**
-     * Handle NoEventReceiverStatusFound custom exception mapping to a 404 Not Found ProblemJson
-     * error response
+     * Handle NoEventReceiverStatusFound custom exception mapping to a 404 Not Found ProblemJson error
+     * response
      */
     @ExceptionHandler(NoEventReceiverStatusFound::class)
     fun handleNoEventReceiverDataFound(

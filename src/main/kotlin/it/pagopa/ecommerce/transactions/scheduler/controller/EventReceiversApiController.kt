@@ -1,5 +1,6 @@
 package it.pagopa.ecommerce.transactions.scheduler.controller
 
+
 import it.pagopa.generated.scheduler.server.api.EventReceiversApi
 import it.pagopa.generated.scheduler.server.model.DeploymentVersionDto
 import it.pagopa.generated.scheduler.server.model.EventReceiverCommandRequestDto
@@ -9,7 +10,9 @@ import org.springframework.web.bind.annotation.RestController
 
 /** Event receivers commands api controller implementation */
 @RestController
-class EventReceiversApiController() : EventReceiversApi {
+class EventReceiversApiController(
+
+) : EventReceiversApi {
 
     /** Handle new receiver command */
     override suspend fun newReceiverCommand(
