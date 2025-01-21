@@ -1,21 +1,19 @@
-package it.pagopa.ecommerce.eventdispatcher.config.redis
+package it.pagopa.ecommerce.transactions.scheduler.configurations.redis
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import it.pagopa.ecommerce.eventdispatcher.config.redis.bean.ReceiversStatus
-import it.pagopa.ecommerce.eventdispatcher.redis.streams.commands.EventDispatcherReceiverCommand
-import it.pagopa.ecommerce.transactions.scheduler.configurations.redis.EventDispatcherCommandsTemplateWrapper
+import it.pagopa.ecommerce.transactions.scheduler.repositories.redis.eventreceivers.ReceiversStatus
+import it.pagopa.ecommerce.transactions.scheduler.streams.commands.EventDispatcherReceiverCommand
+import java.time.Duration
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.data.redis.connection.RedisConnectionFactory
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer
 import org.springframework.data.redis.serializer.StringRedisSerializer
-import java.time.Duration
 
 /** Redis templates wrapper configuration */
 @Configuration
 class RedisConfig {
-
 
     @Bean
     fun eventDispatcherCommandRedisTemplateWrapper(
