@@ -16,3 +16,6 @@ class NpgBadRequestException(transactionId: String?, errorCodeReason: String?) :
     RuntimeException(
         "Transaction with id $transactionId npg state cannot be retrieved. Reason: Received HTTP error code from NPG: $errorCodeReason"
     )
+
+/** Exception thrown when no data can be found querying for event receiver statuses */
+class NoEventReceiverStatusFound : RuntimeException("No event receiver status data found")
