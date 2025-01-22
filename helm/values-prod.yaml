@@ -172,6 +172,9 @@ microservice-chart:
     NPG_APPLEPAY_PSP_LIST: ""
     REDIS_PORT: "6380"
     REDIS_SSL_ENABLED: "true"
+    REDIS_STREAM_EVENT_CONTROLLER_STREAM_KEY: "scheduler-service-commands"
+    REDIS_STREAM_EVENT_CONTROLLER_CONSUMER_NAME_PREFIX: "scheduler"
+    EVENT_CONTROLLER_STATUS_POLLING_CHRON: "*/10 * * * * *"
   envSecret:
     MONGO_PASSWORD: mongo-ecommerce-password
     QUEUE_TRANSIENT_CONNECTION_STRING: ecommerce-storage-transient-connection-string
