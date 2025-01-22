@@ -9,10 +9,10 @@ tags:
   - name: event-receiver-controller
     description: Api's for handle events receivers status
     externalDocs:
-      url: TODO
+      url: https://pagopa.atlassian.net/wiki/spaces/I/pages/611745807/-servizio+transaction+scheduler+service
       description: Technical specifications
 externalDocs:
-  url: TODO
+  url: https://pagopa.atlassian.net/wiki/spaces/I/pages/492339720/pagoPA+eCommerce+Design+Review
   description: Design review
 servers:
   - url: http://localhost
