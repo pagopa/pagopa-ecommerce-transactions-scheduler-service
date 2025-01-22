@@ -12,7 +12,7 @@ class EventDispatcherReceiverStatusTemplateWrapper(
 ) :
     RedisTemplateWrapper<ReceiversStatus>(
         redisTemplate,
-        "schedureceiver-status",
+        "scheduler-receiver-status",
         defaultEntitiesTTL
     ) {
     override fun getKeyFromEntity(value: ReceiversStatus): String = value.consumerInstanceId
