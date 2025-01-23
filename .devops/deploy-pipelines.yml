@@ -591,7 +591,7 @@ stages:
                     install: true
                     waitForExecution: true
                     arguments: --timeout 5m0s
-                    overrideValues: microservice-chart.ingress.path=/pagopa-ecommerce-transactions-scheduler-service-staging/(.*),microservice-chart.envConfig.DEPLOYMENT_VERSION=STAGING,microservice-chart.fullnameOverride=pagopaecommercetxschedulerservice-microservice-chart-staging
+                    overrideValues: microservice-chart.ingress.path=/pagopa-ecommerce-transactions-scheduler-service-staging/(.*),microservice-chart.envConfig.DEPLOYMENT_VERSION=STAGING,microservice-chart.fullnameOverride=pagopaecommercetxschedulerservice-staging
 
   # STEP 2: enable STAGING deployment receivers and stop PROD one by command curl
   - stage: Start_Staging_Stop_Prod_Receivers_Manual_Approve
@@ -767,7 +767,7 @@ stages:
               kubernetesCluster: $(kubernetesCluster)
               namespace: ecommerce
               command: annotate
-              arguments: scaledobjects pagopaecommercetxschedulerservice-microservice-chart-staging autoscaling.keda.sh/paused-replicas="0"
+              arguments: scaledobjects pagopaecommercetxschedulerservice-staging autoscaling.keda.sh/paused-replicas="0"
 
 
   # --- END Deploy PROD --- #
@@ -813,7 +813,7 @@ stages:
               kubernetesCluster: $(kubernetesCluster)
               namespace: ecommerce
               command: annotate
-              arguments: scaledobjects pagopaecommercetxschedulerservice-microservice-chart-staging autoscaling.keda.sh/paused-replicas-
+              arguments: scaledobjects pagopaecommercetxschedulerservice-staging autoscaling.keda.sh/paused-replicas-
 
   # STEP 1: start staging receivers and stop new ones
   - stage: Start_Staging_Stop_New_Receivers_Manual_Approve_Rollback
@@ -935,6 +935,6 @@ stages:
               kubernetesCluster: $(kubernetesCluster)
               namespace: ecommerce
               command: annotate
-              arguments: scaledobjects pagopaecommercetxschedulerservice-microservice-chart-staging autoscaling.keda.sh/paused-replicas="0"
+              arguments: scaledobjects pagopaecommercetxschedulerservice-staging autoscaling.keda.sh/paused-replicas="0"
 
 # --- END ROLLBACK PROD --- #
