@@ -44,7 +44,7 @@ steps:
         targetDeploymentVersion=${{ parameters.TARGET_DEPLOYMENT_VERSION }}
         declare -A commandUrls=(\
         ["DEV"]="https://weudev.ecommerce.internal.dev.platform.pagopa.it/pagopa-ecommerce-transactions-scheduler-service/event-receivers/status?version=$targetDeploymentVersion" \
-        ["UAT"]="https://weudev.ecommerce.internal.uat.platform.pagopa.it/pagopa-ecommerce-transactions-scheduler-service/event-receivers/status?version=$targetDeploymentVersion" \
+        ["UAT"]="https://weuuat.ecommerce.internal.uat.platform.pagopa.it/pagopa-ecommerce-transactions-scheduler-service/event-receivers/status?version=$targetDeploymentVersion" \
         ["PROD"]="https://weuprod.ecommerce.internal.platform.pagopa.it/pagopa-ecommerce-transactions-scheduler-service/event-receivers/status?version=$targetDeploymentVersion" \
         )
         commandUrl=${commandUrls[${{ parameters.ENV }}]}

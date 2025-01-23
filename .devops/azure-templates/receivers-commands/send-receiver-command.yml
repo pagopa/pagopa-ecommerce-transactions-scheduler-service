@@ -32,7 +32,7 @@ steps:
         echo "Sending command: [$command] with deployment target: [$deploymentTargetVersion] to event dispatcher instance: [$deploymentInstance]"
         declare -A commandUrls=(\
         ["DEV"]="https://weudev.ecommerce.internal.dev.platform.pagopa.it/pagopa-ecommerce-transactions-scheduler-service/event-receivers/commands" \
-        ["UAT"]="https://weudev.ecommerce.internal.uat.platform.pagopa.it/pagopa-ecommerce-transactions-scheduler-service/event-receivers/commands" \
+        ["UAT"]="https://weuuat.ecommerce.internal.uat.platform.pagopa.it/pagopa-ecommerce-transactions-scheduler-service/event-receivers/commands" \
         ["PROD"]="https://weuprod.ecommerce.internal.platform.pagopa.it/pagopa-ecommerce-transactions-scheduler-service/event-receivers/commands" \
         )
         commandUrl=${commandUrls[${{ parameters.ENV }}]}
