@@ -358,17 +358,17 @@ stages:
       name: pagopa-dev-linux
     jobs:
       - job: Scale_Down_Staging_Deployment
-        displayName: Annotate scaledObject with autoscaling.keda.sh/paused-replicas="0"
+        displayName: Scale down staging deployment
         steps:
           - task: Kubernetes@1
-            displayName: Scale down STAGING receivers PODS (annotate ScaledObject with autoscaling.keda.sh/paused-replicas="0")
+            displayName: Scale down staging deployment
             continueOnError: true
             inputs:
               kubernetesServiceEndpoint: $(DEV_KUBERNETES_SERVICE_CONN)
               kubernetesCluster: $(kubernetesCluster)
               namespace: ecommerce
-              command: annotate
-              arguments: scaledobjects $(K8S_IMAGE_REPOSITORY_NAME)-stage-microservice-chart autoscaling.keda.sh/paused-replicas="0"
+              command: scale
+              arguments: --replicas=0 deployment/pagopaecommercetxschedulerservice-microservice-chart-staging
   # # --- END Deploy PROD --- #
 
   # --- START ROLLBACK PROD --- #
