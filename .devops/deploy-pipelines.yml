@@ -163,6 +163,7 @@ stages:
                     checkoutVersion=$(currentVersion)
                     echo "Checkout current version repo tag: [$checkoutVersion]" 
                     git checkout test-deployment-pipeline-zero-downtime
+                    git pull
                   displayName: 'Checkout currently PROD deployed source code tag [$(currentVersion)]'
                 - task: Bash@3
                   name: update_chart_version
@@ -269,6 +270,7 @@ stages:
                     checkoutVersion=$(newReleaseVersion)
                     echo "Checkout new release version repo tag: [$checkoutVersion]" 
                     git checkout test-deployment-pipeline-zero-downtime
+                    git pull
                   displayName: 'Checkout new release version tag [$(newReleaseVersion)]'
                 - task: Bash@3
                   name: update_chart_version
