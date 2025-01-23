@@ -1,4 +1,4 @@
-#This template will handle command sending to event dispatcher to enable/disable receivers
+#This template will handle command sending to transactions scheduler to enable/disable receivers
 parameters:
   # deployment environment
   - name: ENV
@@ -29,7 +29,7 @@ steps:
       script: |
         command=${{ parameters.COMMAND }}
         deploymentTargetVersion=${{ parameters.TARGET_DEPLOYMENT_VERSION }}
-        echo "Sending command: [$command] with deployment target: [$deploymentTargetVersion] to event dispatcher instance: [$deploymentInstance]"
+        echo "Sending command: [$command] with deployment target: [$deploymentTargetVersion] to transactions scheduler instance: [$deploymentInstance]"
         declare -A commandUrls=(\
         ["DEV"]="https://weudev.ecommerce.internal.dev.platform.pagopa.it/pagopa-ecommerce-transactions-scheduler-service-staging/event-receivers/commands" \
         ["UAT"]="https://weuuat.ecommerce.internal.uat.platform.pagopa.it/pagopa-ecommerce-transactions-scheduler-service-staging/event-receivers/commands" \
