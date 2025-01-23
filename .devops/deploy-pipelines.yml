@@ -86,11 +86,6 @@ pool:
 stages:
 
   - stage: Release
-    ${{ if eq(parameters['UAT_SKIP_BLUE_DEPLOYMENT'], True) }}:
-      dependsOn: Build_release_candidate
-    ${{ if eq(parameters['UAT_SKIP_BLUE_DEPLOYMENT'], False) }}:
-      dependsOn: Bluegreen_WaitForApproval
-      condition: succeeded()
     jobs:
       - job: make_release
         displayName: Make github release
