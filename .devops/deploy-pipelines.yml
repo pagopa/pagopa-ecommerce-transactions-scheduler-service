@@ -283,7 +283,8 @@ stages:
         )
       )
     variables:
-      app_version: $[ stageDependencies.Release.make_release.outputs['chart_current_version.appVersion'] ]
+      app_version: $[ stageDependencies.Release.make_release.outputs['chart_current_version.appVersion'] ] #chart app version, can differ from release for chart only version bumps
+      release_version: $[ stageDependencies.Release.make_release.outputs['chart_current_version.version'] ] #chart version, this version is the same of the github release/tag
     jobs:
       - deployment: "Green_deployment"
         displayName: "Green deployment"
@@ -296,6 +297,12 @@ stages:
               steps:
                 - checkout: self
                   displayName: "Checkout"
+                  # without the below checkout git head is set on the commit before release version bump
+                  # so deployed helm release have the previous version instead of the app one
+                - script: |
+                    checkoutVersion=$(release_version)
+                    echo "Checkout release version repo tag: [$checkoutVersion]" 
+                    git checkout $checkoutVersion
                 - task: KubectlInstaller@0
                 - task: Bash@3
                   name: update_chart_version
@@ -455,7 +462,7 @@ stages:
     displayName: 'PROD green Build'
     dependsOn: [ Prod_WaitForApproval,Release ]
     variables:
-      prod_version: $[ stageDependencies.Release.make_release.outputs['chart_current_version.appVersion'] ]
+      prod_app_version: $[ stageDependencies.Release.make_release.outputs['chart_current_version.appVersion'] ]
     condition: |
       and(
         eq(${{parameters.UAT_PROD_DEPLOY}}, true),
@@ -476,7 +483,7 @@ stages:
             inputs:
               targetType: "inline"
               script: |
-                docker pull $(UAT_CONTAINER_NAMESPACE)/$(K8S_IMAGE_REPOSITORY_NAME):$(prod_version)
+                docker pull $(UAT_CONTAINER_NAMESPACE)/$(K8S_IMAGE_REPOSITORY_NAME):$(prod_app_version)
           - task: Docker@2
             displayName: "docker login for PROD"
             inputs:
@@ -487,8 +494,8 @@ stages:
             inputs:
               targetType: "inline"
               script: |
-                docker tag $(UAT_CONTAINER_NAMESPACE)/$(K8S_IMAGE_REPOSITORY_NAME):$(prod_version) $(PROD_CONTAINER_NAMESPACE)/$(K8S_IMAGE_REPOSITORY_NAME):$(prod_version)
-                docker push $(PROD_CONTAINER_NAMESPACE)/$(K8S_IMAGE_REPOSITORY_NAME):$(prod_version)
+                docker tag $(UAT_CONTAINER_NAMESPACE)/$(K8S_IMAGE_REPOSITORY_NAME):$(prod_app_version) $(PROD_CONTAINER_NAMESPACE)/$(K8S_IMAGE_REPOSITORY_NAME):$(prod_app_version)
+                docker push $(PROD_CONTAINER_NAMESPACE)/$(K8S_IMAGE_REPOSITORY_NAME):$(prod_app_version)
   # - stage: "Deploy_PROD_Green"
   #   displayName: 'PROD green deployment'
   #   dependsOn: [ Build_PROD_Green,Release ]
@@ -625,7 +632,7 @@ stages:
                     install: true
                     waitForExecution: true
                     arguments: --timeout 5m0s
-                    overrideValues: microservice-chart.ingress.path=/pagopa-ecommerce-transactions-scheduler-service-staging/(.*),microservice-chart.envConfig.DEPLOYMENT_VERSION=STAGING
+                    overrideValues: microservice-chart.ingress.path=/pagopa-ecommerce-transactions-scheduler-service-staging/(.*),microservice-chart.envConfig.DEPLOYMENT_VERSION=STAGING,microservice-chart.fullnameOverride=pagopaecommercetxschedulerservice-microservice-chart-staging
 
   # STEP 2: enable STAGING deployment receivers and stop PROD one by command curl
   - stage: Start_Staging_Stop_Prod_Receivers_Manual_Approve
@@ -811,7 +818,7 @@ stages:
     condition: |
       and(
         eq(${{parameters.UAT_PROD_DEPLOY}}, true),
-        eq(dependencies.Deploy_PROD_Green.result, 'Succeeded'),
+        eq(dependencies.Scale_Down_Staging_Deployment.result, 'Succeeded'),
         in(dependencies.Release.result, 'Succeeded', 'Skipped')
       )
     variables:
@@ -820,12 +827,13 @@ stages:
       - job: Prod_Rollback_Approval
         displayName: Manual prod rollback approval
         pool: server
+        timeoutInMinutes: 30
         steps:
           - task: ManualValidation@0
             timeoutInMinutes: 30
             inputs:
               notifyUsers: $(APPROVE_TOUCHPOINT_MAIL)
-              instructions: "Please approve or reject PROD promotions for release $(release_url)"
+              instructions: "Please approve or reject PROD rollback for release $(release_url)"
               onTimeout: 'skip'
   # STEP 0: scale up staging release
   - stage: Scale_Up_Staging_Deployment
@@ -844,7 +852,7 @@ stages:
               kubernetesCluster: $(kubernetesCluster)
               namespace: ecommerce
               command: scale
-              arguments: --replicas=1 deployment/$(K8S_IMAGE_REPOSITORY_NAME)-staging-microservice-chart
+              arguments: --replicas=1 deployment/pagopaecommercetxschedulerservice-microservice-chart-staging
 
   # STEP 1: start staging receivers and stop new ones
   - stage: Start_Staging_Stop_New_Receivers_Manual_Approve_Rollback
@@ -966,7 +974,7 @@ stages:
               kubernetesCluster: $(kubernetesCluster)
               namespace: ecommerce
               command: scale
-              arguments: --replicas=0 deployment/$(K8S_IMAGE_REPOSITORY_NAME)-staging-microservice-chart
+              arguments: --replicas=0 deployment/pagopaecommercetxschedulerservice-microservice-chart-staging
 
 
 # --- END ROLLBACK PROD --- #
