@@ -266,7 +266,7 @@
                 <version>7.1.0</version>
                 <executions>
                     <execution>
-                        <id>event-dispatcher-api</id>
+                        <id>scheduler-service-api</id>
                         <goals>
                             <goal>generate</goal>
                         </goals>
