@@ -355,18 +355,20 @@ stages:
       name: pagopa-dev-linux
     jobs:
       - job: Scale_Down_Staging_Deployment
-        displayName: Scale down staging deployment
+        displayName: Annotate scaledObject with autoscaling.keda.sh/paused-replicas="0"
         steps:
           - task: Kubernetes@1
-            displayName: Scale down staging deployment
+            displayName: Scale down STAGING receivers PODS (annotate ScaledObject with autoscaling.keda.sh/paused-replicas="0")
             continueOnError: true
             inputs:
               kubernetesServiceEndpoint: $(DEV_KUBERNETES_SERVICE_CONN)
               kubernetesCluster: $(kubernetesCluster)
               namespace: ecommerce
-              command: scale
-              arguments: --replicas=0 deployment/pagopaecommercetxschedulerservice-microservice-chart-staging
-  # # --- END Deploy PROD --- #
+              command: annotate
+              arguments: scaledobjects pagopaecommercetxschedulerservice-microservice-chart-staging autoscaling.keda.sh/paused-replicas="0"
+
+
+  # --- END Deploy PROD --- #
 
   # --- START ROLLBACK PROD --- #
   - stage: "Prod_RollbackForApproval"
@@ -392,24 +394,24 @@ stages:
               notifyUsers: $(APPROVE_TOUCHPOINT_MAIL)
               instructions: "Please approve or reject PROD rollback for release $(release_url)"
               onTimeout: 'skip'
-  # STEP 0: scale up staging release
+  # STEP 0: scale up staging release (by removing annotation on staging release scaledObject)
   - stage: Scale_Up_Staging_Deployment
     displayName: Scale up STAGING deployment
     pool:
       name: pagopa-dev-linux
     jobs:
       - job: Scale_Up_Staging_Deployment
-        displayName: Scaling up staging deployment
+        displayName: Remove annotation autoscaling.keda.sh/paused-replicas="0" from staging release scaledObject
         steps:
           - task: Kubernetes@1
-            displayName: Scale up staging deployment
+            displayName: Remove annotation autoscaling.keda.sh/paused-replicas="0" from staging release scaledObject
             continueOnError: true
             inputs:
               kubernetesServiceEndpoint: $(DEV_KUBERNETES_SERVICE_CONN)
               kubernetesCluster: $(kubernetesCluster)
               namespace: ecommerce
-              command: scale
-              arguments: --replicas=1 deployment/pagopaecommercetxschedulerservice-microservice-chart-staging
+              command: annotate
+              arguments: scaledobjects pagopaecommercetxschedulerservice-microservice-chart-staging autoscaling.keda.sh/paused-replicas-
 
   # STEP 1: start staging receivers and stop new ones
   - stage: Start_Staging_Stop_New_Receivers_Manual_Approve_Rollback
@@ -521,17 +523,16 @@ stages:
       name: pagopa-dev-linux
     jobs:
       - job: Scale_Down_Staging_Deployment_Rollback
-        displayName: Scale down staging deployment
+        displayName: Annotate staging release scaledObject with autoscaling.keda.sh/paused-replicas="0"
         steps:
           - task: Kubernetes@1
-            displayName: Scale down staging deployments
+            displayName: Scale down staging receivers PODS (annotate ScaledObject with autoscaling.keda.sh/paused-replicas="0")
             continueOnError: true
             inputs:
               kubernetesServiceEndpoint: $(DEV_KUBERNETES_SERVICE_CONN)
               kubernetesCluster: $(kubernetesCluster)
               namespace: ecommerce
-              command: scale
-              arguments: --replicas=0 deployment/pagopaecommercetxschedulerservice-microservice-chart-staging
-
+              command: annotate
+              arguments: scaledobjects pagopaecommercetxschedulerservice-microservice-chart-staging autoscaling.keda.sh/paused-replicas="0"
 
 # --- END ROLLBACK PROD --- #
