@@ -496,47 +496,6 @@ stages:
               script: |
                 docker tag $(UAT_CONTAINER_NAMESPACE)/$(K8S_IMAGE_REPOSITORY_NAME):$(prod_app_version) $(PROD_CONTAINER_NAMESPACE)/$(K8S_IMAGE_REPOSITORY_NAME):$(prod_app_version)
                 docker push $(PROD_CONTAINER_NAMESPACE)/$(K8S_IMAGE_REPOSITORY_NAME):$(prod_app_version)
-  # - stage: "Deploy_PROD_Green"
-  #   displayName: 'PROD green deployment'
-  #   dependsOn: [ Build_PROD_Green,Release ]
-  #   condition: |
-  #     and(
-  #       eq(${{parameters.UAT_PROD_DEPLOY}}, true),
-  #       eq(dependencies.Build_PROD_Green.result, 'Succeeded'),
-  #       in(dependencies.Release.result, 'Succeeded', 'Skipped')
-  #     )
-  #   variables:
-  #     prod_version: $[ stageDependencies.Release.make_release.outputs['chart_current_version.appVersion'] ]
-  #   jobs:
-  #     - deployment: "Green_PROD_deployment"
-  #       displayName: "Green PROD deployment"
-  #       pool:
-  #         name: pagopa-prod-linux
-  #       environment: 'PROD'
-  #       strategy:
-  #         runOnce:
-  #           deploy:
-  #             steps:
-  #               - checkout: self
-  #                 displayName: "Checkout"
-  #               - task: Bash@3
-  #                 name: update_chart_version
-  #                 displayName: 'Setup helm microservice chart'
-  #                 inputs:
-  #                   targetType: "inline"
-  #                   script: |
-  #                     helm repo add microservice-chart https://pagopa.github.io/aks-microservice-chart-blueprint
-  #                     helm dep build helm
-  #               - template: azure-templates/helm-microservice-chart-deploy.yml
-  #                 parameters:
-  #                   DO_DEPLOY: true
-  #                   DO_BLUE_GREEN_DEPLOY: false
-  #                   ENV: 'PROD'
-  #                   KUBERNETES_SERVICE_CONN: $(PROD_KUBERNETES_SERVICE_CONN)
-  #                   NAMESPACE: ecommerce
-  #                   APP_NAME: $(K8S_IMAGE_REPOSITORY_NAME)
-  #                   VALUE_FILE: "helm/values-prod.yaml"
-  #                   GREEN_VERSION: $(prod_version)
 
   # STEP 0: retrieve current release version from helm release
   - stage: Current_Helm_Release
@@ -798,18 +757,20 @@ stages:
       name: pagopa-prod-linux
     jobs:
       - job: Scale_Down_Staging_Deployment
-        displayName: Scale down staging deployment
+        displayName: Annotate scaledObject with autoscaling.keda.sh/paused-replicas="0"
         steps:
           - task: Kubernetes@1
-            displayName: Scale down staging deployment
+            displayName: Scale down STAGING receivers PODS (annotate ScaledObject with autoscaling.keda.sh/paused-replicas="0")
             continueOnError: true
             inputs:
               kubernetesServiceEndpoint: $(PROD_KUBERNETES_SERVICE_CONN)
               kubernetesCluster: $(kubernetesCluster)
               namespace: ecommerce
-              command: scale
-              arguments: --replicas=0 deployment/pagopaecommercetxschedulerservice-microservice-chart-staging
-  # # --- END Deploy PROD --- #
+              command: annotate
+              arguments: scaledobjects pagopaecommercetxschedulerservice-microservice-chart-staging autoscaling.keda.sh/paused-replicas="0"
+
+
+  # --- END Deploy PROD --- #
 
   # --- START ROLLBACK PROD --- #
   - stage: "Prod_RollbackForApproval"
@@ -835,24 +796,24 @@ stages:
               notifyUsers: $(APPROVE_TOUCHPOINT_MAIL)
               instructions: "Please approve or reject PROD rollback for release $(release_url)"
               onTimeout: 'skip'
-  # STEP 0: scale up staging release
+  # STEP 0: scale up staging release (by removing annotation on staging release scaledObject)
   - stage: Scale_Up_Staging_Deployment
     displayName: Scale up STAGING deployment
     pool:
       name: pagopa-prod-linux
     jobs:
       - job: Scale_Up_Staging_Deployment
-        displayName: Scaling up staging deployment
+        displayName: Remove annotation autoscaling.keda.sh/paused-replicas="0" from staging release scaledObject
         steps:
           - task: Kubernetes@1
-            displayName: Scale up staging deployment
+            displayName: Remove annotation autoscaling.keda.sh/paused-replicas="0" from staging release scaledObject
             continueOnError: true
             inputs:
               kubernetesServiceEndpoint: $(PROD_KUBERNETES_SERVICE_CONN)
               kubernetesCluster: $(kubernetesCluster)
               namespace: ecommerce
-              command: scale
-              arguments: --replicas=1 deployment/pagopaecommercetxschedulerservice-microservice-chart-staging
+              command: annotate
+              arguments: scaledobjects pagopaecommercetxschedulerservice-microservice-chart-staging autoscaling.keda.sh/paused-replicas-
 
   # STEP 1: start staging receivers and stop new ones
   - stage: Start_Staging_Stop_New_Receivers_Manual_Approve_Rollback
@@ -942,7 +903,7 @@ stages:
             parameters:
               ENV: PROD
               TARGET_DEPLOYMENT_VERSION: STAGING
-  # STEP 4: scale down staging release
+  # STEP 4: scale down staging release (by adding back annotation to scaledObject)
   - stage: Scale_Down_Staging_Deployment_Approval_Rollback
     dependsOn: Start_New_Stop_Staging_Receivers_Rollback
     displayName: Approval for scale down STAGING deployment PODS to 0
@@ -964,17 +925,16 @@ stages:
       name: pagopa-prod-linux
     jobs:
       - job: Scale_Down_Staging_Deployment_Rollback
-        displayName: Scale down staging deployment
+        displayName: Annotate staging release scaledObject with autoscaling.keda.sh/paused-replicas="0"
         steps:
           - task: Kubernetes@1
-            displayName: Scale down staging deployments
+            displayName: Scale down staging receivers PODS (annotate ScaledObject with autoscaling.keda.sh/paused-replicas="0")
             continueOnError: true
             inputs:
               kubernetesServiceEndpoint: $(PROD_KUBERNETES_SERVICE_CONN)
               kubernetesCluster: $(kubernetesCluster)
               namespace: ecommerce
-              command: scale
-              arguments: --replicas=0 deployment/pagopaecommercetxschedulerservice-microservice-chart-staging
-
+              command: annotate
+              arguments: scaledobjects pagopaecommercetxschedulerservice-microservice-chart-staging autoscaling.keda.sh/paused-replicas="0"
 
 # --- END ROLLBACK PROD --- #
