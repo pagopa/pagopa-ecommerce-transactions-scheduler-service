@@ -1,0 +1,197 @@
+{
+	"info": {
+		"_postman_id": "8490be97-f7c4-4e2d-a78f-a2be57c800b2",
+		"name": "Scheduler service event receiver handling",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "23963988"
+	},
+	"item": [
+		{
+			"name": "STOP all receivers",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"command\": \"STOP\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{PROD_INGRESS}}/pagopa-ecommerce-transactions-scheduler-service/event-receivers/commands",
+					"host": [
+						"{{PROD_INGRESS}}"
+					],
+					"path": [
+						"pagopa-ecommerce-transactions-scheduler-service",
+						"event-receivers",
+						"commands"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "START all receivers",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"command\": \"START\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{PROD_INGRESS}}/pagopa-ecommerce-transactions-scheduler-service/event-receivers/commands",
+					"host": [
+						"{{PROD_INGRESS}}"
+					],
+					"path": [
+						"pagopa-ecommerce-transactions-scheduler-service",
+						"event-receivers",
+						"commands"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GET receiver statuses",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{PROD_INGRESS}}/pagopa-ecommerce-transactions-scheduler-service/event-receivers/status",
+					"host": [
+						"{{PROD_INGRESS}}"
+					],
+					"path": [
+						"pagopa-ecommerce-transactions-scheduler-service",
+						"event-receivers",
+						"status"
+					],
+					"query": [
+						{
+							"key": "version",
+							"value": "STAGING",
+							"disabled": true
+						},
+						{
+							"key": "version",
+							"value": "PROD",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "STOP all receivers by version",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"command\": \"STOP\",\n  \"deploymentVersion\": \"STAGING\" //this can be valued with STAGING/PROD\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{PROD_INGRESS}}/pagopa-ecommerce-transactions-scheduler-service/event-receivers/commands",
+					"host": [
+						"{{PROD_INGRESS}}"
+					],
+					"path": [
+						"pagopa-ecommerce-transactions-scheduler-service",
+						"event-receivers",
+						"commands"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "START all receivers by version",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"command\": \"START\",\n  \"deploymentVersion\": \"STAGING\" //this can be valued with STAGING/PROD\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{PROD_INGRESS}}/pagopa-ecommerce-transactions-scheduler-service/event-receivers/commands",
+					"host": [
+						"{{PROD_INGRESS}}"
+					],
+					"path": [
+						"pagopa-ecommerce-transactions-scheduler-service",
+						"event-receivers",
+						"commands"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "PROD_INGRESS",
+			"value": "https://weuprod.ecommerce.internal.platform.pagopa.it",
+			"type": "string"
+		},
+		{
+			"key": "UAT_INGRESS",
+			"value": "https://weuaut.ecommerce.internal.uat.platform.pagopa.it",
+			"type": "string"
+		},
+		{
+			"key": "DEV_INGRESS",
+			"value": "https://weudev.ecommerce.internal.dev.platform.pagopa.it",
+			"type": "string"
+		},
+		{
+			"key": "LOCAL",
+			"value": "http://localhost:8080",
+			"type": "string"
+		}
+	]
+}
