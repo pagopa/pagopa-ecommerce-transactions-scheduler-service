@@ -78,6 +78,7 @@ microservice-chart:
     periodSeconds: 10
   deployment:
     create: true
+    replicas: 1
   service:
     create: true
     type: ClusterIP
@@ -106,24 +107,22 @@ microservice-chart:
       memory: "512Mi"
       cpu: "300m"
   autoscaling:
-    enabled: false
+    enable: true
     minReplica: 1
-    maxReplica: 10
+    maxReplica: 1
     pollingInterval: 30 # seconds
-    cooldownPeriod: 300 # seconds
+    cooldownPeriod: 30 # seconds
     triggers:
-      - type: azure-monitor
+      - type: cpu
         metadata:
-          tenantId: 7788edaf-0346-4068-9d79-c868aed15b3d
-          subscriptionId: bbe47ad4-08b3-4925-94c5-1278e5819b86
-          resourceGroupName: pagopa-p-ecommerce-sec-rg
-          resourceURI: Microsoft.KeyVault/vaults/pagopa-p-ecommerce-kv
-          metricName: ServiceApiHit
-          # metricNamespace: Microsoft.KeyVault/vaults
-          # metricFilter: namespace eq 'default'
-          # metricAggregationInterval: "-1:1:0"
-          metricAggregationType: Count
-          targetValue: "30"
+          # Required
+          type: Utilization # Allowed types are 'Utilization' or 'AverageValue'
+          value: "70"
+    advanced:
+      horizontalPodAutoscalerConfig:
+        behavior:
+          scaleUp:
+            stabilizationWindowSeconds: 60
   envConfig:
     MONGO_HOST: pagopa-p-weu-ecommerce-cosmos-account.mongo.cosmos.azure.com
     MONGO_USERNAME: pagopa-p-weu-ecommerce-cosmos-account
@@ -175,6 +174,7 @@ microservice-chart:
     REDIS_STREAM_EVENT_CONTROLLER_STREAM_KEY: "scheduler-service-commands"
     REDIS_STREAM_EVENT_CONTROLLER_CONSUMER_NAME_PREFIX: "scheduler"
     EVENT_CONTROLLER_STATUS_POLLING_CHRON: "*/10 * * * * *"
+    DEPLOYMENT_VERSION: "PROD"
   envSecret:
     MONGO_PASSWORD: mongo-ecommerce-password
     QUEUE_TRANSIENT_CONNECTION_STRING: ecommerce-storage-transient-connection-string

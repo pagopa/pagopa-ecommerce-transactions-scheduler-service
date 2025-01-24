@@ -12,7 +12,7 @@ class EventDispatcherCommandsTemplateWrapper(
 ) :
     RedisTemplateWrapper<EventDispatcherReceiverCommand>(
         redisTemplate,
-        "eventDispatcher",
+        "scheduler",
         defaultEntitiesTTL
     ) {
     override fun getKeyFromEntity(value: EventDispatcherReceiverCommand): String =

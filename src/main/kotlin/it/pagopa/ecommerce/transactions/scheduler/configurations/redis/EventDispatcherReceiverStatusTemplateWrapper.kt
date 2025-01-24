@@ -9,6 +9,11 @@ import org.springframework.data.redis.core.RedisTemplate
 class EventDispatcherReceiverStatusTemplateWrapper(
     redisTemplate: RedisTemplate<String, ReceiversStatus>,
     defaultEntitiesTTL: Duration
-) : RedisTemplateWrapper<ReceiversStatus>(redisTemplate, "receiver-status", defaultEntitiesTTL) {
+) :
+    RedisTemplateWrapper<ReceiversStatus>(
+        redisTemplate,
+        "scheduler-receiver-status",
+        defaultEntitiesTTL
+    ) {
     override fun getKeyFromEntity(value: ReceiversStatus): String = value.consumerInstanceId
 }
