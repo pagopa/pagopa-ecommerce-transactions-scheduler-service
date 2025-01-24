@@ -591,7 +591,7 @@ stages:
                     install: true
                     waitForExecution: true
                     arguments: --timeout 5m0s
-                    overrideValues: microservice-chart.ingress.path=/pagopa-ecommerce-transactions-scheduler-service-staging/(.*),microservice-chart.envConfig.DEPLOYMENT_VERSION=STAGING,microservice-chart.fullnameOverride=pagopaecommercetxschedulerservice-staging
+                    overrideValues: microservice-chart.ingress.path=/pagopa-ecommerce-transactions-scheduler-service-staging/(.*),microservice-chart.envConfig.DEPLOYMENT_VERSION=STAGING,microservice-chart.fullnameOverride=pagopaecommercetxschedulerservice-staging,microservice-chart.envConfig.PENDING_TRANSACTIONS_SCHEDULE_CRON=-
 
   # STEP 2: enable STAGING deployment receivers and stop PROD one by command curl
   - stage: Start_Staging_Stop_Prod_Receivers_Manual_Approve
