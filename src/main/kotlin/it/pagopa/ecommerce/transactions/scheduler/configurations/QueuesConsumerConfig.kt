@@ -9,6 +9,7 @@ import it.pagopa.ecommerce.commons.queues.mixin.serialization.v2.QueueEventMixIn
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.integration.annotation.EndpointId
 import org.springframework.integration.annotation.InboundChannelAdapter
 import org.springframework.integration.annotation.Poller
 
@@ -26,6 +27,7 @@ class QueuesConsumerConfig {
                 )
             ]
     )
+    @EndpointId("storageQueueTransactionDeadLetterEndpoint")
     fun storageQueueTransactionDeadLetter(
         storageQueueTemplate: StorageQueueTemplate,
         @Value("\${deadLetterListener.transaction.queueName}") queueNameClosureEvents: String
@@ -44,6 +46,7 @@ class QueuesConsumerConfig {
                 )
             ]
     )
+    @EndpointId("storageQueueNotificationDeadLetterEndpoint")
     fun storageQueueNotificationDeadLetter(
         storageQueueTemplate: StorageQueueTemplate,
         @Value("\${deadLetterListener.notification.queueName}") queueNameClosureEvents: String
