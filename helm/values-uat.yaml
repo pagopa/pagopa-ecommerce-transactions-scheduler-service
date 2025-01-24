@@ -58,7 +58,7 @@ microservice-chart:
       ECOMMERCE_STORAGE_DEAD_LETTER_QUEUE_KEY: ecommerce-storage-dead-letter-account-key
   image:
     repository: pagopaucommonacr.azurecr.io/pagopaecommercetransactionsschedulerservice
-    tag: "1.5.2"
+    tag: "1.6.0"
     pullPolicy: Always
   livenessProbe:
     httpGet:
@@ -89,9 +89,9 @@ microservice-chart:
     servicePort: 8080
   serviceAccount:
     create: false
-    annotations: { }
+    annotations: {}
     name: ""
-  podAnnotations: { }
+  podAnnotations: {}
   podSecurityContext:
     seccompProfile:
       type: RuntimeDefault
@@ -188,8 +188,8 @@ microservice-chart:
   keyvault:
     name: "pagopa-u-ecommerce-kv"
     tenantId: "7788edaf-0346-4068-9d79-c868aed15b3d"
-  nodeSelector: { }
-  tolerations: [ ]
+  nodeSelector: {}
+  tolerations: []
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
