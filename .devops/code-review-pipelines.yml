@@ -24,7 +24,7 @@ steps:
       path: $(MAVEN_CACHE_FOLDER)
     displayName: Cache Maven local repo
 
-  - task: SonarCloudPrepare@1
+  - task: SonarCloudPrepare@3
     displayName: 'Prepare SonarCloud analysis configuration'
     inputs:
       SonarCloud: '$(SONARCLOUD_SERVICE_CONN)'
@@ -41,7 +41,7 @@ steps:
       docker run -p 10000:10000 -p 10001:10001 -p 10002:10002 mcr.microsoft.com/azure-storage/azurite &
     displayName: Run azurite to test Service - Storage integration
 
-  - task: Maven@3
+  - task: Maven@4
     displayName: 'Validate project (build ecommerce commons project)'
     inputs:
       mavenPomFile: 'pom.xml'
@@ -54,7 +54,7 @@ steps:
       goals: 'clean validate'
       sonarQubeRunAnalysis: false
 
-  - task: Maven@3
+  - task: Maven@4
     displayName: 'Run Junit Tests'
     inputs:
       mavenPomFile: 'pom.xml'
@@ -67,12 +67,12 @@ steps:
       goals: 'clean verify'
       sonarQubeRunAnalysis: true
 
-  - task: SonarCloudPublish@1
+  - task: SonarCloudPublish@3
     displayName: 'Publish SonarCloud results on build summary'
     inputs:
       pollingTimeoutSec: '300'
 
-  - task: PublishCodeCoverageResults@1
+  - task: PublishCodeCoverageResults@2
     inputs:
       codeCoverageTool: 'JaCoCo'
       summaryFileLocation: 'target/site/jacoco/jacoco.xml'
