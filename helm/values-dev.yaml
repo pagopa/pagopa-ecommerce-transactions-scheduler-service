@@ -2,6 +2,20 @@ microservice-chart:
   namespace: "ecommerce"
   nameOverride: ""
   fullnameOverride: "pagopaecommercetxschedulerservice-microservice-chart"
+  canaryDelivery:
+    create: false
+    ingress:
+      bluegreen: true
+      #set canary deployment with traffic balancing see https://github.com/kubernetes/ingress-nginx/blob/main/docs/user-guide/nginx-configuration/annotations.md#canary for more info
+      header: true
+      headerName: deployment
+      headerValue: blue
+      weightPercent: 10
+    image:
+      repository: pagopadcommonacr.azurecr.io/pagopaecommercetransactionsschedulerservic
+      tag: "latest"
+    envConfig: { }
+    envSecret: { }
   image:
     repository: pagopadcommonacr.azurecr.io/pagopaecommercetransactionsschedulerservice
     tag: "1.8.0"
@@ -35,8 +49,8 @@ microservice-chart:
     servicePort: 8080
   serviceAccount:
     create: false
-    annotations: {}
-    name: ""
+    annotations: { }
+    name: "ecommerce-workload-identity"
   podAnnotations: {}
   podSecurityContext:
     seccompProfile:
@@ -145,7 +159,5 @@ microservice-chart:
                 operator: In
                 values:
                   - user
-  canaryDelivery:
-    deployment:
-      image:
-        tag: ""
+  azure:
+    workloadIdentityClientId: 1be61b58-24e2-49c8-b401-89ebd004bf2e
