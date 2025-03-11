@@ -12,7 +12,7 @@ microservice-chart:
       headerValue: blue
       weightPercent: 10
     image:
-      repository: pagopadcommonacr.azurecr.io/pagopaecommercepaymentrequestsservice
+      repository: pagopadcommonacr.azurecr.io/pagopaecommercetransactionsschedulerservic
       tag: "latest"
     envConfig: { }
     envSecret: { }
