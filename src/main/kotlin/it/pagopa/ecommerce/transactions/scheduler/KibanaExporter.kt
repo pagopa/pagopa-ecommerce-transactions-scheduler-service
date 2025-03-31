@@ -14,16 +14,13 @@ import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-class KibanaExporter {
-}
-
 
 enum class Export(
     val exportFileNameTemplate: String,
     val queryFormatterFunction: (startDate: OffsetDateTime, endDate: OffsetDateTime, searchAfter: String?) -> String,
     val csvHeader: String,
-    val exportStartDate: OffsetDateTime = OffsetDateTime.parse("2025-02-01T00:00:00.000+01:00"),
-    val exportEndDate: OffsetDateTime = OffsetDateTime.parse("2025-02-28T00:00:00.000+01:00"),
+    val exportStartDate: OffsetDateTime = OffsetDateTime.parse("2025-03-01T00:00:00.000+01:00"),
+    val exportEndDate: OffsetDateTime = OffsetDateTime.parse("2025-03-27T00:00:00.000+01:00"),
     val recordWriterFunction: (bufferedWriter: BufferedWriter, responseFields: JsonNode) -> Unit
 ) {
     AVAILABILITY(
@@ -364,7 +361,7 @@ fun main() {
                 """".trimIndent()
             )
             val daysDiff = IntRange(
-                start = export.exportStartDate.dayOfMonth,
+                start = 1,
                 endInclusive = Duration.between(export.exportStartDate, export.exportEndDate).toDays().toInt()
             )
             daysDiff.forEach { day ->
@@ -372,7 +369,16 @@ fun main() {
                 if (!exportDir.exists()) {
                     exportDir.mkdirs()
                 }
-                val exportFile = File("./$export/${export.exportFileNameTemplate.format(day)}")
+                val startSearchDate = export.exportStartDate + Duration.ofDays((day - 1).toLong())
+                val exportFile = File(
+                    "./$export/${
+                        export.exportFileNameTemplate.format(
+                            startSearchDate.format(
+                                DateTimeFormatter.ISO_LOCAL_DATE
+                            )
+                        )
+                    }"
+                )
                 val fos = BufferedWriter(FileWriter(exportFile))
                 val csvHeader = export.csvHeader
                 fos.write(csvHeader)
