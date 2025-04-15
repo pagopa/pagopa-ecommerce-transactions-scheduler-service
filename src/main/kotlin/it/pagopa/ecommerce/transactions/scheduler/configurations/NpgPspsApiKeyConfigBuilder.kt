@@ -128,6 +128,25 @@ class NpgPspsApiKeyConfigBuilder {
             paymentMethod = PaymentMethod.SATISPAY
         )
 
+    /**
+     * Return a map where valued with each psp id - api keys entries
+     *
+     * @param apiKeys
+     * - the secret api keys configuration json
+     * @return the parsed map
+     */
+    @Qualifier("npgGooglePayApiKeys")
+    @Bean
+    fun npgGooglePayApiKeys(
+        @Value("\${npg.authorization.googlepay.keys}") apiKeys: String,
+        @Value("\${npg.authorization.googlepay.pspList}") pspToHandle: Set<String>
+    ): NpgPspApiKeysConfig =
+        parsePspApiKeyConfiguration(
+            apiKeys = apiKeys,
+            pspToHandle = pspToHandle,
+            paymentMethod = PaymentMethod.GOOGLEPAY
+        )
+
     @Bean
     fun npgApiKeyHandler(
         npgCardsApiKeys: NpgPspApiKeysConfig,
@@ -136,6 +155,7 @@ class NpgPspsApiKeyConfigBuilder {
         npgMyBankApiKeys: NpgPspApiKeysConfig,
         npgApplePayApiKeys: NpgPspApiKeysConfig,
         npgSatispayApiKeys: NpgPspApiKeysConfig,
+        npgGooglePayApiKeys: NpgPspApiKeysConfig,
         @Value("\${npg.client.apiKey}") defaultApiKey: String
     ) =
         NpgApiKeyConfiguration.Builder()
@@ -146,6 +166,7 @@ class NpgPspsApiKeyConfigBuilder {
             .withMethodPspMapping(PaymentMethod.BANCOMATPAY, npgBancomatPayApiKeys)
             .withMethodPspMapping(PaymentMethod.SATISPAY, npgSatispayApiKeys)
             .withMethodPspMapping(PaymentMethod.APPLEPAY, npgApplePayApiKeys)
+            .withMethodPspMapping(PaymentMethod.GOOGLEPAY, npgGooglePayApiKeys)
             .build()
 
     private fun parsePspApiKeyConfiguration(
