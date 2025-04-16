@@ -14,11 +14,11 @@ microservice-chart:
     image:
       repository: pagopadcommonacr.azurecr.io/pagopaecommercetransactionsschedulerservic
       tag: "latest"
-    envConfig: { }
-    envSecret: { }
+    envConfig: {}
+    envSecret: {}
   image:
     repository: pagopadcommonacr.azurecr.io/pagopaecommercetransactionsschedulerservice
-    tag: "1.9.0"
+    tag: "1.10.0"
     pullPolicy: Always
   livenessProbe:
     httpGet:
@@ -49,9 +49,9 @@ microservice-chart:
     servicePort: 8080
   serviceAccount:
     create: false
-    annotations: { }
+    annotations: {}
     name: "ecommerce-workload-identity"
-  podAnnotations: { }
+  podAnnotations: {}
   podSecurityContext:
     seccompProfile:
       type: RuntimeDefault
@@ -150,8 +150,8 @@ microservice-chart:
   keyvault:
     name: "pagopa-d-ecommerce-kv"
     tenantId: "7788edaf-0346-4068-9d79-c868aed15b3d"
-  nodeSelector: { }
-  tolerations: [ ]
+  nodeSelector: {}
+  tolerations: []
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
