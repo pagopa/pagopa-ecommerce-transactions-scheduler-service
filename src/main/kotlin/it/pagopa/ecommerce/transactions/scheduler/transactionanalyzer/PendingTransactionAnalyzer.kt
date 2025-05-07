@@ -10,7 +10,6 @@ import it.pagopa.ecommerce.commons.documents.v2.Transaction as TransactionV2
 import it.pagopa.ecommerce.commons.documents.v2.TransactionClosedEvent as TransactionClosedEventV2
 import it.pagopa.ecommerce.commons.documents.v2.TransactionClosureData as TransactionClosureDataV2
 import it.pagopa.ecommerce.commons.documents.v2.TransactionEvent as TransactionEventV2
-import it.pagopa.ecommerce.commons.domain.TransactionId
 import it.pagopa.ecommerce.commons.domain.v1.EmptyTransaction as EmptyTransactionV1
 import it.pagopa.ecommerce.commons.domain.v1.TransactionEventCode as TransactionEventCodeV1
 import it.pagopa.ecommerce.commons.domain.v1.pojos.BaseTransaction as BaseTransactionV1
@@ -201,7 +200,11 @@ class PendingTransactionAnalyzer(
             .filter { it !is EmptyTransactionV1 }
             .cast(BaseTransactionV1::class.java)
             .filterWhen { baseTransaction ->
-                mapSkipTransaction(baseTransaction.status, events, baseTransaction.transactionId)
+                mapSkipTransaction(
+                    baseTransaction.status,
+                    events,
+                    baseTransaction.transactionId.value()
+                )
             }
     }
 
@@ -216,14 +219,18 @@ class PendingTransactionAnalyzer(
             .filter { it !is EmptyTransactionV2 }
             .cast(BaseTransactionV2::class.java)
             .filterWhen { baseTransaction ->
-                mapSkipTransaction(baseTransaction.status, events, baseTransaction.transactionId)
+                mapSkipTransaction(
+                    baseTransaction.status,
+                    events,
+                    baseTransaction.transactionId.value()
+                )
             }
     }
 
     private fun mapSkipTransaction(
         status: TransactionStatusDto,
         events: Flux<BaseTransactionEvent<Any>>,
-        transactionId: TransactionId
+        transactionId: String
     ): Mono<Boolean> {
         val skipTransaction =
             if (status == TransactionStatusDto.CLOSED) {

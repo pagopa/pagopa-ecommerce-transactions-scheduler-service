@@ -2,7 +2,6 @@ package it.pagopa.ecommerce.transactions.scheduler.publishers
 
 import it.pagopa.ecommerce.commons.client.QueueAsyncClient
 import it.pagopa.ecommerce.commons.documents.BaseTransactionEvent
-import it.pagopa.ecommerce.commons.domain.TransactionId
 import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
 import it.pagopa.ecommerce.commons.queues.QueueEvent
 import it.pagopa.ecommerce.commons.queues.TracingUtils
@@ -56,7 +55,7 @@ abstract class EventPublisher<E, F>(
             }
     }
 
-    abstract fun getTransactionId(baseTransaction: F): TransactionId
+    abstract fun getTransactionId(baseTransaction: F): String
 
     abstract fun storeEventAndUpdateView(transaction: F, newStatus: TransactionStatusDto): Mono<E>
 

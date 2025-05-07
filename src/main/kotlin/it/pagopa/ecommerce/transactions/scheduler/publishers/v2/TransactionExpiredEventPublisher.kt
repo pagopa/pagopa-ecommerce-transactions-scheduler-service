@@ -4,7 +4,6 @@ import it.pagopa.ecommerce.commons.client.QueueAsyncClient
 import it.pagopa.ecommerce.commons.documents.v2.Transaction as TransactionV2
 import it.pagopa.ecommerce.commons.documents.v2.TransactionExpiredData as TransactionExpiredDataV2
 import it.pagopa.ecommerce.commons.documents.v2.TransactionExpiredEvent as TransactionExpiredEventV2
-import it.pagopa.ecommerce.commons.domain.TransactionId
 import it.pagopa.ecommerce.commons.domain.v2.TransactionWithClosureError as TransactionWithClosureErrorV2
 import it.pagopa.ecommerce.commons.domain.v2.TransactionWithClosureRequested
 import it.pagopa.ecommerce.commons.domain.v2.pojos.BaseTransaction as BaseTransactionV2
@@ -119,7 +118,7 @@ class TransactionExpiredEventPublisher(
             )
         )
 
-    override fun getTransactionId(baseTransaction: BaseTransaction): TransactionId {
-        return baseTransaction.transactionId
+    override fun getTransactionId(baseTransaction: BaseTransaction): String {
+        return baseTransaction.transactionId.value()
     }
 }
