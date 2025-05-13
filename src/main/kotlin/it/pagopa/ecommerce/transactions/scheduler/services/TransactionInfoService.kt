@@ -10,7 +10,7 @@ import it.pagopa.ecommerce.commons.documents.v2.deadletter.DeadLetterNpgTransact
 import it.pagopa.ecommerce.commons.documents.v2.deadletter.DeadLetterRedirectTransactionInfoDetailsData
 import it.pagopa.ecommerce.commons.documents.v2.deadletter.DeadLetterTransactionInfo
 import it.pagopa.ecommerce.commons.documents.v2.deadletter.DeadLetterTransactionInfoDetailsData
-import it.pagopa.ecommerce.commons.domain.TransactionId
+import it.pagopa.ecommerce.commons.domain.v2.TransactionId
 import it.pagopa.ecommerce.commons.domain.v2.pojos.*
 import it.pagopa.ecommerce.commons.exceptions.NpgResponseException
 import it.pagopa.ecommerce.commons.generated.npg.v1.dto.OperationDto
