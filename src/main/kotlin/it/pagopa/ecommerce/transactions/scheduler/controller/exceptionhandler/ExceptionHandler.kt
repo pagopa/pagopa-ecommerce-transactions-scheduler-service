@@ -3,7 +3,7 @@ package it.pagopa.ecommerce.transactions.scheduler.controller.exceptionhandler
 import it.pagopa.ecommerce.transactions.scheduler.exceptions.NoEventReceiverStatusFound
 import it.pagopa.generated.scheduler.server.model.ProblemJsonDto
 import jakarta.xml.bind.ValidationException
-import javax.validation.ConstraintViolationException
+import jakarta.validation.ConstraintViolationException
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus

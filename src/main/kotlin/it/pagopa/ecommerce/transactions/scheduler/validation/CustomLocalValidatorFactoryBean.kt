@@ -2,9 +2,9 @@ package it.pagopa.ecommerce.transactions.scheduler.validation
 
 import java.lang.reflect.Constructor
 import java.lang.reflect.Method
-import javax.validation.ClockProvider
-import javax.validation.Configuration
-import javax.validation.ParameterNameProvider
+import jakarta.validation.ClockProvider
+import jakarta.validation.Configuration
+import jakarta.validation.ParameterNameProvider
 import org.hibernate.validator.internal.engine.DefaultClockProvider
 import org.springframework.core.LocalVariableTableParameterNameDiscoverer
 import org.springframework.core.PrioritizedParameterNameDiscoverer
