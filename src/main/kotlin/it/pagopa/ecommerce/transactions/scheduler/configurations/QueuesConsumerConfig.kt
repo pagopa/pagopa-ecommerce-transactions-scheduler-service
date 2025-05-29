@@ -20,12 +20,10 @@ class QueuesConsumerConfig {
     @InboundChannelAdapter(
         channel = "transactionDeadLetterChannel",
         poller =
-            [
-                Poller(
-                    fixedDelay = "\${deadLetterListener.transaction.fixedDelay}",
-                    maxMessagesPerPoll = "\${deadLetterListener.transaction.maxMessagePerPoll}"
-                )
-            ]
+            Poller(
+                fixedDelay = "\${deadLetterListener.transaction.fixedDelay}",
+                maxMessagesPerPoll = "\${deadLetterListener.transaction.maxMessagePerPoll}"
+            )
     )
     @EndpointId("storageQueueTransactionDeadLetterEndpoint")
     fun storageQueueTransactionDeadLetter(
@@ -39,12 +37,10 @@ class QueuesConsumerConfig {
     @InboundChannelAdapter(
         channel = "notificationDeadLetterChannel",
         poller =
-            [
-                Poller(
-                    fixedDelay = "\${deadLetterListener.notification.fixedDelay}",
-                    maxMessagesPerPoll = "\${deadLetterListener.notification.maxMessagePerPoll}"
-                )
-            ]
+            Poller(
+                fixedDelay = "\${deadLetterListener.notification.fixedDelay}",
+                maxMessagesPerPoll = "\${deadLetterListener.notification.maxMessagePerPoll}"
+            )
     )
     @EndpointId("storageQueueNotificationDeadLetterEndpoint")
     fun storageQueueNotificationDeadLetter(

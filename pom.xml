@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.4.5</version>
+        <version>3.1.0</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>it.pagopa.ecommerce</groupId>
@@ -19,12 +19,12 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>17</java.version>
         <azure.functions.java.library.version>3.0.0</azure.functions.java.library.version>
-        <spring.cloud.azure.dependencies>4.0.0</spring.cloud.azure.dependencies>
+        <spring.cloud.azure.dependencies>5.0.0</spring.cloud.azure.dependencies>
         <pagopa-ecommerce-commons.version>1.36.0</pagopa-ecommerce-commons.version>
         <spotless.version>2.28.0</spotless.version>
         <jacoco.version>0.8.13</jacoco.version>
         <maven.compiler.plugin.version>3.10.1</maven.compiler.plugin.version>
-        <kotlin.version>1.9.24</kotlin.version>
+        <kotlin.version>2.1.21</kotlin.version>
         <kotlinx-coroutines.version>1.10.2</kotlinx-coroutines.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <slf4j.version>2.0.6</slf4j.version>
@@ -64,6 +64,7 @@
         <dependency>
             <groupId>com.azure.spring</groupId>
             <artifactId>spring-cloud-azure-starter-data-cosmos</artifactId>
+            <version>5.22.0</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.module</groupId>
@@ -129,12 +130,10 @@
         <dependency>
             <groupId>com.azure.spring</groupId>
             <artifactId>spring-cloud-azure-starter-integration-storage-queue</artifactId>
-            <version>4.3.0</version>
         </dependency>
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-storage-queue</artifactId>
-            <version>12.13.0</version>
         </dependency>
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
@@ -149,12 +148,16 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>1.7.30</version>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>1.2.3</version>
+            <version>1.4.11</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-core</artifactId>
+            <version>1.4.11</version>
         </dependency>
         <dependency>
             <groupId>co.elastic.logging</groupId>
@@ -395,6 +398,13 @@
                     <target>${java.version}</target>
                     <compilerArgs>--enable-preview</compilerArgs>
                     <parameters>true</parameters>
+                    <annotationProcessorPaths>    
+                        <path>        
+                            <groupId>it.pagopa</groupId>        
+                            <artifactId>pagopa-ecommerce-commons</artifactId>        
+                            <version>${pagopa-ecommerce-commons.version}</version>    
+                        </path>
+                    </annotationProcessorPaths>
                 </configuration>
             </plugin>
             <plugin>
@@ -466,8 +476,8 @@
                 <configuration>
                     <skipCheckoutIfExists>false</skipCheckoutIfExists>
                     <connectionUrl>scm:git:https://github.com/pagopa/pagopa-ecommerce-commons.git</connectionUrl>
-                    <scmVersionType>tag</scmVersionType>
-                    <scmVersion>${pagopa-ecommerce-commons.version}</scmVersion>
+                    <scmVersionType>branch</scmVersionType>
+                    <scmVersion>PIDM-559-565-upgrade-springboot3-ecommerce-commons</scmVersion>
                     <goals>install -DskipTests</goals>
                 </configuration>
                 <executions>

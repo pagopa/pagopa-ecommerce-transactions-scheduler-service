@@ -26,7 +26,6 @@ import it.pagopa.ecommerce.transactions.scheduler.utils.TransactionInfoUtils.Com
 import it.pagopa.ecommerce.transactions.scheduler.utils.TransactionInfoUtils.Companion.buildOrderResponseDtoForNpgOrderRefundedFaulty
 import it.pagopa.ecommerce.transactions.scheduler.utils.TransactionInfoUtils.Companion.buildOrderResponseDtoForNpgOrderVoid
 import it.pagopa.ecommerce.transactions.scheduler.utils.TransactionInfoUtils.Companion.buildOrderResponseDtoInvalidOrder
-import it.pagopa.ecommerce.transactions.scheduler.utils.TransactionInfoUtils.Companion.buildOrderResponseDtoNullOperation
 import java.time.ZonedDateTime
 import java.util.*
 import java.util.stream.Stream
@@ -360,8 +359,10 @@ class TransactionInfoServiceTest {
         given(checkPointer.success()).willReturn(Mono.empty())
         given(transactionEventRepository.findByTransactionIdOrderByCreationDateAsc(TRANSACTION_ID))
             .willReturn(Flux.fromIterable(events))
-        given(npgClient.getOrder(any(), any(), any()))
-            .willReturn(buildOrderResponseDtoNullOperation())
+
+        val orderResponseDto = OrderResponseDto().apply { operations = null }
+
+        given(npgClient.getOrder(any(), any(), any())).willReturn(Mono.just(orderResponseDto))
 
         StepVerifier.create(transactionInfoService.getTransactionInfoDetails(baseTransaction))
             .expectErrorMatches {
