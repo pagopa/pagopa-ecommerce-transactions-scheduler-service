@@ -29,6 +29,9 @@ import it.pagopa.ecommerce.transactions.scheduler.utils.TransactionInfoUtils.Com
 import it.pagopa.ecommerce.transactions.scheduler.utils.TransactionInfoUtils.Companion.buildOrderResponseDtoForNpgOrderVoid
 import it.pagopa.ecommerce.transactions.scheduler.utils.TransactionInfoUtils.Companion.buildOrderResponseDtoInvalidOrder
 import it.pagopa.ecommerce.transactions.scheduler.utils.TransactionInfoUtils.Companion.buildOrderResponseDtoNullOperation
+import java.time.ZonedDateTime
+import java.util.*
+import java.util.stream.Stream
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
@@ -41,9 +44,6 @@ import org.springframework.http.HttpStatus
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
-import java.time.ZonedDateTime
-import java.util.*
-import java.util.stream.Stream
 
 class TransactionInfoServiceTest {
 
@@ -153,7 +153,7 @@ class TransactionInfoServiceTest {
                 userReceiptAddErrorEvent,
                 userReceiptAddedEvent
             )
-                    as List<TransactionEvent<Any>>
+                as List<TransactionEvent<Any>>
 
         val baseTransaction = reduceEvents(*events.toTypedArray())
         val expected =
@@ -169,20 +169,20 @@ class TransactionInfoServiceTest {
 
         given(checkPointer.success()).willReturn(Mono.empty())
         given(
-            transactionEventRepository.findByTransactionIdOrderByCreationDateAsc(
-                transactionView.transactionId
+                transactionEventRepository.findByTransactionIdOrderByCreationDateAsc(
+                    transactionView.transactionId
+                )
             )
-        )
             .willReturn(Flux.fromIterable(events))
 
         given(npgClient.getOrder(any(), any(), any()))
             .willReturn(buildOrderResponseDtoForNpgOrderRefunded())
 
         StepVerifier.create(
-            transactionInfoService.getTransactionInfoByTransactionId(
-                transactionView.transactionId
+                transactionInfoService.getTransactionInfoByTransactionId(
+                    transactionView.transactionId
+                )
             )
-        )
             .expectNext(expected)
             .verifyComplete()
     }
@@ -212,8 +212,8 @@ class TransactionInfoServiceTest {
         given(transactionEventRepository.findByTransactionIdOrderByCreationDateAsc(TRANSACTION_ID))
             .willReturn(Flux.fromIterable(events))
         StepVerifier.create(
-            transactionInfoService.getTransactionInfoByTransactionId(TRANSACTION_ID)
-        )
+                transactionInfoService.getTransactionInfoByTransactionId(TRANSACTION_ID)
+            )
             .expectNext(expected)
             .verifyComplete()
     }
@@ -276,7 +276,7 @@ class TransactionInfoServiceTest {
         StepVerifier.create(transactionInfoService.getTransactionInfoDetails(baseTransaction))
             .expectErrorMatches {
                 it is InvalidGatewayException &&
-                        it.message == "Transaction with id: $TRANSACTION_ID has invalid gateway"
+                    it.message == "Transaction with id: $TRANSACTION_ID has invalid gateway"
             }
             .verify()
     }
@@ -299,7 +299,7 @@ class TransactionInfoServiceTest {
         StepVerifier.create(transactionInfoService.getTransactionInfoDetails(baseTransaction))
             .expectErrorMatches {
                 it is InvalidNpgOrderException &&
-                        it.message ==
+                    it.message ==
                         "Invalid operation retrived from gateway for transaction: ${TRANSACTION_ID}"
             }
             .verify()
@@ -323,7 +323,7 @@ class TransactionInfoServiceTest {
         StepVerifier.create(transactionInfoService.getTransactionInfoDetails(baseTransaction))
             .expectErrorMatches {
                 it is InvalidNpgOrderException &&
-                        it.message ==
+                    it.message ==
                         "Invalid operation retrived from gateway for transaction: ${TRANSACTION_ID}"
             }
             .verify()
@@ -347,7 +347,7 @@ class TransactionInfoServiceTest {
         StepVerifier.create(transactionInfoService.getTransactionInfoDetails(baseTransaction))
             .expectErrorMatches {
                 it is InvalidNpgOrderException &&
-                        it.message ==
+                    it.message ==
                         "Invalid operation retrived from gateway for transaction: ${TRANSACTION_ID}"
             }
             .verify()
@@ -372,7 +372,7 @@ class TransactionInfoServiceTest {
         StepVerifier.create(transactionInfoService.getTransactionInfoDetails(baseTransaction))
             .expectErrorMatches {
                 it is NoOperationFoundException &&
-                        it.message == "No operations found for transaction with id: $TRANSACTION_ID"
+                    it.message == "No operations found for transaction with id: $TRANSACTION_ID"
             }
             .verify()
     }
@@ -414,7 +414,7 @@ class TransactionInfoServiceTest {
         StepVerifier.create(transactionInfoService.getTransactionInfoDetails(baseTransaction))
             .expectErrorMatches {
                 it is NpgApiKeyConfigurationException &&
-                        it.message ==
+                    it.message ==
                         "Cannot retrieve api key for payment method: [CARDS]. Cause: Requested API key for PSP: [pspId2]. Available PSPs: [pspId]"
             }
             .verify()
@@ -447,7 +447,7 @@ class TransactionInfoServiceTest {
         StepVerifier.create(transactionInfoService.getTransactionInfoDetails(baseTransaction))
             .expectErrorMatches {
                 it is NpgBadGatewayException &&
-                        it.message ==
+                    it.message ==
                         "Bad gateway : Received HTTP error code from NPG: 500 INTERNAL_SERVER_ERROR"
             }
             .verify()
@@ -480,7 +480,7 @@ class TransactionInfoServiceTest {
         StepVerifier.create(transactionInfoService.getTransactionInfoDetails(baseTransaction))
             .expectErrorMatches {
                 it is NpgBadRequestException &&
-                        it.message ==
+                    it.message ==
                         "Transaction with id $TRANSACTION_ID npg state cannot be retrieved. Reason: Received HTTP error code from NPG: 400 BAD_REQUEST"
             }
             .verify()
@@ -517,8 +517,8 @@ class TransactionInfoServiceTest {
             .willReturn(Flux.fromIterable(events))
 
         StepVerifier.create(
-            transactionInfoService.getTransactionInfoByTransactionId(TRANSACTION_ID)
-        )
+                transactionInfoService.getTransactionInfoByTransactionId(TRANSACTION_ID)
+            )
             .expectNext(expected)
             .verifyComplete()
     }
