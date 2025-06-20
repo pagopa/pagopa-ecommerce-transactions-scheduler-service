@@ -27,6 +27,7 @@ class TransactionInfoUtils {
             orderResponseDto.operations = listOf(operationDto)
             return Mono.just(orderResponseDto)
         }
+
         fun buildOrderResponseDtoForNgpOrderAuthorized(): Mono<OrderResponseDto> {
             val orderResponseDto = OrderResponseDto()
             val operationDto = OperationDto()
@@ -37,6 +38,7 @@ class TransactionInfoUtils {
             orderResponseDto.operations = listOf(operationDto)
             return Mono.just(orderResponseDto)
         }
+
         fun buildOrderResponseDtoForNpgOrderVoid(): Mono<OrderResponseDto> {
             val orderResponseDto = OrderResponseDto()
             val operationDto = OperationDto()
@@ -47,6 +49,7 @@ class TransactionInfoUtils {
             orderResponseDto.operations = listOf(operationDto)
             return Mono.just(orderResponseDto)
         }
+
         fun buildOrderResponseDtoForNpgOrderRefunded(): Mono<OrderResponseDto> {
             val orderResponseDto = OrderResponseDto()
             val operationDto = OperationDto()
@@ -57,6 +60,7 @@ class TransactionInfoUtils {
             orderResponseDto.operations = listOf(operationDto)
             return Mono.just(orderResponseDto)
         }
+
         fun buildOrderResponseDtoForNpgOrderRefundedFaulty(): Mono<OrderResponseDto> {
             val orderResponseDto = OrderResponseDto()
             val operationDto = OperationDto()
@@ -67,6 +71,7 @@ class TransactionInfoUtils {
             orderResponseDto.operations = listOf(operationDto)
             return Mono.just(orderResponseDto)
         }
+
         fun buildOrderResponseDtoInvalidOrder(): Mono<OrderResponseDto> {
             val orderResponseDto = OrderResponseDto()
             val operationDto = OperationDto()
@@ -75,10 +80,13 @@ class TransactionInfoUtils {
             orderResponseDto.operations = listOf(operationDto)
             return Mono.just(orderResponseDto)
         }
+
         fun buildOrderResponseDtoNullOperation(): Mono<OrderResponseDto> {
             val orderResponseDto = OrderResponseDto()
+            orderResponseDto.operations = null
             return Mono.just(orderResponseDto)
         }
+
         fun buildEventsList(
             correlationId: String,
             gateway: TransactionAuthorizationRequestData.PaymentGateway

@@ -8,7 +8,9 @@ import it.pagopa.ecommerce.commons.client.NpgClient
 import it.pagopa.ecommerce.commons.documents.v2.*
 import it.pagopa.ecommerce.commons.documents.v2.activation.NpgTransactionGatewayActivationData
 import it.pagopa.ecommerce.commons.documents.v2.authorization.NpgTransactionGatewayAuthorizationRequestedData
-import it.pagopa.ecommerce.commons.documents.v2.deadletter.*
+import it.pagopa.ecommerce.commons.documents.v2.deadletter.DeadLetterNpgTransactionInfoDetailsData
+import it.pagopa.ecommerce.commons.documents.v2.deadletter.DeadLetterRedirectTransactionInfoDetailsData
+import it.pagopa.ecommerce.commons.documents.v2.deadletter.DeadLetterTransactionInfoDetailsData
 import it.pagopa.ecommerce.commons.exceptions.NpgApiKeyConfigurationException
 import it.pagopa.ecommerce.commons.exceptions.NpgResponseException
 import it.pagopa.ecommerce.commons.generated.npg.v1.dto.OperationResultDto
@@ -34,7 +36,10 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
-import org.mockito.kotlin.*
+import org.mockito.kotlin.any
+import org.mockito.kotlin.given
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.spy
 import org.springframework.http.HttpStatus
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
@@ -360,6 +365,7 @@ class TransactionInfoServiceTest {
         given(checkPointer.success()).willReturn(Mono.empty())
         given(transactionEventRepository.findByTransactionIdOrderByCreationDateAsc(TRANSACTION_ID))
             .willReturn(Flux.fromIterable(events))
+
         given(npgClient.getOrder(any(), any(), any()))
             .willReturn(buildOrderResponseDtoNullOperation())
 

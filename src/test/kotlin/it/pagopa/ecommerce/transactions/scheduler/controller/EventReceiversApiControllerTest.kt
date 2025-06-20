@@ -6,15 +6,14 @@ import it.pagopa.ecommerce.transactions.scheduler.validation.BeanValidationConfi
 import it.pagopa.generated.scheduler.server.model.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.given
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
-import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
 import org.springframework.test.context.TestPropertySource
+import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.reactive.server.WebTestClient
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -25,7 +24,7 @@ class EventReceiversApiControllerTest {
 
     @Autowired lateinit var webClient: WebTestClient
 
-    @MockBean lateinit var eventReceiverService: EventReceiverService
+    @MockitoBean lateinit var eventReceiverService: EventReceiverService
 
     @Test
     fun `Should handle command creation successfully`() = runTest {
