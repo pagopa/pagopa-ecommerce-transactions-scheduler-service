@@ -382,7 +382,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <release>21</release>
+                    <release>${java.version}</release>
                     <parameters>true</parameters>
                 </configuration>
             </plugin>
