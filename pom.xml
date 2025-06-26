@@ -24,7 +24,7 @@
         <spring.cloud.azure.dependencies>5.22.0</spring.cloud.azure.dependencies>
         <pagopa-ecommerce-commons.version>2.1.0-SNAPSHOT</pagopa-ecommerce-commons.version>
         <spotless.version>2.28.0</spotless.version>
-        <jacoco.version>0.8.11</jacoco.version>
+        <jacoco.version>0.8.13</jacoco.version>
         <maven.compiler.plugin.version>3.13.0</maven.compiler.plugin.version>
         <kotlin.version>2.1.21</kotlin.version>
         <kotlinx-coroutines.version>1.10.2</kotlinx-coroutines.version>
@@ -457,7 +457,7 @@
                     <connectionUrl>scm:git:https://github.com/pagopa/pagopa-ecommerce-commons.git</connectionUrl>
                     <scmVersionType>tag</scmVersionType>
                     <scmVersion>${pagopa-ecommerce-commons.version}</scmVersion>
-                    <goals>install -DskipTests -Dmaven.javadoc.skip=true</goals>
+                    <goals>install -DskipTests</goals>
                 </configuration>
                 <executions>
                     <execution>
