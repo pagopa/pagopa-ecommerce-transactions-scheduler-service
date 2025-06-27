@@ -25,6 +25,7 @@ jobs:
         id: semver_labels
         with:
           github_token: ${{ secrets.BOT_GITHUB_TOKEN}}
+
   semver_update:
     if: ${{needs.semver_labels.outputs.skip_release == 'False'}}
     name: Update semver for every eligible file of repo (helm charts, mvn files, etc.)
@@ -43,11 +44,10 @@ jobs:
       - name: Setup git author
         run: |
           git config --global user.email "${{ secrets.BOT_GIT_MAIL }}" && git config --global user.name "${{ secrets.BOT_GIT_USER }}"
-        # bump version
-      - name: Set up JDK 17
-        uses:  actions/setup-java@0ab4596768b603586c0de567f2430c30f5b0d2b0 # v3
+      - name: Set up JDK 21
+        uses: actions/setup-java@0ab4596768b603586c0de567f2430c30f5b0d2b0 # v3
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'corretto'
       - name: Get New App Version
         id: get_new_ver
@@ -77,9 +77,9 @@ jobs:
       - name: Update Chart App Version
         run: |
           CHART_FILE="helm/Chart.yaml"
-            if [[ -f "$CHART_FILE" ]]; then
-              yq -i ".appVersion = \"${{steps.get_new_ver.outputs.version}}\"" "$CHART_FILE"
-              git add "$CHART_FILE"
+          if [[ -f "$CHART_FILE" ]]; then
+            yq -i ".appVersion = \"${{steps.get_new_ver.outputs.version}}\"" "$CHART_FILE"
+            git add "$CHART_FILE"
           fi
       - name: Setup Node.js
         uses: actions/setup-node@1a4442cacd436585916779262731d5b162bc6ec7 # v3
@@ -102,6 +102,7 @@ jobs:
           git diff --cached
           git commit -m "Bump version [skip ci]"
           git push origin 'main'
+
   github_release:
     if: ${{needs.semver_labels.outputs.skip_release == 'False'}}
     name: Create a New Github Release

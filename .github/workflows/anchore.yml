@@ -44,9 +44,9 @@ jobs:
         uses: anchore/scan-action@v3
         with:
           image: "localbuild/testimage:latest"
-          acs-report-enable: true
           fail-build: true
           severity-cutoff: "high"
+          output-format: "sarif"
       - name: Upload Anchore Scan Report
         uses: github/codeql-action/upload-sarif@v3
         if: always()
