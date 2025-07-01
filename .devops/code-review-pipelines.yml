@@ -37,6 +37,7 @@ steps:
         sonar.coverage.jacoco.xmlReportPaths=./target/site/jacoco/jacoco.xml
         sonar.junit.reportPaths=target/surefire-reports/
         sonar.verbose=true
+
   - bash: |
       docker run -p 10000:10000 -p 10001:10001 -p 10002:10002 mcr.microsoft.com/azure-storage/azurite &
     displayName: Run azurite to test Service - Storage integration
@@ -47,7 +48,7 @@ steps:
       mavenPomFile: 'pom.xml'
       mavenOptions: '-Xmx3072m $(MAVEN_OPTS)'
       javaHomeOption: 'JDKVersion'
-      jdkVersionOption: '17'
+      jdkVersionOption: '21'
       jdkArchitectureOption: 'x64'
       publishJUnitResults: false
       testResultsFiles: '**/surefire-reports/TEST-*.xml'
@@ -60,7 +61,7 @@ steps:
       mavenPomFile: 'pom.xml'
       mavenOptions: '-Xmx3072m $(MAVEN_OPTS)'
       javaHomeOption: 'JDKVersion'
-      jdkVersionOption: '17'
+      jdkVersionOption: '21'
       jdkArchitectureOption: 'x64'
       publishJUnitResults: false
       testResultsFiles: '**/surefire-reports/TEST-*.xml'

@@ -17,13 +17,15 @@
     </description>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <java.version>17</java.version>
+        <java.version>21</java.version>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
         <azure.functions.java.library.version>3.0.0</azure.functions.java.library.version>
         <spring.cloud.azure.dependencies>5.22.0</spring.cloud.azure.dependencies>
-        <pagopa-ecommerce-commons.version>2.0.1</pagopa-ecommerce-commons.version>
+        <pagopa-ecommerce-commons.version>3.0.0</pagopa-ecommerce-commons.version>
         <spotless.version>2.28.0</spotless.version>
         <jacoco.version>0.8.13</jacoco.version>
-        <maven.compiler.plugin.version>3.10.1</maven.compiler.plugin.version>
+        <maven.compiler.plugin.version>3.13.0</maven.compiler.plugin.version>
         <kotlin.version>2.1.21</kotlin.version>
         <kotlinx-coroutines.version>1.10.2</kotlinx-coroutines.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -215,12 +217,6 @@
             <version>3.0.2</version>
         </dependency>
         <dependency>
-            <groupId>org.jacoco</groupId>
-            <artifactId>jacoco-maven-plugin</artifactId>
-            <version>${jacoco.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
         </dependency>
@@ -231,7 +227,6 @@
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
-
     </dependencies>
 
     <dependencyManagement>
@@ -387,9 +382,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
-                    <compilerArgs>--enable-preview</compilerArgs>
+                    <release>${java.version}</release>
                     <parameters>true</parameters>
                 </configuration>
             </plugin>
