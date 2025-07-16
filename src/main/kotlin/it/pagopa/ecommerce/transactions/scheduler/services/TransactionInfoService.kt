@@ -51,7 +51,7 @@ class TransactionInfoService(
                 it.pagopa.ecommerce.commons.domain.v2.EmptyTransaction(),
                 it.pagopa.ecommerce.commons.domain.v2.Transaction::applyEvent
             )
-            .cast(it.pagopa.ecommerce.commons.domain.v2.pojos.BaseTransaction::class.java)
+            .cast(BaseTransaction::class.java)
             .flatMap { baseTransaction -> events.collectList().map { baseTransaction } }
             .flatMap { baseTransaction ->
                 getTransactionInfoDetails(baseTransaction)
@@ -152,10 +152,13 @@ class TransactionInfoService(
     ): Mono<DeadLetterTransactionInfoDetailsData> {
         val transactionActivatedData = getTransactionActivatedData(baseTransaction)
         val transactionAuthorizationRequestData = getTransactionAuthRequestedData(baseTransaction)
+        val gatewayActivatedData = transactionActivatedData?.transactionGatewayActivationData
         val correlationId =
-            (transactionActivatedData?.transactionGatewayActivationData
-                    as NpgTransactionGatewayActivationData)
-                .correlationId
+            if (gatewayActivatedData is NpgTransactionGatewayActivationData) {
+                gatewayActivatedData.correlationId
+            } else {
+                null
+            }
         // based on the type of payment I retrieve the gateway information
         CommonLogger.logger.info(
             "Retrive gateway info for transactionId: [{}],  gateway: [{}]",
@@ -168,7 +171,7 @@ class TransactionInfoService(
                         transactionId = TransactionId(baseTransaction.transactionId.value()),
                         orderId = transactionAuthorizationRequestData.authorizationRequestId,
                         pspId = transactionAuthorizationRequestData.pspId,
-                        correlationId = correlationId,
+                        correlationId = correlationId!!,
                         paymentMethod =
                             PaymentMethod.valueOf(
                                 transactionAuthorizationRequestData.paymentMethodName
