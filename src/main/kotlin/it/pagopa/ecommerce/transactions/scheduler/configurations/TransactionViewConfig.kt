@@ -5,8 +5,8 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
 /**
- * Configuration for transaction view collection management.
- * Controls whether the service updates the MongoDB transaction-view collection.
+ * Configuration for transaction view collection management. Controls whether the service updates
+ * the MongoDB transaction-view collection.
  */
 @Configuration
 class TransactionViewConfig {
