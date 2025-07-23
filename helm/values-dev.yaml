@@ -133,6 +133,7 @@ microservice-chart:
     REDIS_STREAM_EVENT_CONTROLLER_STREAM_KEY: "scheduler-service-commands"
     REDIS_STREAM_EVENT_CONTROLLER_CONSUMER_NAME_PREFIX: "scheduler"
     EVENT_CONTROLLER_STATUS_POLLING_CHRON: "*/10 * * * * *"
+    TRANSACTIONVIEW_UPDATE_ENABLED: "true"
   envSecret:
     MONGO_PASSWORD: mongo-ecommerce-password
     QUEUE_TRANSIENT_CONNECTION_STRING: ecommerce-storage-transient-connection-string
