@@ -15,6 +15,7 @@ import it.pagopa.ecommerce.commons.queues.TracingUtils
 import it.pagopa.ecommerce.transactions.scheduler.publishers.EventPublisher
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsEventStoreRepository
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsViewRepository
+import kotlinx.coroutines.reactor.mono
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -112,7 +113,7 @@ class TransactionExpiredEventPublisher(
     private fun conditionallySaveTransactionView(
         transaction: BaseTransactionV2,
         newStatus: TransactionStatusDto
-    ): Mono<Void> =
+    ): Mono<Unit> =
         if (transactionsViewUpdateEnabled) {
             viewRepository
                 .findByTransactionId(transaction.transactionId.value())
@@ -121,7 +122,7 @@ class TransactionExpiredEventPublisher(
                     it.status = newStatus
                     viewRepository.save(it)
                 }
-                .then()
+                .then(mono {})
         } else {
             Mono.empty()
         }
