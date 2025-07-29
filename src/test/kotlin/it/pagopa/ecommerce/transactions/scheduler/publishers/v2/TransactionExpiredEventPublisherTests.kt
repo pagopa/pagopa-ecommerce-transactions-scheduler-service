@@ -115,7 +115,8 @@ class TransactionExpiredEventPublisherTests {
                         eventStoreRepository = eventStoreRepository,
                         parallelEventToProcess = 1,
                         transientQueueTTLSeconds = transientQueueTTLSeconds,
-                        tracingUtils = tracingUtils
+                        tracingUtils = tracingUtils,
+                        transactionsViewUpdateEnabled = true
                     )
                     .publishExpiryEvents(baseDocuments, batchExecutionTimeWindow, 5, 0)
             )
@@ -205,7 +206,8 @@ class TransactionExpiredEventPublisherTests {
                         eventStoreRepository = eventStoreRepository,
                         parallelEventToProcess = 1,
                         transientQueueTTLSeconds = transientQueueTTLSeconds,
-                        tracingUtils = tracingUtils
+                        tracingUtils = tracingUtils,
+                        transactionsViewUpdateEnabled = true
                     )
                     .publishExpiryEvents(
                         generateTransactionBaseDocuments(
@@ -246,7 +248,8 @@ class TransactionExpiredEventPublisherTests {
                         eventStoreRepository = eventStoreRepository,
                         parallelEventToProcess = 1,
                         transientQueueTTLSeconds = transientQueueTTLSeconds,
-                        tracingUtils = tracingUtils
+                        tracingUtils = tracingUtils,
+                        transactionsViewUpdateEnabled = true
                     )
                     .publishExpiryEvents(
                         generateTransactionBaseDocuments(
@@ -310,7 +313,8 @@ class TransactionExpiredEventPublisherTests {
                         eventStoreRepository = eventStoreRepository,
                         parallelEventToProcess = 1,
                         transientQueueTTLSeconds = transientQueueTTLSeconds,
-                        tracingUtils = tracingUtils
+                        tracingUtils = tracingUtils,
+                        transactionsViewUpdateEnabled = true,
                     )
                     .publishExpiryEvents(transactions, batchExecutionTimeWindow, 5, 0)
             )
@@ -399,7 +403,8 @@ class TransactionExpiredEventPublisherTests {
                         eventStoreRepository = eventStoreRepository,
                         parallelEventToProcess = 1,
                         transientQueueTTLSeconds = transientQueueTTLSeconds,
-                        tracingUtils = tracingUtils
+                        tracingUtils = tracingUtils,
+                        transactionsViewUpdateEnabled = true,
                     )
                     .publishExpiryEvents(
                         allTransactions,
@@ -528,7 +533,8 @@ class TransactionExpiredEventPublisherTests {
                         eventStoreRepository = eventStoreRepository,
                         parallelEventToProcess = 1,
                         transientQueueTTLSeconds = transientQueueTTLSeconds,
-                        tracingUtils = tracingUtils
+                        tracingUtils = tracingUtils,
+                        transactionsViewUpdateEnabled = true
                     )
                     .publishExpiryEvents(
                         allTransactions,
@@ -662,7 +668,8 @@ class TransactionExpiredEventPublisherTests {
                         eventStoreRepository = eventStoreRepository,
                         parallelEventToProcess = 1,
                         transientQueueTTLSeconds = transientQueueTTLSeconds,
-                        tracingUtils = tracingUtils
+                        tracingUtils = tracingUtils,
+                        transactionsViewUpdateEnabled = true
                     )
                     .publishExpiryEvents(
                         allTransactions,
@@ -776,7 +783,8 @@ class TransactionExpiredEventPublisherTests {
                         eventStoreRepository = eventStoreRepository,
                         parallelEventToProcess = 1,
                         transientQueueTTLSeconds = transientQueueTTLSeconds,
-                        tracingUtils = tracingUtils
+                        tracingUtils = tracingUtils,
+                        transactionsViewUpdateEnabled = true
                     )
                     .publishExpiryEvents(
                         baseDocuments,
@@ -958,7 +966,8 @@ class TransactionExpiredEventPublisherTests {
                         eventStoreRepository = eventStoreRepository,
                         parallelEventToProcess = 1,
                         transientQueueTTLSeconds = transientQueueTTLSeconds,
-                        tracingUtils = tracingUtils
+                        tracingUtils = tracingUtils,
+                        transactionsViewUpdateEnabled = true
                     )
                     .publishExpiryEvents(
                         baseDocuments,
@@ -1072,7 +1081,8 @@ class TransactionExpiredEventPublisherTests {
                         eventStoreRepository = eventStoreRepository,
                         parallelEventToProcess = 1,
                         transientQueueTTLSeconds = transientQueueTTLSeconds,
-                        tracingUtils = tracingUtils
+                        tracingUtils = tracingUtils,
+                        transactionsViewUpdateEnabled = true
                     )
                     .publishExpiryEvents(
                         baseDocuments,
@@ -1186,7 +1196,8 @@ class TransactionExpiredEventPublisherTests {
                         eventStoreRepository = eventStoreRepository,
                         parallelEventToProcess = 1,
                         transientQueueTTLSeconds = transientQueueTTLSeconds,
-                        tracingUtils = tracingUtils
+                        tracingUtils = tracingUtils,
+                        transactionsViewUpdateEnabled = true
                     )
                     .publishExpiryEvents(
                         baseDocuments,
@@ -1300,7 +1311,8 @@ class TransactionExpiredEventPublisherTests {
                         eventStoreRepository = eventStoreRepository,
                         parallelEventToProcess = 1,
                         transientQueueTTLSeconds = transientQueueTTLSeconds,
-                        tracingUtils = tracingUtils
+                        tracingUtils = tracingUtils,
+                        transactionsViewUpdateEnabled = true
                     )
                     .publishExpiryEvents(
                         baseDocuments,
@@ -1360,6 +1372,96 @@ class TransactionExpiredEventPublisherTests {
             )
         verify(eventStoreRepository, times(5)).save(any())
         verify(viewRepository, times(5)).save(any())
+    }
+
+    @Test
+    fun `Should publish all events without updating transaction view when transactionsViewUpdateEnabled is false`() {
+        // preconditions
+        val baseDocuments =
+            generateTransactionBaseDocuments(
+                howMany = 5,
+                transactionType = TransactionType.ACTIVATED_ONLY
+            )
+
+        val expectedGeneratedEvents =
+            baseDocuments
+                .map { baseTransactionToExpiryEvent(it) }
+                .toList()
+                .sortedBy { it.transactionId }
+        val sendMessageResult = SendMessageResult()
+        sendMessageResult.messageId = "msgId"
+        sendMessageResult.timeNextVisible = OffsetDateTime.now()
+        val queueAsyncClientResponse: Mono<Response<SendMessageResult>> =
+            Mono.just(ResponseBase(null, 200, null, sendMessageResult, null))
+        given(
+                queueAsyncClient.sendMessageWithResponse(
+                    queueArgumentCaptor.capture(),
+                    eventsVisibilityTimeoutCaptor.capture(),
+                    any()
+                )
+            )
+            .willReturn(queueAsyncClientResponse)
+        given(eventStoreRepository.save(eventStoreCaptor.capture())).willAnswer {
+            Mono.just(it.arguments[0])
+        }
+
+        val batchExecutionTimeWindow = TimeUnit.HOURS.toMillis(1)
+        // test
+        StepVerifier.create(
+                TransactionExpiredEventPublisher(
+                        expiredEventQueueAsyncClient = queueAsyncClient,
+                        viewRepository = viewRepository,
+                        eventStoreRepository = eventStoreRepository,
+                        parallelEventToProcess = 1,
+                        transientQueueTTLSeconds = transientQueueTTLSeconds,
+                        tracingUtils = tracingUtils,
+                        transactionsViewUpdateEnabled = false
+                    )
+                    .publishExpiryEvents(baseDocuments, batchExecutionTimeWindow, 5, 0)
+            )
+            .expectNext(true)
+            .verifyComplete()
+        // assertions
+
+        val eventCapturedArguments = eventStoreCaptor.allValues
+        eventCapturedArguments.sortBy { it.transactionId }
+        val queueCapturedArguments = queueArgumentCaptor.allValues
+        queueCapturedArguments.sortBy { it.event.transactionId }
+        for ((idx, expectedGeneratedEvent) in expectedGeneratedEvents.withIndex()) {
+            /*
+             * verify that event stored into event store collection and sent on the queue are the expected ones.
+             * since some event fields such id and creation timestamp are created automatically in constructor
+             * equality is verified field by field here
+             */
+            equalityAssertionsOnEventStore(expectedGeneratedEvent, eventCapturedArguments[idx], idx)
+            equalityAssertionsOnSentEvent(expectedGeneratedEvent, queueCapturedArguments[idx], idx)
+        }
+
+        val expectedEventsIntertime = batchExecutionTimeWindow / expectedGeneratedEvents.size
+        val eventsVisibilityTimeouts = eventsVisibilityTimeoutCaptor.allValues
+        var currentIdx = eventsVisibilityTimeoutCaptor.allValues.size - 1
+        eventsVisibilityTimeouts.sort()
+        var visibilityTimeoutIntertime: Long
+        while (currentIdx > 0) {
+            visibilityTimeoutIntertime =
+                eventsVisibilityTimeouts[currentIdx]
+                    .minus(eventsVisibilityTimeouts[currentIdx - 1])
+                    .toMillis()
+            assertEquals(
+                expectedEventsIntertime,
+                visibilityTimeoutIntertime,
+                "Testing event visibility timeout interleave. event[$currentIdx] - event[$currentIdx-1]"
+            )
+            currentIdx--
+        }
+        verify(queueAsyncClient, times(5))
+            .sendMessageWithResponse(
+                any<QueueEvent<*>>(),
+                any(),
+                eq(Duration.ofSeconds(transientQueueTTLSeconds.toLong()))
+            )
+        verify(eventStoreRepository, times(5)).save(any())
+        verify(viewRepository, never()).save(any())
     }
 
     private fun baseTransactionToExpiryEvent(transaction: BaseTransaction) =

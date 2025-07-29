@@ -37,7 +37,9 @@ class TransactionExpiredEventPublisher(
     private val parallelEventToProcess: Int,
     @Value("\${azurestorage.queues.transientQueues.ttlSeconds}")
     private val transientQueueTTLSeconds: Int,
-    @Autowired private val tracingUtils: TracingUtils
+    @Autowired private val tracingUtils: TracingUtils,
+    @Value("\${transactionsview.update.enabled}")
+    private val transactionsViewUpdateEnabled: Boolean,
 ) :
     EventPublisher<TransactionExpiredEventV2, BaseTransactionV2>(
         queueAsyncClient = expiredEventQueueAsyncClient,
@@ -100,21 +102,31 @@ class TransactionExpiredEventPublisher(
         toEvent(transaction)
             .flatMap { eventStoreRepository.save(it) }
             .flatMap { event ->
-                viewRepository
-                    .findByTransactionId(transaction.transactionId.value())
-                    .cast(TransactionV2::class.java)
-                    .flatMap {
-                        it.status = newStatus
-                        viewRepository.save(it)
-                    }
-                    .flatMap { Mono.just(event) }
+                conditionallySaveTransactionView(transaction, newStatus).then(Mono.just(event))
             }
 
-    override fun toEvent(baseTrasaction: BaseTransactionV2): Mono<TransactionExpiredEventV2> =
+    /**
+     * Save the transaction in the transactions-view collection, iff the transactions-view update is
+     * enabled. Otherwise, do nothing.
+     */
+    private fun conditionallySaveTransactionView(
+        transaction: BaseTransactionV2,
+        newStatus: TransactionStatusDto
+    ): Mono<TransactionV2> =
+        Mono.just(transactionsViewUpdateEnabled)
+            .filter { it }
+            .map { viewRepository.findByTransactionId(transaction.transactionId.value()) }
+            .flatMap { it.cast(TransactionV2::class.java) }
+            .flatMap {
+                it.status = newStatus
+                viewRepository.save(it)
+            }
+
+    override fun toEvent(baseTransaction: BaseTransactionV2): Mono<TransactionExpiredEventV2> =
         Mono.just(
             TransactionExpiredEventV2(
-                baseTrasaction.transactionId.value(),
-                TransactionExpiredDataV2(baseTrasaction.status)
+                baseTransaction.transactionId.value(),
+                TransactionExpiredDataV2(baseTransaction.status)
             )
         )
 
