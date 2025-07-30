@@ -15,6 +15,7 @@ import it.pagopa.ecommerce.commons.queues.TracingUtils
 import it.pagopa.ecommerce.transactions.scheduler.publishers.EventPublisher
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsEventStoreRepository
 import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsViewRepository
+import java.time.ZonedDateTime
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -102,7 +103,8 @@ class TransactionExpiredEventPublisher(
         toEvent(transaction)
             .flatMap { eventStoreRepository.save(it) }
             .flatMap { event ->
-                conditionallySaveTransactionView(transaction, newStatus).then(Mono.just(event))
+                conditionallySaveTransactionView(transaction, newStatus, event)
+                    .then(Mono.just(event))
             }
 
     /**
@@ -111,7 +113,8 @@ class TransactionExpiredEventPublisher(
      */
     private fun conditionallySaveTransactionView(
         transaction: BaseTransactionV2,
-        newStatus: TransactionStatusDto
+        newStatus: TransactionStatusDto,
+        createdEvent: TransactionExpiredEventV2
     ): Mono<TransactionV2> =
         Mono.just(transactionsViewUpdateEnabled)
             .filter { it }
@@ -119,6 +122,8 @@ class TransactionExpiredEventPublisher(
             .flatMap { it.cast(TransactionV2::class.java) }
             .flatMap {
                 it.status = newStatus
+                it.lastProcessedEventAt =
+                    ZonedDateTime.parse(createdEvent.creationDate).toInstant().toEpochMilli()
                 viewRepository.save(it)
             }
 
