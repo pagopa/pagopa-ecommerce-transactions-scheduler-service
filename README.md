@@ -140,6 +140,7 @@ These are all environment variables needed by the application:
 | NPG_GOOGLE_PAY_PSP_KEYS                                      | Secret structure that holds psp - api keys association for authorization request used for APM Google pay payment method                                                                                                                                                                             | string  |         |
 | NPG_GOOGLE_PAY_PSP_LIST                                      | List of all psp ids that are expected to be found into the NPG_GOOGLE_PAY_PSP_KEYS configuration (used for configuration cross validation)                                                                                                                                                          | string  |         |
 | TRANSACTIONSVIEW_UPDATE_ENABLED                              | Flag to enable/disable transaction view collection updates in MongoDB. When true (default), the publisher updates the transactions-view collection. When false, only the event store is updated, skipping the view update.                                                                          | boolean | true    |
+| GITHUB_TOKEN                                                 | GitHub Personal Access Token with packages:read permission for accessing pagopa-ecommerce-commons from GitHub Packages                                                                                                                                                                              | string  |         |
 
 (*): for Mongo connection string options
 see [docs](https://www.mongodb.com/docs/drivers/java/sync/v4.3/fundamentals/connection/connection-options/#connection-options)
@@ -166,42 +167,40 @@ Example of configurations:
 
 ## Run locally with Docker
 
-`docker build -t pagopa-ecommerce-transactions-scheduler-service .`
+### Prerequisites
+Set up GitHub authentication for packages:
+```sh
+export GITHUB_TOKEN=your_github_token_with_packages_read_permission
+```
 
-`docker run -p 8999:8080 pagopa-ecommerce-transactions-scheduler-service`
+### Build Docker Image
+```sh
+docker build --secret id=GITHUB_TOKEN,env=GITHUB_TOKEN -t pagopa-ecommerce-transactions-scheduler-service .
+```
+
+### Run Container
+```sh
+docker run -p 8999:8080 pagopa-ecommerce-transactions-scheduler-service
+```
 
 ## Run locally with Maven
 
-`mvn validate` used to perform ecommerce-commons library checkout from git repo and install through maven plugin
-
-`mvn clean spring-boot:run` build and run service with spring locally
-
-For testing purpose the commons reference can be changed from a specific release to a branch by changing the following
-configurations tags inside `pom.xml`:
-
-FROM:
-
-```xml
-
-<configuration>
-	...
-	<scmVersionType>tag</scmVersionType>
-	<scmVersion>${pagopa-ecommerce-commons.version}</scmVersion>
-</configuration>
+Create your environment:
+```sh
+export $(grep -v '^#' .env.local | xargs)
 ```
 
-TO:
-
-```xml
-
-<configuration>
-	...
-	<scmVersionType>branch</scmVersionType>
-	<scmVersion>name-of-a-specific-branch-to-link</scmVersion>
-</configuration>
+Set up GitHub authentication for packages:
+```sh
+export GITHUB_TOKEN=your_github_token_with_packages_read_permission
 ```
 
-updating also the commons library version to the one of the specific branch
+Then from current project directory run:
+```sh
+mvn clean spring-boot:run
+```
+
+**Note:** The application now uses pagopa-ecommerce-commons library directly from GitHub Packages. Make sure your GitHub token has `packages:read` permission for the `pagopa/pagopa-ecommerce-commons` repository.
 
 ## Code formatting
 
