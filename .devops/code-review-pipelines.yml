@@ -42,6 +42,8 @@ steps:
       docker run -p 10000:10000 -p 10001:10001 -p 10002:10002 mcr.microsoft.com/azure-storage/azurite &
     displayName: Run azurite to test Service - Storage integration
 
+  # necessary step to make the authentication work
+  # removing it will cause the pipeline to fail when cache gets emptied
   - task: Bash@3
     displayName: 'Create Maven settings.xml'
     inputs:
