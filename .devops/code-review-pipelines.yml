@@ -52,7 +52,7 @@ steps:
       jdkArchitectureOption: 'x64'
       publishJUnitResults: false
       testResultsFiles: '**/surefire-reports/TEST-*.xml'
-      goals: 'clean validate'
+      goals: 'clean validate -U'
       sonarQubeRunAnalysis: false
     env:
       GITHUB_TOKEN: $(GITHUB_RO_TOKEN)
@@ -67,7 +67,7 @@ steps:
       jdkArchitectureOption: 'x64'
       publishJUnitResults: false
       testResultsFiles: '**/surefire-reports/TEST-*.xml'
-      goals: 'clean verify'
+      goals: 'clean verify -U'
       sonarQubeRunAnalysis: true
     env:
       GITHUB_TOKEN: $(GITHUB_RO_TOKEN)
