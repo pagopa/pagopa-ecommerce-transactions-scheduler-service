@@ -19,6 +19,8 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.EnumSource
 import org.mockito.kotlin.*
 import org.springframework.data.redis.connection.stream.RecordId
+import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class EventReceiverServiceTest {
@@ -68,7 +70,7 @@ class EventReceiverServiceTest {
                         any()
                     )
                 )
-                .willReturn(RecordId.autoGenerate())
+                .willReturn(Mono.just(RecordId.autoGenerate()))
             // test
             eventReceiverService.handleCommand(request)
             // assertions
@@ -125,7 +127,7 @@ class EventReceiverServiceTest {
                     )
             )
         given(eventDispatcherReceiverStatusTemplateWrapper.allValuesInKeySpace)
-            .willReturn(receiverStatuses.toMutableList())
+            .willReturn(Flux.fromIterable(receiverStatuses))
 
         // test
         val response = eventReceiverService.getReceiversStatus(deploymentVersionDto = null)
@@ -172,7 +174,7 @@ class EventReceiverServiceTest {
                         )
                 )
             given(eventDispatcherReceiverStatusTemplateWrapper.allValuesInKeySpace)
-                .willReturn(receiverStatuses.toMutableList())
+                .willReturn(Flux.fromIterable(receiverStatuses.toMutableList()))
 
             // test
             val response =
@@ -206,7 +208,7 @@ class EventReceiverServiceTest {
                 )
 
             given(eventDispatcherReceiverStatusTemplateWrapper.allValuesInKeySpace)
-                .willReturn(receiverStatuses.toMutableList())
+                .willReturn(Flux.fromIterable(receiverStatuses.toMutableList()))
 
             // test
             assertThrows<NoEventReceiverStatusFound> {

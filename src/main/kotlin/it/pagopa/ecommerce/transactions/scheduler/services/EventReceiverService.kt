@@ -6,9 +6,11 @@ import it.pagopa.ecommerce.transactions.scheduler.configurations.redis.EventDisp
 import it.pagopa.ecommerce.transactions.scheduler.exceptions.NoEventReceiverStatusFound
 import it.pagopa.ecommerce.transactions.scheduler.streams.commands.EventDispatcherReceiverCommand
 import it.pagopa.generated.scheduler.server.model.*
+import kotlinx.coroutines.reactor.awaitSingle
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
+import reactor.core.publisher.Flux
 
 /** This class handles all InboundChannelsAdapters events receivers */
 @Service
@@ -51,33 +53,32 @@ class EventReceiverService(
     ): EventReceiverStatusResponseDto {
         val lastStatuses =
             eventDispatcherReceiverStatusTemplateWrapper.allValuesInKeySpace?.filter {
-                if (deploymentVersionDto != null) {
-                    it.version == deploymentVersionDto
-                } else {
-                    true
-                }
+                deploymentVersionDto == null || it.version == deploymentVersionDto
             }
-        if (lastStatuses.isNullOrEmpty()) {
+                ?: Flux.empty()
+
+        val list =
+            lastStatuses
+                .map { rs ->
+                    EventReceiverStatusDto(
+                        receiverStatuses =
+                            rs.receiverStatuses.map { r ->
+                                ReceiverStatusDto(
+                                    status = ReceiverStatusDto.Status.valueOf(r.status.toString()),
+                                    name = r.name
+                                )
+                            },
+                        instanceId = rs.consumerInstanceId,
+                        deploymentVersion = rs.version
+                    )
+                }
+                .collectList()
+                .awaitSingle()
+
+        if (list.isEmpty()) {
             throw NoEventReceiverStatusFound()
         }
-        val receiverStatuses =
-            lastStatuses.map { receiverStatuses ->
-                EventReceiverStatusDto(
-                    receiverStatuses =
-                        receiverStatuses.receiverStatuses.map { receiverStatus ->
-                            ReceiverStatusDto(
-                                status =
-                                    receiverStatus.status.let {
-                                        ReceiverStatusDto.Status.valueOf(it.toString())
-                                    },
-                                name = receiverStatus.name
-                            )
-                        },
-                    instanceId = receiverStatuses.consumerInstanceId,
-                    deploymentVersion = receiverStatuses.version
-                )
-            }
 
-        return EventReceiverStatusResponseDto(status = receiverStatuses)
+        return EventReceiverStatusResponseDto(status = list)
     }
 }

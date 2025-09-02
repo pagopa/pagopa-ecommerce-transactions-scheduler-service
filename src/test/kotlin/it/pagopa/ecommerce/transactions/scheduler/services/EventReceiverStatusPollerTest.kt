@@ -8,6 +8,7 @@ import it.pagopa.generated.scheduler.server.model.DeploymentVersionDto
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.*
+import reactor.core.publisher.Mono
 
 class EventReceiverStatusPollerTest {
 
@@ -37,16 +38,17 @@ class EventReceiverStatusPollerTest {
 
     @Test
     fun `Should poll for status successfully saving receiver statuses`() {
-        // assertions
         val receiverStatuses =
             listOf(
                 ReceiverStatus(name = "receiver1", status = Status.UP),
                 ReceiverStatus(name = "receiver2", status = Status.DOWN)
             )
+
         given(inboundChannelAdapterLifecycleHandlerService.getAllChannelStatus())
             .willReturn(receiverStatuses)
-        doNothing().`when`(eventDispatcherReceiverStatusTemplateWrapper).save(any(), any())
-        // test
+        given(eventDispatcherReceiverStatusTemplateWrapper.save(any(), any()))
+            .willReturn(Mono.just(true))
+
         eventReceiverStatusPoller.eventReceiverStatusPoller()
         verify(eventDispatcherReceiverStatusTemplateWrapper, times(1))
             .save(
