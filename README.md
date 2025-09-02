@@ -171,11 +171,11 @@ Example of configurations:
 Set up GitHub authentication for packages (required for pagopa-ecommerce-commons dependency):
 
 1. Configure Maven settings file:
-   - **If you don't have ~/.m2/settings.xml:**
-     ```sh
-     cp settings.xml.template ~/.m2/settings.xml
-     ```
-   - **If you already have ~/.m2/settings.xml:** Edit the file to add the GitHub server configuration from `settings.xml.template`, or replace the `${GITHUB_TOKEN}` placeholder with your actual token.
+- **If you don't have ~/.m2/settings.xml:**
+	```sh
+	cp settings.xml.template ~/.m2/settings.xml
+	```
+- **If you already have ~/.m2/settings.xml:** Edit the file to add the GitHub server configuration from `settings.xml.template`, or replace the `${GITHUB_TOKEN}` placeholder with your actual token.
 
 
 2. Set your GitHub token:
@@ -201,11 +201,11 @@ docker run -p 8999:8080 pagopa-ecommerce-transactions-scheduler-service
 Set up GitHub authentication for packages (required for pagopa-ecommerce-commons dependency):
 
 1. Configure Maven settings file:
-   - **If you don't have ~/.m2/settings.xml:**
-     ```sh
-     cp settings.xml.template ~/.m2/settings.xml
-     ```
-   - **If you already have ~/.m2/settings.xml:** Edit the file to add the GitHub server configuration from `settings.xml.template`, or replace the `${GITHUB_TOKEN}` placeholder with your actual token.
+- **If you don't have ~/.m2/settings.xml:**
+	```sh
+	cp settings.xml.template ~/.m2/settings.xml
+	```
+- **If you already have ~/.m2/settings.xml:** Edit the file to add the GitHub server configuration from `settings.xml.template`, or replace the `${GITHUB_TOKEN}` placeholder with your actual token.
 
 
 2. Create your environment:
