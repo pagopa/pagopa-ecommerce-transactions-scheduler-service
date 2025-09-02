@@ -43,7 +43,7 @@ steps:
     displayName: Run azurite to test Service - Storage integration
 
   - task: Maven@4
-    displayName: 'Validate project (build ecommerce commons project)'
+    displayName: 'Validate project'
     inputs:
       mavenPomFile: 'pom.xml'
       mavenOptions: '-Xmx3072m $(MAVEN_OPTS)'
@@ -54,6 +54,8 @@ steps:
       testResultsFiles: '**/surefire-reports/TEST-*.xml'
       goals: 'clean validate'
       sonarQubeRunAnalysis: false
+    env:
+      GITHUB_TOKEN: $(GITHUB_RO_TOKEN)
 
   - task: Maven@4
     displayName: 'Run Junit Tests'
@@ -67,6 +69,8 @@ steps:
       testResultsFiles: '**/surefire-reports/TEST-*.xml'
       goals: 'clean verify'
       sonarQubeRunAnalysis: true
+    env:
+      GITHUB_TOKEN: $(GITHUB_RO_TOKEN)
 
   - task: SonarCloudPublish@3
     displayName: 'Publish SonarCloud results on build summary'
