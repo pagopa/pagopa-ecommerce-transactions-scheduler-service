@@ -63,6 +63,8 @@ class TransactionExpiredEventPublisherTests {
 
     private val tracingUtils = TracingUtilsTests.getMock()
 
+    private val fixedTestTimestamp = "2024-01-01T10:00:00.000Z"
+
     @Test
     fun `Should publish all events`() {
         // preconditions
@@ -91,7 +93,9 @@ class TransactionExpiredEventPublisherTests {
             )
             .willReturn(queueAsyncClientResponse)
         given(eventStoreRepository.save(eventStoreCaptor.capture())).willAnswer {
-            Mono.just(it.arguments[0])
+            val event = it.arguments[0] as TransactionExpiredEvent
+            event.creationDate = fixedTestTimestamp
+            Mono.just(event)
         }
         given(viewRepository.findByTransactionId(org.mockito.kotlin.any())).willAnswer {
             val transaction =
@@ -181,7 +185,9 @@ class TransactionExpiredEventPublisherTests {
         sendMessageResult.messageId = "msgId"
         sendMessageResult.timeNextVisible = OffsetDateTime.now()
         given(eventStoreRepository.save(eventStoreCaptor.capture())).willAnswer {
-            Mono.just(it.arguments[0])
+            val event = it.arguments[0] as TransactionExpiredEvent
+            event.creationDate = fixedTestTimestamp
+            Mono.just(event)
         }
         given(viewRepository.findByTransactionId(org.mockito.kotlin.any())).willAnswer {
             val transaction =
@@ -290,7 +296,9 @@ class TransactionExpiredEventPublisherTests {
                 Mono.error(QueueStorageException("Error sending message to queue", null, null))
             )
         given(eventStoreRepository.save(eventStoreCaptor.capture())).willAnswer {
-            Mono.just(it.arguments[0])
+            val event = it.arguments[0] as TransactionExpiredEvent
+            event.creationDate = fixedTestTimestamp
+            Mono.just(event)
         }
         given(viewRepository.findByTransactionId(org.mockito.kotlin.any())).willAnswer {
             val transaction =
@@ -384,6 +392,7 @@ class TransactionExpiredEventPublisherTests {
             .willReturnConsecutively(
                 allEvents.map { event ->
                     if (event.transactionId != errorTransactionId.value()) {
+                        event.creationDate = fixedTestTimestamp
                         Mono.just(event)
                     } else {
                         Mono.error(MongoException("Error writing event to event store"))
@@ -505,7 +514,9 @@ class TransactionExpiredEventPublisherTests {
             )
             .willReturn(queueAsyncClientResponse)
         given(eventStoreRepository.save(eventStoreCaptor.capture())).willAnswer {
-            Mono.just(it.arguments[0])
+            val event = it.arguments[0] as TransactionExpiredEvent
+            event.creationDate = fixedTestTimestamp
+            Mono.just(event)
         }
         given(viewRepository.findByTransactionId(org.mockito.kotlin.any())).willAnswer {
             val transaction =
@@ -627,7 +638,9 @@ class TransactionExpiredEventPublisherTests {
             Mono.just(ResponseBase(null, 200, null, sendMessageResult, null))
 
         given(eventStoreRepository.save(eventStoreCaptor.capture())).willAnswer {
-            Mono.just(it.arguments[0])
+            val event = it.arguments[0] as TransactionExpiredEvent
+            event.creationDate = fixedTestTimestamp
+            Mono.just(event)
         }
         given(viewRepository.save(viewArgumentCaptor.capture())).willAnswer {
             Mono.just(it.arguments[0])
@@ -759,7 +772,9 @@ class TransactionExpiredEventPublisherTests {
             )
             .willReturn(queueAsyncClientResponse)
         given(eventStoreRepository.save(eventStoreCaptor.capture())).willAnswer {
-            Mono.just(it.arguments[0])
+            val event = it.arguments[0] as TransactionExpiredEvent
+            event.creationDate = fixedTestTimestamp
+            Mono.just(event)
         }
         given(viewRepository.findByTransactionId(org.mockito.kotlin.any())).willAnswer {
             val transaction =
@@ -942,7 +957,9 @@ class TransactionExpiredEventPublisherTests {
             )
             .willReturn(queueAsyncClientResponse)
         given(eventStoreRepository.save(eventStoreCaptor.capture())).willAnswer {
-            Mono.just(it.arguments[0])
+            val event = it.arguments[0] as TransactionExpiredEvent
+            event.creationDate = fixedTestTimestamp
+            Mono.just(event)
         }
         given(viewRepository.findByTransactionId(org.mockito.kotlin.any())).willAnswer {
             val transaction =
@@ -1057,7 +1074,9 @@ class TransactionExpiredEventPublisherTests {
             )
             .willReturn(queueAsyncClientResponse)
         given(eventStoreRepository.save(eventStoreCaptor.capture())).willAnswer {
-            Mono.just(it.arguments[0])
+            val event = it.arguments[0] as TransactionExpiredEvent
+            event.creationDate = fixedTestTimestamp
+            Mono.just(event)
         }
         given(viewRepository.findByTransactionId(org.mockito.kotlin.any())).willAnswer {
             val transaction =
@@ -1172,7 +1191,9 @@ class TransactionExpiredEventPublisherTests {
             )
             .willReturn(queueAsyncClientResponse)
         given(eventStoreRepository.save(eventStoreCaptor.capture())).willAnswer {
-            Mono.just(it.arguments[0])
+            val event = it.arguments[0] as TransactionExpiredEvent
+            event.creationDate = fixedTestTimestamp
+            Mono.just(event)
         }
         given(viewRepository.findByTransactionId(org.mockito.kotlin.any())).willAnswer {
             val transaction =
@@ -1287,7 +1308,9 @@ class TransactionExpiredEventPublisherTests {
             )
             .willReturn(queueAsyncClientResponse)
         given(eventStoreRepository.save(eventStoreCaptor.capture())).willAnswer {
-            Mono.just(it.arguments[0])
+            val event = it.arguments[0] as TransactionExpiredEvent
+            event.creationDate = fixedTestTimestamp
+            Mono.just(event)
         }
         given(viewRepository.findByTransactionId(org.mockito.kotlin.any())).willAnswer {
             val transaction =
@@ -1402,7 +1425,9 @@ class TransactionExpiredEventPublisherTests {
             )
             .willReturn(queueAsyncClientResponse)
         given(eventStoreRepository.save(eventStoreCaptor.capture())).willAnswer {
-            Mono.just(it.arguments[0])
+            val event = it.arguments[0] as TransactionExpiredEvent
+            event.creationDate = fixedTestTimestamp
+            Mono.just(event)
         }
 
         val batchExecutionTimeWindow = TimeUnit.HOURS.toMillis(1)
@@ -1464,11 +1489,18 @@ class TransactionExpiredEventPublisherTests {
         verify(viewRepository, never()).save(any())
     }
 
-    private fun baseTransactionToExpiryEvent(transaction: BaseTransaction) =
-        TransactionExpiredEvent(
-            transaction.transactionId.value(),
-            TransactionExpiredData(transaction.status)
-        )
+    private fun baseTransactionToExpiryEvent(
+        transaction: BaseTransaction,
+        creationDate: String = fixedTestTimestamp
+    ): TransactionExpiredEvent {
+        val event =
+            TransactionExpiredEvent(
+                transaction.transactionId.value(),
+                TransactionExpiredData(transaction.status)
+            )
+        event.creationDate = creationDate
+        return event
+    }
 
     private fun equalityAssertionsOnEventStore(
         expectedGeneratedEvent: TransactionExpiredEvent,
@@ -1502,6 +1534,14 @@ class TransactionExpiredEventPublisherTests {
             equalityMessage
         )
         assertEquals(expectedViewStatus, capturedValue.status, equalityMessage)
+
+        val expectedTimestamp =
+            ZonedDateTime.parse(expectedGeneratedEvent.creationDate).toInstant().toEpochMilli()
+        assertEquals(
+            expectedTimestamp,
+            capturedValue.lastProcessedEventAt,
+            "$equalityMessage - lastProcessedEventAt timestamp"
+        )
     }
 
     private fun equalityAssertionsOnSentEvent(
