@@ -47,8 +47,7 @@ class EventReceiverStatusPollerTest {
 
         given(inboundChannelAdapterLifecycleHandlerService.getAllChannelStatus())
             .willReturn(receiverStatuses)
-        given(eventDispatcherReceiverStatusTemplateWrapper.save(any(), any()))
-            .willReturn(Mono.just(true))
+        given(eventDispatcherReceiverStatusTemplateWrapper.save(any())).willReturn(Mono.just(true))
 
         eventReceiverStatusPoller.eventReceiverStatusPoller()
 
