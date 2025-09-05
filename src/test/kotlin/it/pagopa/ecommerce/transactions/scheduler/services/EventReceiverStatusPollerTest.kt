@@ -5,6 +5,7 @@ import it.pagopa.ecommerce.transactions.scheduler.configurations.redis.EventDisp
 import it.pagopa.ecommerce.transactions.scheduler.repositories.redis.eventreceivers.ReceiverStatus
 import it.pagopa.ecommerce.transactions.scheduler.repositories.redis.eventreceivers.Status
 import it.pagopa.generated.scheduler.server.model.DeploymentVersionDto
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.*
@@ -37,7 +38,7 @@ class EventReceiverStatusPollerTest {
         )
 
     @Test
-    fun `Should poll for status successfully saving receiver statuses`() {
+    fun `Should poll for status successfully saving receiver statuses`() = runTest {
         val receiverStatuses =
             listOf(
                 ReceiverStatus(name = "receiver1", status = Status.UP),
@@ -50,6 +51,7 @@ class EventReceiverStatusPollerTest {
             .willReturn(Mono.just(true))
 
         eventReceiverStatusPoller.eventReceiverStatusPoller()
+
         verify(eventDispatcherReceiverStatusTemplateWrapper, times(1))
             .save(
                 argThat {

@@ -28,8 +28,8 @@ class EventReceiversApiController(
     override suspend fun retrieveReceiverStatus(
         version: DeploymentVersionDto?
     ): ResponseEntity<EventReceiverStatusResponseDto> {
-        val dto = eventReceiverService.getReceiversStatus(deploymentVersionDto = version)
-
-        return ResponseEntity.ok(dto)
+        return eventReceiverService.getReceiversStatus(deploymentVersionDto = version).let {
+            ResponseEntity.ok(it)
+        }
     }
 }

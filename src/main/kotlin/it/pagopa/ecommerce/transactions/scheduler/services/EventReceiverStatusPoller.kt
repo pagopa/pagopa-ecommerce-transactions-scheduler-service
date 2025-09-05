@@ -32,7 +32,7 @@ class EventReceiverStatusPoller(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     @Scheduled(cron = "\${eventController.status.pollingChron}")
-    fun eventReceiverStatusPoller() {
+    suspend fun eventReceiverStatusPoller() {
         logger.info("Polling event receiver statuses")
         val statuses = inboundChannelAdapterLifecycleHandlerService.getAllChannelStatus()
         val consumerName = redisStreamEventControllerConfigs.consumerName

@@ -22,7 +22,7 @@
         <maven.compiler.target>21</maven.compiler.target>
         <azure.functions.java.library.version>3.0.0</azure.functions.java.library.version>
         <spring.cloud.azure.dependencies>5.22.0</spring.cloud.azure.dependencies>
-        <pagopa-ecommerce-commons.version>3.0.2</pagopa-ecommerce-commons.version>
+        <pagopa-ecommerce-commons.version>3.1.0</pagopa-ecommerce-commons.version>
         <spotless.version>2.28.0</spotless.version>
         <jacoco.version>0.8.13</jacoco.version>
         <maven.compiler.plugin.version>3.13.0</maven.compiler.plugin.version>
@@ -455,8 +455,8 @@
                 <configuration>
                     <skipCheckoutIfExists>false</skipCheckoutIfExists>
                     <connectionUrl>scm:git:https://github.com/pagopa/pagopa-ecommerce-commons.git</connectionUrl>
-                    <scmVersionType>branch</scmVersionType>
-                    <scmVersion>PIDM-852-update-to-reactive-redis</scmVersion>
+                    <scmVersionType>tag</scmVersionType>
+                    <scmVersion>${pagopa-ecommerce-commons.version}</scmVersion>
                     <goals>install -DskipTests</goals>
                 </configuration>
                 <executions>
