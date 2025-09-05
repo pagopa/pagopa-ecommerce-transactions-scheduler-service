@@ -5,6 +5,7 @@ import it.pagopa.ecommerce.transactions.scheduler.configurations.redis.EventDisp
 import it.pagopa.ecommerce.transactions.scheduler.repositories.redis.eventreceivers.ReceiversStatus
 import it.pagopa.generated.scheduler.server.model.DeploymentVersionDto
 import java.time.OffsetDateTime
+import kotlinx.coroutines.reactive.awaitSingle
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
@@ -46,6 +47,6 @@ class EventReceiverStatusPoller(
             )
         // save new receivers status as redis instance, all records will be saved with the same key,
         // making this document to be updated automatically for each poll
-        eventDispatcherReceiverStatusTemplateWrapper.save(receiversStatus)
+        eventDispatcherReceiverStatusTemplateWrapper.save(receiversStatus).awaitSingle()
     }
 }
