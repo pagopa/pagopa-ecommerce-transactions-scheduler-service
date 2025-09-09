@@ -15,6 +15,17 @@
     <description>pagoPA ecommerce microservice to check perform scheduled operations on transactions such as analyze
         pending transactions
     </description>
+    <repositories>
+        <repository>
+            <id>central</id>
+            <url>https://repo.maven.apache.org/maven2</url>
+        </repository>
+        <repository>
+            <id>github</id>
+            <!--suppress UnresolvedMavenProperty, create a github personal access token with at least package:read permission and set in environment-->
+            <url>https://maven.pkg.github.com/pagopa/pagopa-ecommerce-commons</url>
+        </repository>
+    </repositories>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>21</java.version>
@@ -445,26 +456,6 @@
                                 <source>${project.basedir}/src/main/kotlin</source>
                             </sources>
                         </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-scm-plugin</artifactId>
-                <version>2.0.0-M3</version>
-                <configuration>
-                    <skipCheckoutIfExists>false</skipCheckoutIfExists>
-                    <connectionUrl>scm:git:https://github.com/pagopa/pagopa-ecommerce-commons.git</connectionUrl>
-                    <scmVersionType>tag</scmVersionType>
-                    <scmVersion>${pagopa-ecommerce-commons.version}</scmVersion>
-                    <goals>install -DskipTests</goals>
-                </configuration>
-                <executions>
-                    <execution>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>bootstrap</goal>
-                        </goals>
                     </execution>
                 </executions>
             </plugin>
