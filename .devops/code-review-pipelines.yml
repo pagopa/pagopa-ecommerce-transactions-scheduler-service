@@ -42,11 +42,35 @@ steps:
       docker run -p 10000:10000 -p 10001:10001 -p 10002:10002 mcr.microsoft.com/azure-storage/azurite &
     displayName: Run azurite to test Service - Storage integration
 
+  # necessary step to make the authentication work
+  # removing it will cause the pipeline to fail when cache gets emptied
+  - task: Bash@3
+    displayName: 'Create Maven settings.xml'
+    inputs:
+      targetType: 'inline'
+      script: |
+        mkdir -p $(Pipeline.Workspace)/.m2
+        cat > $(Pipeline.Workspace)/.m2/settings.xml << EOF
+        <?xml version="1.0" encoding="UTF-8"?>
+        <settings>
+          <servers>
+            <server>
+              <id>github</id>
+              <username>token</username>
+              <password>${GITHUB_TOKEN}</password>
+            </server>
+          </servers>
+        </settings>
+        EOF
+    env:
+      GITHUB_TOKEN: $(GITHUB_RO_TOKEN)
+
   - task: Maven@4
-    displayName: 'Validate project (build ecommerce commons project)'
+    displayName: 'Validate project'
     inputs:
       mavenPomFile: 'pom.xml'
       mavenOptions: '-Xmx3072m $(MAVEN_OPTS)'
+      options: "-s $(Pipeline.Workspace)/.m2/settings.xml"
       javaHomeOption: 'JDKVersion'
       jdkVersionOption: '21'
       jdkArchitectureOption: 'x64'
@@ -54,12 +78,15 @@ steps:
       testResultsFiles: '**/surefire-reports/TEST-*.xml'
       goals: 'clean validate'
       sonarQubeRunAnalysis: false
+    env:
+      GITHUB_TOKEN: $(GITHUB_RO_TOKEN)
 
   - task: Maven@4
     displayName: 'Run Junit Tests'
     inputs:
       mavenPomFile: 'pom.xml'
       mavenOptions: '-Xmx3072m $(MAVEN_OPTS)'
+      options: "-s $(Pipeline.Workspace)/.m2/settings.xml"
       javaHomeOption: 'JDKVersion'
       jdkVersionOption: '21'
       jdkArchitectureOption: 'x64'
@@ -67,6 +94,8 @@ steps:
       testResultsFiles: '**/surefire-reports/TEST-*.xml'
       goals: 'clean verify'
       sonarQubeRunAnalysis: true
+    env:
+      GITHUB_TOKEN: $(GITHUB_RO_TOKEN)
 
   - task: SonarCloudPublish@3
     displayName: 'Publish SonarCloud results on build summary'
