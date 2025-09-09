@@ -166,42 +166,63 @@ Example of configurations:
 
 ## Run locally with Docker
 
-`docker build -t pagopa-ecommerce-transactions-scheduler-service .`
+### Prerequisites
+Set up GitHub authentication for packages (required for pagopa-ecommerce-commons dependency):
 
-`docker run -p 8999:8080 pagopa-ecommerce-transactions-scheduler-service`
+1. Configure Maven settings file:
+- **If you don't have ~/.m2/settings.xml:**
+	```sh
+	cp settings.xml.template ~/.m2/settings.xml
+	```
+- **If you already have ~/.m2/settings.xml:** Edit the file to add the GitHub server configuration from `settings.xml.template`, or replace the `${GITHUB_TOKEN}` placeholder with your actual token.
+
+
+2. Set your GitHub token:
+```sh
+export GITHUB_TOKEN=your_github_token_with_packages_read_permission
+```
+
+**Note:** The settings.xml file is required for Maven to authenticate with GitHub Packages. Without proper configuration, builds will fail with 401 Unauthorized errors.
+
+### Build Docker Image
+```sh
+docker build --secret id=GITHUB_TOKEN,env=GITHUB_TOKEN -t pagopa-ecommerce-transactions-scheduler-service .
+```
+
+### Run Container
+```sh
+docker run -p 8999:8080 pagopa-ecommerce-transactions-scheduler-service
+```
 
 ## Run locally with Maven
 
-`mvn validate` used to perform ecommerce-commons library checkout from git repo and install through maven plugin
+### Prerequisites
+Set up GitHub authentication for packages (required for pagopa-ecommerce-commons dependency):
 
-`mvn clean spring-boot:run` build and run service with spring locally
+1. Configure Maven settings file:
+- **If you don't have ~/.m2/settings.xml:**
+	```sh
+	cp settings.xml.template ~/.m2/settings.xml
+	```
+- **If you already have ~/.m2/settings.xml:** Edit the file to add the GitHub server configuration from `settings.xml.template`, or replace the `${GITHUB_TOKEN}` placeholder with your actual token.
 
-For testing purpose the commons reference can be changed from a specific release to a branch by changing the following
-configurations tags inside `pom.xml`:
 
-FROM:
-
-```xml
-
-<configuration>
-	...
-	<scmVersionType>tag</scmVersionType>
-	<scmVersion>${pagopa-ecommerce-commons.version}</scmVersion>
-</configuration>
+2. Create your environment:
+```sh
+export $(grep -v '^#' .env.local | xargs)
 ```
 
-TO:
-
-```xml
-
-<configuration>
-	...
-	<scmVersionType>branch</scmVersionType>
-	<scmVersion>name-of-a-specific-branch-to-link</scmVersion>
-</configuration>
+3. Set your GitHub token:
+```sh
+export GITHUB_TOKEN=your_github_token_with_packages_read_permission
 ```
 
-updating also the commons library version to the one of the specific branch
+Then from current project directory run:
+```sh
+mvn clean spring-boot:run
+```
+
+**Note:** The application now uses pagopa-ecommerce-commons library directly from GitHub Packages. Make sure your GitHub token has `packages:read` permission for the `pagopa/pagopa-ecommerce-commons` repository.
 
 ## Code formatting
 
