@@ -73,7 +73,7 @@ stages:
             inputs:
               targetType: "inline"
               script: |
-                echo "$(GITHUB_RO_TOKEN)" >> ./github_ro_token
+                echo "$(GITHUB_RO_TOKEN)" > ./github_ro_token
           - template: templates/docker-release/template.yaml@pagopaCommons
             parameters:
               CONTAINER_REGISTRY_SERVICE_CONN: $(DEV_CONTAINER_REGISTRY_SERVICE_CONN)
@@ -81,7 +81,6 @@ stages:
               DOCKER_IMAGE_NAME: $(K8S_IMAGE_REPOSITORY_NAME)
               DOCKER_IMAGE_TAG: $(Build.SourceVersion)
               FORCE_REPLACE_DOCKER_IMAGE: ${{ parameters.FORCE_REPLACE_DOCKER_IMAGE }}
-              DOCKERFILE: ${{ variables.DOCKER_FILE_NAME }}
               DOCKER_BUILD_ARGS: --secret id=GITHUB_TOKEN,src=./github_ro_token
 
   - stage: 'Deploy_for_DEV'
@@ -136,7 +135,7 @@ stages:
             inputs:
               targetType: "inline"
               script: |
-                echo "$(GITHUB_RO_TOKEN)" >> ./github_ro_token
+                echo "$(GITHUB_RO_TOKEN)" > ./github_ro_token
           - template: templates/docker-release/template.yaml@pagopaCommons
             parameters:
               CONTAINER_REGISTRY_SERVICE_CONN: $(UAT_CONTAINER_REGISTRY_SERVICE_CONN)
@@ -144,7 +143,6 @@ stages:
               DOCKER_IMAGE_NAME: $(K8S_IMAGE_REPOSITORY_NAME)
               DOCKER_IMAGE_TAG: $(Build.SourceVersion)
               FORCE_REPLACE_DOCKER_IMAGE: ${{ parameters.FORCE_REPLACE_DOCKER_IMAGE }}
-              DOCKERFILE: ${{ variables.DOCKER_FILE_NAME }}
               DOCKER_BUILD_ARGS: --secret id=GITHUB_TOKEN,src=./github_ro_token
           - template: azure-templates/chart-current-version.yml
 
