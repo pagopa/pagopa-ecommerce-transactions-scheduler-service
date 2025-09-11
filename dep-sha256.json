@@ -1303,11 +1303,11 @@
       "sha256": "cojFXNuF3vvdKotEyN-u1ni_jpYlLf_K_vkWTLadNGc="
     },
     {
-      "id": "com.azure:azure-storage-queue:jar:12.25.0",
+      "id": "com.azure:azure-storage-queue:jar:12.26.2",
       "artifactId": "azure-storage-queue",
       "groupId": "com.azure",
-      "version": "12.25.0",
-      "sha256": "NkOdjIVy1QXEwOyDHX0HTrNJm5IlDVXRF4L0HCl4KoA="
+      "version": "12.26.2",
+      "sha256": "8WYQK3IBm7ZFNN0hshjkdoITy7msoQ8G3a5ufn9lwgs="
     },
     {
       "id": "com.azure:azure-core-http-netty:jar:1.15.11",
