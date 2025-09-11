@@ -3,12 +3,15 @@ package it.pagopa.ecommerce.transactions.scheduler.services
 import it.pagopa.ecommerce.transactions.scheduler.configurations.RedisStreamEventControllerConfigs
 import it.pagopa.ecommerce.transactions.scheduler.configurations.redis.EventDispatcherCommandsTemplateWrapper
 import it.pagopa.ecommerce.transactions.scheduler.configurations.redis.EventDispatcherReceiverStatusTemplateWrapper
+import it.pagopa.ecommerce.transactions.scheduler.deadletter.CommonLogger
 import it.pagopa.ecommerce.transactions.scheduler.exceptions.NoEventReceiverStatusFound
 import it.pagopa.ecommerce.transactions.scheduler.streams.commands.EventDispatcherReceiverCommand
 import it.pagopa.generated.scheduler.server.model.*
+import kotlinx.coroutines.reactor.awaitSingle
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
+import reactor.core.publisher.Mono
 
 /** This class handles all InboundChannelsAdapters events receivers */
 @Service
@@ -32,9 +35,9 @@ class EventReceiverService(
                     EventDispatcherReceiverCommand.ReceiverCommand.STOP
             }
         logger.info("Received event receiver command request, command: {}", commandToSend)
-        // trim all events before adding new event to be processed
-        val recordId =
-            eventDispatcherCommandsTemplateWrapper.writeEventToStreamTrimmingEvents(
+        // trim all events before adding new event to be processed-
+        eventDispatcherCommandsTemplateWrapper
+            .writeEventToStreamTrimmingEvents(
                 redisStreamConf.streamKey,
                 EventDispatcherReceiverCommand(
                     receiverCommand = commandToSend,
@@ -42,42 +45,36 @@ class EventReceiverService(
                 ),
                 0
             )
-
-        logger.info("Sent new event to Redis stream with id: [{}]", recordId)
+            .doOnSuccess {
+                CommonLogger.logger.info("Sent new event to Redis stream with id: [{}]", it)
+            }
+            .awaitSingle()
     }
 
     suspend fun getReceiversStatus(
         deploymentVersionDto: DeploymentVersionDto?
     ): EventReceiverStatusResponseDto {
         val lastStatuses =
-            eventDispatcherReceiverStatusTemplateWrapper.allValuesInKeySpace?.filter {
-                if (deploymentVersionDto != null) {
-                    it.version == deploymentVersionDto
-                } else {
-                    true
-                }
+            eventDispatcherReceiverStatusTemplateWrapper.allValuesInKeySpace.filter {
+                deploymentVersionDto == null || it.version == deploymentVersionDto
             }
-        if (lastStatuses.isNullOrEmpty()) {
-            throw NoEventReceiverStatusFound()
-        }
-        val receiverStatuses =
-            lastStatuses.map { receiverStatuses ->
+        return lastStatuses
+            .switchIfEmpty(Mono.error(NoEventReceiverStatusFound()))
+            .map { rs ->
                 EventReceiverStatusDto(
                     receiverStatuses =
-                        receiverStatuses.receiverStatuses.map { receiverStatus ->
+                        rs.receiverStatuses.map { r ->
                             ReceiverStatusDto(
-                                status =
-                                    receiverStatus.status.let {
-                                        ReceiverStatusDto.Status.valueOf(it.toString())
-                                    },
-                                name = receiverStatus.name
+                                status = ReceiverStatusDto.Status.valueOf(r.status.toString()),
+                                name = r.name
                             )
                         },
-                    instanceId = receiverStatuses.consumerInstanceId,
-                    deploymentVersion = receiverStatuses.version
+                    instanceId = rs.consumerInstanceId,
+                    deploymentVersion = rs.version
                 )
             }
-
-        return EventReceiverStatusResponseDto(status = receiverStatuses)
+            .collectList()
+            .map { EventReceiverStatusResponseDto(status = it) }
+            .awaitSingle()
     }
 }
