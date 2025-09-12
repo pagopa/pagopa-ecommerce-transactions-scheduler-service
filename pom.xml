@@ -148,6 +148,7 @@
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-storage-queue</artifactId>
+            <version>12.26.2</version>
         </dependency>
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
@@ -260,6 +261,19 @@
                 <groupId>io.opentelemetry</groupId>
                 <artifactId>opentelemetry-bom</artifactId>
                 <version>1.27.0</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!--
+            version bump from 4.1.119.Final to 4.1.125.Final to fix
+            https://github.com/advisories/GHSA-prj3-ccx8-p6x4
+            https://github.com/advisories/GHSA-3p8m-j85q-pgmj
+            https://github.com/advisories/GHSA-fghv-69vj-qj49
+            -->
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-bom</artifactId>
+                <version>4.1.125.Final</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>

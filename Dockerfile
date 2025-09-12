@@ -1,7 +1,7 @@
 FROM amazoncorretto:21-alpine@sha256:6a98c4402708fe8d16e946b4b5bac396379ec5104c1661e2a27b2b45cf9e2d16 AS build
 WORKDIR /workspace/app
 
-RUN apk add --no-cache git gettext
+RUN apk add --no-cache musl=1.2.5-r1 git gettext
 
 COPY mvnw .
 COPY .mvn .mvn
