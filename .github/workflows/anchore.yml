@@ -40,19 +40,14 @@ jobs:
       - name: Checkout the code
         uses: actions/checkout@v3
         with:
-          # PR? head SHA otherwise use the default branch
-          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || '' }}
-
-      # Set commit SHA for PR events for SARIF upload
-      - name: Set PR commit SHA
-        if: github.event_name == 'pull_request'
-        run: echo "COMMIT_SHA=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
+          fetch-depth: 0
 
       - name: Build the Docker image
         run: docker build . --file ${{ env.DOCKERFILE }} --tag localbuild/testimage:latest --secret id=GITHUB_TOKEN,env=GITHUB_TOKEN
 
       - name: Run the Anchore scan action itself with GitHub Advanced Security code scanning integration enabled
-        uses: anchore/scan-action@v3
+        uses: anchore/scan-action@v6
+        id: scan
         with:
           image: "localbuild/testimage:latest"
           fail-build: true
@@ -83,6 +78,4 @@ jobs:
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
-          sarif_file: results.sarif
-          ref: ${{ github.ref }}
-          sha: ${{ github.sha }}
+          sarif_file: ${{ steps.scan.outputs.sarif }}
