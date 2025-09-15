@@ -39,6 +39,9 @@ jobs:
     steps:
       - name: Checkout the code
         uses: actions/checkout@v3
+        with:
+          # PR? head SHA otherwise use the default branch
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || '' }}
 
       - name: Build the Docker image
         run: docker build . --file ${{ env.DOCKERFILE }} --tag localbuild/testimage:latest --secret id=GITHUB_TOKEN,env=GITHUB_TOKEN
