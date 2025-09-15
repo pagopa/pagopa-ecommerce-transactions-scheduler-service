@@ -323,48 +323,6 @@
       "sha256": "Pvq_aRUEgkBVvOh43wlhhZoKicJRY_f5nMSouNyGTyk="
     },
     {
-      "id": "io.projectreactor.netty:reactor-netty-http:jar:1.2.5",
-      "artifactId": "reactor-netty-http",
-      "groupId": "io.projectreactor.netty",
-      "version": "1.2.5",
-      "sha256": "w6leOQYT5okDTQBUt3tPuAg7sqtqZvCI2Vl4U4muIqw="
-    },
-    {
-      "id": "io.netty:netty-resolver-dns:jar:4.1.125.Final",
-      "artifactId": "netty-resolver-dns",
-      "groupId": "io.netty",
-      "version": "4.1.125.Final",
-      "sha256": "pk7hz47Vr__qHiXhn8QgWwiG1N2l7pAQqRCWMPCQe64="
-    },
-    {
-      "id": "io.netty:netty-codec-dns:jar:4.1.125.Final",
-      "artifactId": "netty-codec-dns",
-      "groupId": "io.netty",
-      "version": "4.1.125.Final",
-      "sha256": "QbONLmz5_FmUqoRXf9YnHePpcV1x-l8LFTgP_mqSXb4="
-    },
-    {
-      "id": "io.netty:netty-resolver-dns-native-macos:jar:osx-x86_64:4.1.125.Final",
-      "artifactId": "netty-resolver-dns-native-macos",
-      "groupId": "io.netty",
-      "version": "4.1.125.Final",
-      "sha256": "bmh-crCIK_4GltGYFE6bYNLHZGJPxLjEI_4Zrt1NkTo="
-    },
-    {
-      "id": "io.netty:netty-resolver-dns-classes-macos:jar:4.1.125.Final",
-      "artifactId": "netty-resolver-dns-classes-macos",
-      "groupId": "io.netty",
-      "version": "4.1.125.Final",
-      "sha256": "JjpZlN4Pz0c7IhkY_J0fzHiELsjndWMvxdIVJaOCL9s="
-    },
-    {
-      "id": "io.projectreactor.netty:reactor-netty-core:jar:1.2.5",
-      "artifactId": "reactor-netty-core",
-      "groupId": "io.projectreactor.netty",
-      "version": "1.2.5",
-      "sha256": "IIb4hOKiUIMHfRDD9-VXAjeVChCl6JJQK7g5ZCcs1vg="
-    },
-    {
       "id": "org.springframework:spring-web:jar:6.2.6",
       "artifactId": "spring-web",
       "groupId": "org.springframework",
@@ -482,34 +440,6 @@
       "groupId": "io.lettuce",
       "version": "6.4.2.RELEASE",
       "sha256": "et0buqVIBaaz_Q-_IG74fNF8KIZ3xBAXPLufbQyNYBo="
-    },
-    {
-      "id": "io.netty:netty-common:jar:4.1.125.Final",
-      "artifactId": "netty-common",
-      "groupId": "io.netty",
-      "version": "4.1.125.Final",
-      "sha256": "Nw6C-3oCCx1ihhSLRTx6XiECWbVhb-rHRA_2twidOzQ="
-    },
-    {
-      "id": "io.netty:netty-handler:jar:4.1.125.Final",
-      "artifactId": "netty-handler",
-      "groupId": "io.netty",
-      "version": "4.1.125.Final",
-      "sha256": "-4jHpoJOpDQB0_BY6Y7jF_p0mW-YXczBuA0m4k2ByX8="
-    },
-    {
-      "id": "io.netty:netty-resolver:jar:4.1.125.Final",
-      "artifactId": "netty-resolver",
-      "groupId": "io.netty",
-      "version": "4.1.125.Final",
-      "sha256": "_QUffI57NqoVrZzmAX0ngTf2hnURXYqUpSyu6-U01gs="
-    },
-    {
-      "id": "io.netty:netty-transport:jar:4.1.125.Final",
-      "artifactId": "netty-transport",
-      "groupId": "io.netty",
-      "version": "4.1.125.Final",
-      "sha256": "gI3xc6NsbLcVwjJ2hxsoxVni5mtSj_cd4HRSfcXViD8="
     },
     {
       "id": "org.springframework.data:spring-data-redis:jar:3.4.5",
@@ -1310,11 +1240,32 @@
       "sha256": "8WYQK3IBm7ZFNN0hshjkdoITy7msoQ8G3a5ufn9lwgs="
     },
     {
-      "id": "com.azure:azure-core-http-netty:jar:1.15.11",
+      "id": "com.azure:azure-storage-common:jar:12.29.0",
+      "artifactId": "azure-storage-common",
+      "groupId": "com.azure",
+      "version": "12.29.0",
+      "sha256": "t6EIpdqJVvuBKZM9MZR6Gkh_upzkV56DSwl4uUp721w="
+    },
+    {
+      "id": "com.azure:azure-core-http-netty:jar:1.16.1",
       "artifactId": "azure-core-http-netty",
       "groupId": "com.azure",
-      "version": "1.15.11",
-      "sha256": "NIYlcfLZWweyMHPw64fbJaA5MIfjGS0gURUJn6GKpi8="
+      "version": "1.16.1",
+      "sha256": "TebXHO65G_zhlOFy4oppWMFXTFkh3ZOt3iuNA67v2VU="
+    },
+    {
+      "id": "io.netty:netty-handler:jar:4.1.125.Final",
+      "artifactId": "netty-handler",
+      "groupId": "io.netty",
+      "version": "4.1.125.Final",
+      "sha256": "-4jHpoJOpDQB0_BY6Y7jF_p0mW-YXczBuA0m4k2ByX8="
+    },
+    {
+      "id": "io.netty:netty-resolver:jar:4.1.125.Final",
+      "artifactId": "netty-resolver",
+      "groupId": "io.netty",
+      "version": "4.1.125.Final",
+      "sha256": "_QUffI57NqoVrZzmAX0ngTf2hnURXYqUpSyu6-U01gs="
     },
     {
       "id": "io.netty:netty-handler-proxy:jar:4.1.125.Final",
@@ -1336,13 +1287,6 @@
       "groupId": "io.netty",
       "version": "4.1.125.Final",
       "sha256": "0pFb8JFVLYI8u6keIjSdzqIcjVzJ8vkwi_mp83irfJU="
-    },
-    {
-      "id": "io.netty:netty-codec:jar:4.1.125.Final",
-      "artifactId": "netty-codec",
-      "groupId": "io.netty",
-      "version": "4.1.125.Final",
-      "sha256": "eDATJ-U1XAN0ar0K8dWZZba_I-HJrFQ2Kt62TgrVJjw="
     },
     {
       "id": "io.netty:netty-codec-http:jar:4.1.125.Final",
@@ -1443,11 +1387,95 @@
       "sha256": "aoyye90lWnGMoQDVLP2sIMznCrOpLCSO-u5Q9j7v0R4="
     },
     {
-      "id": "com.azure:azure-storage-common:jar:12.29.0",
-      "artifactId": "azure-storage-common",
-      "groupId": "com.azure",
-      "version": "12.29.0",
-      "sha256": "t6EIpdqJVvuBKZM9MZR6Gkh_upzkV56DSwl4uUp721w="
+      "id": "io.projectreactor.netty:reactor-netty-http:jar:1.2.5",
+      "artifactId": "reactor-netty-http",
+      "groupId": "io.projectreactor.netty",
+      "version": "1.2.5",
+      "sha256": "w6leOQYT5okDTQBUt3tPuAg7sqtqZvCI2Vl4U4muIqw="
+    },
+    {
+      "id": "io.netty:netty-resolver-dns:jar:4.1.125.Final",
+      "artifactId": "netty-resolver-dns",
+      "groupId": "io.netty",
+      "version": "4.1.125.Final",
+      "sha256": "pk7hz47Vr__qHiXhn8QgWwiG1N2l7pAQqRCWMPCQe64="
+    },
+    {
+      "id": "io.netty:netty-codec-dns:jar:4.1.125.Final",
+      "artifactId": "netty-codec-dns",
+      "groupId": "io.netty",
+      "version": "4.1.125.Final",
+      "sha256": "QbONLmz5_FmUqoRXf9YnHePpcV1x-l8LFTgP_mqSXb4="
+    },
+    {
+      "id": "io.netty:netty-resolver-dns-native-macos:jar:osx-x86_64:4.1.125.Final",
+      "artifactId": "netty-resolver-dns-native-macos",
+      "groupId": "io.netty",
+      "version": "4.1.125.Final",
+      "sha256": "bmh-crCIK_4GltGYFE6bYNLHZGJPxLjEI_4Zrt1NkTo="
+    },
+    {
+      "id": "io.netty:netty-resolver-dns-classes-macos:jar:4.1.125.Final",
+      "artifactId": "netty-resolver-dns-classes-macos",
+      "groupId": "io.netty",
+      "version": "4.1.125.Final",
+      "sha256": "JjpZlN4Pz0c7IhkY_J0fzHiELsjndWMvxdIVJaOCL9s="
+    },
+    {
+      "id": "io.projectreactor.netty:reactor-netty-core:jar:1.2.5",
+      "artifactId": "reactor-netty-core",
+      "groupId": "io.projectreactor.netty",
+      "version": "1.2.5",
+      "sha256": "IIb4hOKiUIMHfRDD9-VXAjeVChCl6JJQK7g5ZCcs1vg="
+    },
+    {
+      "id": "io.netty:netty-common:jar:4.1.125.Final",
+      "artifactId": "netty-common",
+      "groupId": "io.netty",
+      "version": "4.1.125.Final",
+      "sha256": "Nw6C-3oCCx1ihhSLRTx6XiECWbVhb-rHRA_2twidOzQ="
+    },
+    {
+      "id": "io.netty:netty-codec:jar:4.2.0.Final",
+      "artifactId": "netty-codec",
+      "groupId": "io.netty",
+      "version": "4.2.0.Final",
+      "sha256": "fbLwyPRKH7ZoZPPvqG0DqZigfNOB1s0Oh0YR9GSKkM0="
+    },
+    {
+      "id": "io.netty:netty-transport:jar:4.1.125.Final",
+      "artifactId": "netty-transport",
+      "groupId": "io.netty",
+      "version": "4.1.125.Final",
+      "sha256": "gI3xc6NsbLcVwjJ2hxsoxVni5mtSj_cd4HRSfcXViD8="
+    },
+    {
+      "id": "io.netty:netty-codec-base:jar:4.2.0.Final",
+      "artifactId": "netty-codec-base",
+      "groupId": "io.netty",
+      "version": "4.2.0.Final",
+      "sha256": "RrVqvXE66yfG9H1zo-SF6iHZbFUFQWJq0PYsoMrhGPQ="
+    },
+    {
+      "id": "io.netty:netty-codec-compression:jar:4.2.0.Final",
+      "artifactId": "netty-codec-compression",
+      "groupId": "io.netty",
+      "version": "4.2.0.Final",
+      "sha256": "tl3evCEZwECx5W-bZkfs3vjc29zSAOkdY63atOsauRw="
+    },
+    {
+      "id": "io.netty:netty-codec-protobuf:jar:4.2.0.Final",
+      "artifactId": "netty-codec-protobuf",
+      "groupId": "io.netty",
+      "version": "4.2.0.Final",
+      "sha256": "1hkWVKT52MRAv4VqAQxb1RhuwQAMEB03dUNSAESHjmU="
+    },
+    {
+      "id": "io.netty:netty-codec-marshalling:jar:4.2.0.Final",
+      "artifactId": "netty-codec-marshalling",
+      "groupId": "io.netty",
+      "version": "4.2.0.Final",
+      "sha256": "vdBfpYoNkN4YJfHLFtUYuYNXGS3TA_f2u1QUFdCSi60="
     },
     {
       "id": "org.jetbrains.kotlin:kotlin-maven-lombok:jar:1.7.10",

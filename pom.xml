@@ -149,6 +149,28 @@
             <groupId>com.azure</groupId>
             <artifactId>azure-storage-queue</artifactId>
             <version>12.26.2</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.azure</groupId>
+                    <artifactId>azure-core-http-netty</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-core-http-netty</artifactId>
+            <version>1.16.1</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.netty</groupId>
+                    <artifactId>netty-codec</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-codec</artifactId>
+            <version>4.2.0.Final</version>
         </dependency>
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
