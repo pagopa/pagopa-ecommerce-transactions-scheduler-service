@@ -41,7 +41,12 @@ jobs:
         uses: actions/checkout@v3
         with:
           # PR? head SHA otherwise use the default branch
-          ref: ${{ github.event_name == 'pull_request' && github.head_ref || '' }}
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || '' }}
+
+      # Set commit SHA for PR events for SARIF upload
+      - name: Set PR commit SHA
+        if: github.event_name == 'pull_request'
+        run: echo "COMMIT_SHA=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
 
       - name: Build the Docker image
         run: docker build . --file ${{ env.DOCKERFILE }} --tag localbuild/testimage:latest --secret id=GITHUB_TOKEN,env=GITHUB_TOKEN
@@ -53,6 +58,27 @@ jobs:
           fail-build: true
           severity-cutoff: "high"
           output-format: "sarif"
+
+      # Print SARIF file for debugging
+      - name: Print SARIF results summary
+        if: always()
+        run: |
+          echo "=== SARIF Summary ==="
+          if [ -f "results.sarif" ]; then
+            # Count the number of results
+            echo "Total findings: $(grep -o '"results":' results.sarif | wc -l)"
+
+            # Extract and print high severity findings
+            echo "=== High Severity Findings ==="
+            jq '.runs[].results[] | select(.properties.security_severity | tonumber >= 8.0) | {ruleId: .ruleId, message: .message.text, severity: .properties.security_severity, package: .locations,[object Object],physicalLocation.artifactLocation.uri}' results.sarif
+
+            # Print summary of findings by severity
+            echo "=== Severity Distribution ==="
+            jq -c '.runs[].results[] | .properties.security_severity | tonumber' results.sarif | sort | uniq -c
+          else
+            echo "SARIF file not found!"
+          fi
+
       - name: Upload Anchore Scan Report
         uses: github/codeql-action/upload-sarif@v3
         if: always()
