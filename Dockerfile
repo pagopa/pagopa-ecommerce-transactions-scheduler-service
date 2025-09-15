@@ -12,7 +12,6 @@ COPY dep-sha256.json .
 RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     mkdir -p ~/.m2 && \
     envsubst < /tmp/settings.xml.template > ~/.m2/settings.xml && \
-    echo "Token available: ${GITHUB_TOKEN:0:4}..." && \
     ./mvnw dependency:copy-dependencies
 # RUN ./mvnw dependency:go-offline
 
