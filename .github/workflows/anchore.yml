@@ -54,26 +54,6 @@ jobs:
           severity-cutoff: "high"
           output-format: "sarif"
 
-      # Print SARIF file for debugging
-      - name: Print SARIF results summary
-        if: always()
-        run: |
-          echo "=== SARIF Summary ==="
-          if [ -f "results.sarif" ]; then
-            # Count the number of results
-            echo "Total findings: $(grep -o '"results":' results.sarif | wc -l)"
-
-            # Extract and print high severity findings
-            echo "=== High Severity Findings ==="
-            jq '.runs[].results[] | select(.properties.security_severity | tonumber >= 8.0) | {ruleId: .ruleId, message: .message.text, severity: .properties.security_severity, package: .locations,[object Object],physicalLocation.artifactLocation.uri}' results.sarif
-
-            # Print summary of findings by severity
-            echo "=== Severity Distribution ==="
-            jq -c '.runs[].results[] | .properties.security_severity | tonumber' results.sarif | sort | uniq -c
-          else
-            echo "SARIF file not found!"
-          fi
-
       - name: Upload Anchore Scan Report
         uses: github/codeql-action/upload-sarif@v3
         if: always()
