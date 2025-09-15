@@ -46,7 +46,7 @@ jobs:
         run: docker build . --file ${{ env.DOCKERFILE }} --tag localbuild/testimage:latest --secret id=GITHUB_TOKEN,env=GITHUB_TOKEN
 
       - name: Run the Anchore scan action itself with GitHub Advanced Security code scanning integration enabled
-        uses: anchore/scan-action@v6
+        uses: anchore/scan-action@1638637db639e0ade3258b51db49a9a137574c3e #v6
         id: scan
         with:
           image: "localbuild/testimage:latest"
