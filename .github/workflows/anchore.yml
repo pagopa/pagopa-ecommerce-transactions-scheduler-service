@@ -84,3 +84,5 @@ jobs:
         if: always()
         with:
           sarif_file: results.sarif
+          ref: ${{ github.ref }}
+          sha: ${{ github.sha }}
