@@ -1,7 +1,7 @@
-FROM amazoncorretto:21-alpine@sha256:6a98c4402708fe8d16e946b4b5bac396379ec5104c1661e2a27b2b45cf9e2d16 AS build
+FROM amazoncorretto:21-alpine@sha256:fda60fd7965970ce7ed7ce789b18418647b56ac6112fc17df006337bdc6355c4 AS build
 WORKDIR /workspace/app
 
-RUN apk add --no-cache musl=1.2.5-r1 musl-utils=1.2.5-r1 git gettext
+RUN apk add --no-cache git gettext
 
 COPY mvnw .
 COPY .mvn .mvn
@@ -22,9 +22,7 @@ RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     ./mvnw install -DskipTests
 RUN mkdir target/extracted && java -Djarmode=layertools -jar target/*.jar extract --destination target/extracted
 
-FROM amazoncorretto:21-alpine@sha256:6a98c4402708fe8d16e946b4b5bac396379ec5104c1661e2a27b2b45cf9e2d16
-
-RUN apk add --no-cache musl=1.2.5-r1 musl-utils=1.2.5-r1
+FROM amazoncorretto:21-alpine@sha256:fda60fd7965970ce7ed7ce789b18418647b56ac6112fc17df006337bdc6355c4
 
 RUN addgroup --system user && adduser --ingroup user --system user
 USER user:user
