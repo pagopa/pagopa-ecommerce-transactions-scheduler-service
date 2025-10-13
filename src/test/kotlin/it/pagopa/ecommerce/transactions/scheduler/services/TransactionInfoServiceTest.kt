@@ -261,7 +261,8 @@ class TransactionInfoServiceTest {
                         null,
                         "paymentMethodDescription",
                         NpgTransactionGatewayAuthorizationRequestedData(),
-                        UUID.randomUUID().toString()
+                        UUID.randomUUID().toString(),
+                        false
                     )
                 )
             )
@@ -399,7 +400,8 @@ class TransactionInfoServiceTest {
                         TransactionAuthorizationRequestData.PaymentGateway.NPG,
                         "paymentMethodDescription",
                         NpgTransactionGatewayAuthorizationRequestedData(),
-                        UUID.randomUUID().toString()
+                        UUID.randomUUID().toString(),
+                        false
                     )
                 )
             )
