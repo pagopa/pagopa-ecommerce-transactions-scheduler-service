@@ -28,7 +28,7 @@ interface TransactionsEventStoreRepository<T> :
         sort = "{ 'creationDate' : 1 }"
     )
     fun findByTtlIsNullAndCreationDateLessThan(
-        cutoffDate: LocalDate,
+        cutoffDate: String,
         pageable: Pageable
     ): Flux<BaseTransactionEvent<*>>
 }

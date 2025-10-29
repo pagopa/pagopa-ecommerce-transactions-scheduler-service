@@ -32,7 +32,7 @@ class TransactionMigrationQueryService(
             PageRequest.of(0, transactionMigrationQueryServiceConfig.eventstore.maxResults)
 
         return transactionsEventStoreRepository.findByTtlIsNullAndCreationDateLessThan(
-            cutoffDate,
+            cutoffDate.toString(),
             pageRequest
         )
     }
@@ -43,8 +43,7 @@ class TransactionMigrationQueryService(
 
     override fun onApplicationEvent(event: ApplicationReadyEvent) {
 
-        val result: BaseTransactionEvent<*>? = this.findEligibleEvents().blockLast()
+        val result: List<BaseTransactionEvent<*>?>? = this.findEligibleEvents().collectList().block()
         println(result)
-        println("here")
     }
 }
