@@ -15,12 +15,12 @@ interface TransactionsEventStoreRepository<T> :
     ): Flux<BaseTransactionEvent<T>>
 
     /**
-     * Finds transactions where the 'ttl' field does not exist AND the 'creationDate' is older than
-     * the specified cutoff date. Results are sorted by creationDate ascending. The limit is handled
-     * by the Pageable parameter.
+     * Finds events where the 'ttl' field does not exist AND the 'creationDate' is older than the
+     * specified cutoff date. Results are sorted by creationDate ascending. The limit is handled by
+     * the Pageable parameter.
      * @param cutoffDate The date before which transactions are considered old.
      * @param pageable The parameter to limit results (sorting is defined in the query).
-     * @return A Flux of transactions.
+     * @return A Flux of events.
      */
     @Query(
         value = "{ 'ttl' : null, 'creationDate' : { '\$lt' : ?0 } }",

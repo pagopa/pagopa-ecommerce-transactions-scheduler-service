@@ -1,4 +1,5 @@
 import it.pagopa.ecommerce.commons.documents.BaseTransactionEvent
+import it.pagopa.ecommerce.commons.documents.BaseTransactionView
 import it.pagopa.ecommerce.transactions.scheduler.configurations.QuerySettings
 import it.pagopa.ecommerce.transactions.scheduler.configurations.TransactionMigrationQueryServiceConfig
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.TransactionsEventStoreRepository
@@ -30,7 +31,7 @@ class TransactionMigrationQueryServiceTest {
     @InjectMocks
     private lateinit var transactionMigrationQueryService: TransactionMigrationQueryService
 
-    private val dateCaptor: KArgumentCaptor<LocalDate> = argumentCaptor()
+    private val dateCaptor: KArgumentCaptor<String> = argumentCaptor()
     private val pageableCaptor: KArgumentCaptor<Pageable> = argumentCaptor()
 
     private val cutoffMonths = 9
@@ -70,7 +71,7 @@ class TransactionMigrationQueryServiceTest {
         verify(transactionsEventStoreRepository, times(1))
             .findByTtlIsNullAndCreationDateLessThan(dateCaptor.capture(), pageableCaptor.capture())
 
-        assertEquals(expectedCutoffDate, dateCaptor.firstValue)
+        assertEquals(expectedCutoffDate.toString(), dateCaptor.firstValue)
         assertEquals(expectedPageable, pageableCaptor.firstValue)
     }
 
@@ -92,6 +93,47 @@ class TransactionMigrationQueryServiceTest {
         StepVerifier.create(resultFlux).verifyComplete()
 
         verify(transactionsEventStoreRepository, times(1))
+            .findByTtlIsNullAndCreationDateLessThan(any(), any())
+    }
+
+    @Test
+    fun `should find eligible transactions correctly`() {
+        // ARRANGE
+        val mockTransaction: BaseTransactionView = mock(BaseTransactionView::class.java)
+        val mockFlux: Flux<BaseTransactionView> = Flux.just(mockTransaction)
+
+        val expectedCutoffDate = LocalDate.now().minusMonths(cutoffMonths.toLong())
+        val expectedPageable: Pageable = PageRequest.of(0, maxResults)
+
+        whenever(transactionViewRepository.findByTtlIsNullAndCreationDateLessThan(any(), any()))
+            .thenReturn(mockFlux)
+
+        // ACT
+        val resultFlux = transactionMigrationQueryService.findEligibleTransactions()
+
+        // ASSERT
+        StepVerifier.create(resultFlux).expectNext(mockTransaction).verifyComplete()
+
+        verify(transactionViewRepository, times(1))
+            .findByTtlIsNullAndCreationDateLessThan(dateCaptor.capture(), pageableCaptor.capture())
+
+        assertEquals(expectedCutoffDate.toString(), dateCaptor.firstValue)
+        assertEquals(expectedPageable, pageableCaptor.firstValue)
+    }
+
+    @Test
+    fun `should return empty Flux when repository finds no transactions`() {
+        // ARRANGE
+        whenever(transactionViewRepository.findByTtlIsNullAndCreationDateLessThan(any(), any()))
+            .thenReturn(Flux.empty())
+
+        // ACT
+        val resultFlux = transactionMigrationQueryService.findEligibleTransactions()
+
+        // ASSERT
+        StepVerifier.create(resultFlux).verifyComplete()
+
+        verify(transactionViewRepository, times(1))
             .findByTtlIsNullAndCreationDateLessThan(any(), any())
     }
 }

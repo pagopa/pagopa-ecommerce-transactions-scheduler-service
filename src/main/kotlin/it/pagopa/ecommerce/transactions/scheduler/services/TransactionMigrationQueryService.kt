@@ -38,13 +38,24 @@ class TransactionMigrationQueryService(
     }
 
     fun findEligibleTransactions(): Flux<BaseTransactionView> {
-        return Flux.empty()
+        val cutoffDate =
+            LocalDate.now()
+                .minusMonths(
+                    transactionMigrationQueryServiceConfig.eventstore.cutoffMonthOffset.toLong()
+                )
+        val pageRequest: Pageable =
+            PageRequest.of(0, transactionMigrationQueryServiceConfig.eventstore.maxResults)
+
+        return transactionViewRepository.findByTtlIsNullAndCreationDateLessThan(
+            cutoffDate.toString(),
+            pageRequest
+        )
     }
 
     override fun onApplicationEvent(event: ApplicationReadyEvent) {
 
-        val result: List<BaseTransactionEvent<*>?>? =
-            this.findEligibleEvents().collectList().block()
+        val result: List<BaseTransactionView?>? =
+            this.findEligibleTransactions().collectList().block()
         println(result)
     }
 }
