@@ -17,7 +17,7 @@ import reactor.test.StepVerifier
 @ExtendWith(MockitoExtension::class)
 class TransactionMigrationWriteServiceTest {
 
-    @Mock private lateinit var eventHistoryRepository: TransactionsEventStoreHistoryRepository<*>
+    @Mock private lateinit var eventHistoryRepository: TransactionsEventStoreHistoryRepository
 
     @Mock private lateinit var viewHistoryRepository: TransactionsViewHistoryRepository
 
@@ -35,7 +35,7 @@ class TransactionMigrationWriteServiceTest {
         val inputFlux = Flux.just(mockEvent1, mockEvent2)
 
         @Suppress("UNCHECKED_CAST")
-        val typedRepository = eventHistoryRepository as TransactionsEventStoreHistoryRepository<Any>
+        val typedRepository = eventHistoryRepository
 
         whenever(typedRepository.save(any())).thenAnswer { invocation ->
             Mono.just<Any>(invocation.getArgument(0))
@@ -66,12 +66,12 @@ class TransactionMigrationWriteServiceTest {
         val inputFlux = Flux.just(mockEvent1, mockEvent2, mockEvent3)
 
         @Suppress("UNCHECKED_CAST")
-        val typedRepository = eventHistoryRepository as TransactionsEventStoreHistoryRepository<Any>
+        val typedRepository = eventHistoryRepository
 
         whenever(typedRepository.save(any()))
-            .thenReturn(Mono.just(mockEvent1 as BaseTransactionEvent<Any>))
+            .thenReturn(Mono.just(mockEvent1))
             .thenReturn(Mono.error(RuntimeException("Database error")))
-            .thenReturn(Mono.just(mockEvent3 as BaseTransactionEvent<Any>))
+            .thenReturn(Mono.just(mockEvent3))
 
         // ACT
         val resultFlux = transactionMigrationWriteService.writeEvents(inputFlux)
@@ -94,9 +94,9 @@ class TransactionMigrationWriteServiceTest {
 
         val inputFlux = Flux.just(mockEvent1, mockEvent2)
 
-        @Suppress("UNCHECKED_CAST")
-        val typedRepository = eventHistoryRepository as TransactionsEventStoreHistoryRepository<Any>
 
+        @Suppress("UNCHECKED_CAST")
+        val typedRepository = eventHistoryRepository
         whenever(typedRepository.save(any()))
             .thenReturn(Mono.error(RuntimeException("Database error")))
             .thenReturn(Mono.error(RuntimeException("Database error")))
@@ -183,7 +183,7 @@ class TransactionMigrationWriteServiceTest {
         val inputFlux = Flux.empty<BaseTransactionEvent<*>>()
 
         @Suppress("UNCHECKED_CAST")
-        val typedRepository = eventHistoryRepository as TransactionsEventStoreHistoryRepository<Any>
+        val typedRepository = eventHistoryRepository
 
         // ACT
         val resultFlux = transactionMigrationWriteService.writeEvents(inputFlux)

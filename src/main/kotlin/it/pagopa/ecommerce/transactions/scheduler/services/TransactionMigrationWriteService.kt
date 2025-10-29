@@ -12,8 +12,8 @@ import reactor.core.publisher.Mono
 
 @Service
 class TransactionMigrationWriteService(
-    @Autowired private val eventHistoryRepository: TransactionsEventStoreHistoryRepository<*>,
-    @Autowired private val viewHistoryRepository: TransactionsViewHistoryRepository
+    @param:Autowired private val eventHistoryRepository: TransactionsEventStoreHistoryRepository,
+    @param:Autowired private val viewHistoryRepository: TransactionsViewHistoryRepository
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -25,8 +25,8 @@ class TransactionMigrationWriteService(
     fun writeEvents(events: Flux<BaseTransactionEvent<*>>): Flux<BaseTransactionEvent<*>> {
         return events
             .flatMap { event ->
-                (eventHistoryRepository as TransactionsEventStoreHistoryRepository<Any>)
-                    .save(event as BaseTransactionEvent<Any>)
+                (eventHistoryRepository)
+                    .save(event)
                     .doOnSuccess { logger.info("Successfully migrated event with id: ${it.id}") }
                     .doOnError { error ->
                         logger.error("Failed to migrate event with id: ${event.id}", error)
