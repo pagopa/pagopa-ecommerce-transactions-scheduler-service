@@ -7,8 +7,6 @@ import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.Transac
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.TransactionsViewRepository
 import java.time.LocalDate
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.context.event.ApplicationReadyEvent
-import org.springframework.context.ApplicationListener
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
@@ -21,7 +19,7 @@ class TransactionMigrationQueryService(
     @param:Autowired private val transactionViewRepository: TransactionsViewRepository,
     @param:Autowired
     private val transactionMigrationQueryServiceConfig: TransactionMigrationQueryServiceConfig
-) : ApplicationListener<ApplicationReadyEvent> {
+) {
     fun findEligibleEvents(): Flux<BaseTransactionEvent<*>> {
         val cutoffDate =
             LocalDate.now()
@@ -50,12 +48,5 @@ class TransactionMigrationQueryService(
             cutoffDate.toString(),
             pageRequest
         )
-    }
-
-    override fun onApplicationEvent(event: ApplicationReadyEvent) {
-
-        val result: List<BaseTransactionView?>? =
-            this.findEligibleTransactions().collectList().block()
-        println(result)
     }
 }
