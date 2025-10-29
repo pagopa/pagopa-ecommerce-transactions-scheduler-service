@@ -1,7 +1,6 @@
 package it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce
 
 import it.pagopa.ecommerce.commons.documents.BaseTransactionEvent
-import java.time.LocalDate
 import org.springframework.data.domain.Pageable
 import org.springframework.data.mongodb.repository.Query
 import org.springframework.data.repository.reactive.ReactiveCrudRepository

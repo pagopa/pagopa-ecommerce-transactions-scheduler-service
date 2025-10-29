@@ -43,7 +43,8 @@ class TransactionMigrationQueryService(
 
     override fun onApplicationEvent(event: ApplicationReadyEvent) {
 
-        val result: List<BaseTransactionEvent<*>?>? = this.findEligibleEvents().collectList().block()
+        val result: List<BaseTransactionEvent<*>?>? =
+            this.findEligibleEvents().collectList().block()
         println(result)
     }
 }
