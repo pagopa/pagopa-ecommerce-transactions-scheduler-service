@@ -1,8 +1,8 @@
 import it.pagopa.ecommerce.commons.documents.BaseTransactionEvent
 import it.pagopa.ecommerce.transactions.scheduler.configurations.QuerySettings
 import it.pagopa.ecommerce.transactions.scheduler.configurations.TransactionMigrationQueryServiceConfig
-import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommercehistory.TransactionsEventStoreHistoryRepository
-import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommercehistory.TransactionsViewHistoryRepository
+import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.TransactionsEventStoreRepository
+import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.TransactionsViewRepository
 import it.pagopa.ecommerce.transactions.scheduler.services.TransactionMigrationQueryService
 import java.time.LocalDate
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -22,10 +22,8 @@ import reactor.test.StepVerifier
 
 @ExtendWith(MockitoExtension::class)
 class TransactionMigrationQueryServiceTest {
-    @Mock
-    private lateinit var transactionsEventStoreHistoryRepository:
-        TransactionsEventStoreHistoryRepository<Any>
-    @Mock private lateinit var transactionViewHistoryRepository: TransactionsViewHistoryRepository
+    @Mock private lateinit var transactionsEventStoreRepository: TransactionsEventStoreRepository<*>
+    @Mock private lateinit var transactionViewRepository: TransactionsViewRepository
     @Mock
     private lateinit var transactionMigrationQueryServiceConfig:
         TransactionMigrationQueryServiceConfig
@@ -54,11 +52,10 @@ class TransactionMigrationQueryServiceTest {
         val mockFlux: Flux<BaseTransactionEvent<*>> = Flux.just(mockEvent)
 
         val expectedCutoffDate = LocalDate.now().minusMonths(cutoffMonths.toLong())
-        val expectedSort = Sort.by(Sort.Direction.ASC, "creationDate")
-        val expectedPageable: Pageable = PageRequest.of(0, maxResults, expectedSort)
+        val expectedPageable: Pageable = PageRequest.of(0, maxResults)
 
         whenever(
-                transactionsEventStoreHistoryRepository.findByTtlIsNullAndCreationDateLessThan(
+                transactionsEventStoreRepository.findByTtlIsNullAndCreationDateLessThan(
                     any(),
                     any()
                 )
@@ -71,7 +68,7 @@ class TransactionMigrationQueryServiceTest {
         // ASSERT
         StepVerifier.create(resultFlux).expectNext(mockEvent).verifyComplete()
 
-        verify(transactionsEventStoreHistoryRepository, times(1))
+        verify(transactionsEventStoreRepository, times(1))
             .findByTtlIsNullAndCreationDateLessThan(dateCaptor.capture(), pageableCaptor.capture())
 
         assertEquals(expectedCutoffDate, dateCaptor.firstValue)
@@ -82,7 +79,7 @@ class TransactionMigrationQueryServiceTest {
     fun `should return empty Flux when repository finds no events`() {
         // ARRANGE
         whenever(
-                transactionsEventStoreHistoryRepository.findByTtlIsNullAndCreationDateLessThan(
+                transactionsEventStoreRepository.findByTtlIsNullAndCreationDateLessThan(
                     any(),
                     any()
                 )
@@ -95,7 +92,7 @@ class TransactionMigrationQueryServiceTest {
         // ASSERT
         StepVerifier.create(resultFlux).verifyComplete()
 
-        verify(transactionsEventStoreHistoryRepository, times(1))
+        verify(transactionsEventStoreRepository, times(1))
             .findByTtlIsNullAndCreationDateLessThan(any(), any())
     }
 }
