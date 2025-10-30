@@ -21,6 +21,7 @@ import reactor.core.publisher.Mono
 class TransactionMigrationWriteService(
     @param:Autowired private val eventHistoryRepository: TransactionsEventStoreHistoryRepository,
     @param:Autowired private val viewHistoryRepository: TransactionsViewHistoryRepository,
+    @param:Autowired
     @Qualifier("ecommerceReactiveMongoTemplate")
     private val ecommerceMongoTemplate: ReactiveMongoTemplate,
     @param:Autowired
