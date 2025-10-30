@@ -52,19 +52,11 @@ class TransactionMigrationWriteService(
      * @return Flux of successfully updated events
      */
     fun updateEventsTtl(events: Flux<BaseTransactionEvent<*>>): Flux<BaseTransactionEvent<*>> {
-        return events.flatMap { event ->
-            updateSingleEventTtl(event)
-                .flatMap { wasUpdated ->
-                    if (wasUpdated) {
-                        Mono.just(event)
-                    } else {
-                        Mono.empty()
-                    }
-                }
-                .onErrorResume { error ->
-                    logger.error("Failed to update TTL for event: ${event.id}", error)
-                    Mono.empty()
-                }
+        return events.filterWhen { event ->
+            updateSingleEventTtl(event).onErrorResume { error ->
+                logger.error("Failed to update TTL for event: ${event.id}", error)
+                Mono.just(false)
+            }
         }
     }
 
@@ -121,19 +113,11 @@ class TransactionMigrationWriteService(
      * @return Flux of successfully updated views
      */
     fun updateViewsTtl(views: Flux<BaseTransactionView>): Flux<BaseTransactionView> {
-        return views.flatMap { view ->
-            updateSingleViewTtl(view)
-                .flatMap { wasUpdated ->
-                    if (wasUpdated) {
-                        Mono.just(view)
-                    } else {
-                        Mono.empty()
-                    }
-                }
-                .onErrorResume { error ->
-                    logger.error("Failed to update TTL for event: ${view.transactionId}", error)
-                    Mono.empty()
-                }
+        return views.filterWhen { view ->
+            updateSingleViewTtl(view).onErrorResume { error ->
+                logger.error("Failed to update TTL for view: ${view.transactionId}", error)
+                Mono.just(false)
+            }
         }
     }
 
