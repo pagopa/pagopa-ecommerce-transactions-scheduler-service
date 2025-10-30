@@ -1,39 +1,42 @@
 package it.pagopa.ecommerce.transactions.scheduler.services
 
+import it.pagopa.ecommerce.commons.documents.BaseTransactionView
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.context.event.ApplicationReadyEvent
-import org.springframework.context.ApplicationListener
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
+import reactor.kotlin.core.util.function.component1
+import reactor.kotlin.core.util.function.component2
+import reactor.util.function.Tuple2
 
 @Service
 class TransactionsViewMigrationOrchestrator(
     @param:Autowired private val transactionMigrationQueryService: TransactionMigrationQueryService,
     @param:Autowired private val transactionMigrationWriteService: TransactionMigrationWriteService
-) : ApplicationListener<ApplicationReadyEvent>{
+) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    fun runMigration() {
+    fun createMigrationPipeline(): Mono<Tuple2<Long, List<BaseTransactionView>>> {
         logger.info("transactions-view migration process started")
-        transactionMigrationQueryService
+        return transactionMigrationQueryService
             .findEligibleTransactions()
             .doOnNext { tx -> logger.debug("Processing transaction: ${tx.transactionId}") }
-            .transform { transactionMigrationWriteService.writeTransactionViews(it) }
+            .transform { tx -> transactionMigrationWriteService.writeTransactionViews(tx) }
+            .transform { tx -> transactionMigrationWriteService.updateViewsTtl(tx) }
             .collectList()
-            .doOnSuccess { processedViews ->
+            .elapsed()
+            .doOnSuccess { (elapsedMs, processedViews) ->
                 logger.info(
-                    "transactions-view migration process completed. Processed: ${processedViews.size}"
+                    "transactions-view migration process completed. Processed ${processedViews.size} items in $elapsedMs ms"
                 )
             }
             .onErrorResume { error ->
                 logger.error("transactions-view migration process failed", error)
                 Mono.empty()
             }
-            .subscribe()
     }
 
-    override fun onApplicationEvent(event: ApplicationReadyEvent) {
-        this.runMigration()
+    fun runMigration() {
+        this.createMigrationPipeline().subscribe()
     }
 }
