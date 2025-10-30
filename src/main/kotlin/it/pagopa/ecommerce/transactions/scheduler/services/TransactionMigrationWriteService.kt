@@ -37,22 +37,19 @@ class TransactionMigrationWriteService(
      */
     fun writeEvents(events: Flux<BaseTransactionEvent<*>>): Mono<Void> {
         return events
-            // Step 1: Copy all documents to history database (parallel, fast)
+            // step 1: copy all documents to history database
             .flatMap { event ->
                 eventHistoryRepository
                     .save(event)
                     .doOnSuccess { logger.debug("Successfully copied event to history: ${it.id}") }
-                    .doOnError { error ->
-                        logger.error("Failed to copy event with id: ${event.id}", error)
-                    }
-                    .onErrorResume {
-                        logger.warn("Skipping failed event migration for id: ${event.id}")
+                    .onErrorResume { error ->
+                        logger.warn("Skipping failed event migration for id: ${event.id}", error)
                         Mono.empty()
                     }
             }
             .map { it as BaseTransactionEvent<*> }
-            .collectList() // Collect all successfully migrated events
-            // Step 2: Batch update TTL for all migrated events in source database
+            .collectList()
+            // step 2: batch update TTL for all migrated events in source database
             .flatMap { migratedEvents ->
                 if (migratedEvents.isEmpty()) {
                     logger.info("No events were copied to history")
@@ -61,13 +58,12 @@ class TransactionMigrationWriteService(
                     logger.info("Successfully copied ${migratedEvents.size} events to history")
                     val eventIds = migratedEvents.map { it.id }
                     batchUpdateEventTtl(eventIds).onErrorResume { error ->
-                        // Log TTL update failure
                         logger.error(
                             "Failed to update TTL for ${eventIds.size} events. " +
                                 "Documents were copied but TTL update failed.",
                             error
                         )
-                        Mono.empty() // Continue anyway
+                        Mono.empty()
                     }
                 }
             }
@@ -82,20 +78,23 @@ class TransactionMigrationWriteService(
      */
     fun writeTransactionViews(views: Flux<BaseTransactionView>): Mono<Void> {
         return views
-            // Step 1: Copy all documents to history database (parallel, fast)
+            // step 1: copy all documents to history database
             .flatMap { view ->
                 viewHistoryRepository
                     .save(view)
                     .doOnSuccess {
                         logger.debug("Successfully copied view to history: ${it.transactionId}")
                     }
-                    .onErrorResume {
-                        logger.warn("Skipping failed view migration for id: ${view.transactionId}")
+                    .onErrorResume { error ->
+                        logger.warn(
+                            "Skipping failed view migration for id: ${view.transactionId}",
+                            error
+                        )
                         Mono.empty()
                     }
             }
-            .collectList() // Collect all successfully migrated views
-            // Step 2: Batch update TTL for all migrated views in source database
+            .collectList()
+            // step 2: batch update TTL for all migrated events in source database
             .flatMap { migratedViews ->
                 if (migratedViews.isEmpty()) {
                     logger.info("No views were copied to history")
@@ -104,13 +103,12 @@ class TransactionMigrationWriteService(
                     logger.info("Successfully copied ${migratedViews.size} views to history")
                     val viewTransactionIds = migratedViews.map { it.transactionId }
                     batchUpdateViewTtl(viewTransactionIds).onErrorResume { error ->
-                        // Log TTL update failure
                         logger.error(
                             "Failed to update TTL for ${viewTransactionIds.size} views. " +
                                 "Documents were copied but TTL update failed.",
                             error
                         )
-                        Mono.empty() // Continue anyway
+                        Mono.empty()
                     }
                 }
             }
@@ -118,7 +116,7 @@ class TransactionMigrationWriteService(
     }
 
     /**
-     * Batch updates TTL for multiple events in the SOURCE database (ecommerce). Logs the count of
+     * Batch updates TTL for multiple events in the source database (ecommerce). Logs the count of
      * successfully updated documents.
      */
     private fun batchUpdateEventTtl(eventIds: List<String>): Mono<Void> {
@@ -144,7 +142,7 @@ class TransactionMigrationWriteService(
     }
 
     /**
-     * Batch updates TTL for multiple views in the SOURCE database (ecommerce). Logs the count of
+     * Batch updates TTL for multiple views in the source database (ecommerce). Logs the count of
      * successfully updated documents.
      */
     private fun batchUpdateViewTtl(transactionIds: List<String>): Mono<Void> {
