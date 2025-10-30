@@ -5,7 +5,6 @@ import it.pagopa.ecommerce.commons.documents.BaseTransactionView
 import it.pagopa.ecommerce.transactions.scheduler.configurations.TransactionMigrationWriteServiceConfig
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommercehistory.TransactionsEventStoreHistoryRepository
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommercehistory.TransactionsViewHistoryRepository
-import java.time.Instant
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Qualifier
@@ -75,9 +74,7 @@ class TransactionMigrationWriteService(
      */
     private fun updateSingleEventTtl(event: BaseTransactionEvent<*>): Mono<Boolean> {
         val query = Query.query(Criteria.where("_id").`is`(event.id))
-        val ttlDate =
-            Instant.now()
-                .plusSeconds(transactionMigrationWriteServiceConfig.eventstore.ttlSeconds.toLong())
+        val ttlDate = transactionMigrationWriteServiceConfig.eventstore.ttlSeconds.toLong()
         val update = Update().set("ttl", ttlDate)
 
         return ecommerceMongoTemplate
@@ -146,11 +143,7 @@ class TransactionMigrationWriteService(
      */
     private fun updateSingleViewTtl(view: BaseTransactionView): Mono<Boolean> {
         val query = Query.query(Criteria.where("_id").`is`(view.transactionId))
-        val ttlDate =
-            Instant.now()
-                .plusSeconds(
-                    transactionMigrationWriteServiceConfig.transactionsView.ttlSeconds.toLong()
-                )
+        val ttlDate = transactionMigrationWriteServiceConfig.transactionsView.ttlSeconds.toLong()
         val update = Update().set("ttl", ttlDate)
 
         return ecommerceMongoTemplate

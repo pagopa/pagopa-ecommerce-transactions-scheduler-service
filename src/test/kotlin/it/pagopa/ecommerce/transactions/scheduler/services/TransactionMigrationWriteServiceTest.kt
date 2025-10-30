@@ -7,8 +7,8 @@ import it.pagopa.ecommerce.transactions.scheduler.configurations.TransactionMigr
 import it.pagopa.ecommerce.transactions.scheduler.configurations.WriteSettings
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommercehistory.TransactionsEventStoreHistoryRepository
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommercehistory.TransactionsViewHistoryRepository
-import java.time.Instant
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.InjectMocks
@@ -39,6 +39,78 @@ class TransactionMigrationWriteServiceTest {
 
     @InjectMocks
     private lateinit var transactionMigrationWriteService: TransactionMigrationWriteService
+
+    @Test
+    fun `should write eventstore events successfully and update TTL individually 2`() {
+        val mockEvent1: BaseTransactionEvent<*> = mock()
+        val mockEvent2: BaseTransactionEvent<*> = mock()
+
+        val expectedTtlSeconds = 10000000
+
+        whenever(mockEvent1.id).thenReturn("event-1")
+        whenever(mockEvent2.id).thenReturn("event-2")
+
+        whenever(config.eventstore).thenReturn(eventstoreWriteSettings)
+        whenever(eventstoreWriteSettings.ttlSeconds).thenReturn(expectedTtlSeconds)
+
+        val inputFlux = Flux.just(mockEvent1, mockEvent2)
+
+        @Suppress("UNCHECKED_CAST") val typedRepository = eventHistoryRepository
+
+        whenever(typedRepository.save(any())).thenAnswer { invocation ->
+            Mono.just<Any>(invocation.getArgument(0))
+        }
+
+        val mockUpdateResult: UpdateResult = mock()
+        whenever(mockUpdateResult.modifiedCount).thenReturn(1)
+        whenever(
+                ecommerceMongoTemplate.updateFirst(
+                    any<Query>(),
+                    any<Update>(),
+                    eq(BaseTransactionEvent::class.java)
+                )
+            )
+            .thenReturn(Mono.just(mockUpdateResult))
+
+        // ACT
+        val result =
+            transactionMigrationWriteService.updateEventsTtl(
+                transactionMigrationWriteService.writeEvents(inputFlux)
+            )
+
+        // ASSERT
+        StepVerifier.create(result).expectNextCount(2).verifyComplete()
+
+        verify(typedRepository, times(2)).save(any())
+
+        val queryCaptor = argumentCaptor<Query>()
+        val updateCaptor = argumentCaptor<Update>()
+
+        verify(ecommerceMongoTemplate, times(2))
+            .updateFirst(
+                queryCaptor.capture(),
+                updateCaptor.capture(),
+                eq(BaseTransactionEvent::class.java)
+            )
+
+        // Verify the queries contain the correct event ids
+        val capturedQueries = queryCaptor.allValues
+        val eventIds = capturedQueries.map { it.queryObject["_id"] }
+        assert(eventIds.containsAll(listOf("event-1", "event-2")))
+
+        // Verify the updates contain the correct TTL value in SECONDS
+        val capturedUpdates = updateCaptor.allValues
+        capturedUpdates.forEach { update ->
+            val updateDocument = update.updateObject
+            val setClause = updateDocument["\$set"] as Map<*, *>
+            val ttlValue = setClause["ttl"] as Long
+
+            // TTL should be the configured seconds value, not a timestamp
+            assertEquals(ttlValue, expectedTtlSeconds.toLong()) {
+                "Expected TTL to be $expectedTtlSeconds seconds, but got $ttlValue"
+            }
+        }
+    }
 
     @Test
     fun `should write eventstore events successfully and update TTL individually`() {
@@ -103,13 +175,9 @@ class TransactionMigrationWriteServiceTest {
         capturedUpdates.forEach { update ->
             val updateDocument = update.updateObject
             val setClause = updateDocument["\$set"] as Map<*, *>
-            val ttlValue = setClause["ttl"] as Instant
+            val ttlValue = setClause["ttl"] as Long
 
-            // ttl check with 5s tolerance
-            val tolerance: Long = 5
-            val expectedTtl = Instant.now().plusSeconds(expectedTtlValue.toLong())
-            assertThat(ttlValue)
-                .isBetween(expectedTtl.minusSeconds(tolerance), expectedTtl.plusSeconds(tolerance))
+            assertEquals(ttlValue, expectedTtlValue.toLong())
         }
     }
 
@@ -343,13 +411,10 @@ class TransactionMigrationWriteServiceTest {
         capturedUpdates.forEach { update ->
             val updateDocument = update.updateObject
             val setClause = updateDocument["\$set"] as Map<*, *>
-            val ttlValue = setClause["ttl"] as Instant
+            val ttlValue = setClause["ttl"] as Long
 
             // ttl check with 5s tolerance
-            val tolerance: Long = 5
-            val expectedTtl = Instant.now().plusSeconds(expectedTtlValue.toLong())
-            assertThat(ttlValue)
-                .isBetween(expectedTtl.minusSeconds(tolerance), expectedTtl.plusSeconds(tolerance))
+            assertEquals(ttlValue, expectedTtlValue.toLong())
         }
     }
 
