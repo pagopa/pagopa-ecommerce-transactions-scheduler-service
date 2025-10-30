@@ -41,7 +41,7 @@ class TransactionMigrationWriteServiceTest {
     private lateinit var transactionMigrationWriteService: TransactionMigrationWriteService
 
     @Test
-    fun `should write eventstore events successfully and update TTL in batch`() {
+    fun `should write eventstore events successfully and update TTL individually`() {
         val mockEvent1: BaseTransactionEvent<*> = mock()
         val mockEvent2: BaseTransactionEvent<*> = mock()
 
@@ -62,9 +62,9 @@ class TransactionMigrationWriteServiceTest {
         }
 
         val mockUpdateResult: UpdateResult = mock()
-        whenever(mockUpdateResult.modifiedCount).thenReturn(2)
+        whenever(mockUpdateResult.modifiedCount).thenReturn(1)
         whenever(
-                ecommerceMongoTemplate.updateMulti(
+                ecommerceMongoTemplate.updateFirst(
                     any<Query>(),
                     any<Update>(),
                     eq(BaseTransactionEvent::class.java)
@@ -73,42 +73,44 @@ class TransactionMigrationWriteServiceTest {
             .thenReturn(Mono.just(mockUpdateResult))
 
         // ACT
-        val result = transactionMigrationWriteService.writeEvents(inputFlux)
+        val result =
+            transactionMigrationWriteService.updateEventsTtl(
+                transactionMigrationWriteService.writeEvents(inputFlux)
+            )
 
         // ASSERT
-        StepVerifier.create(result).verifyComplete()
+        StepVerifier.create(result).expectNextCount(2).verifyComplete()
 
         verify(typedRepository, times(2)).save(any())
 
         val queryCaptor = argumentCaptor<Query>()
         val updateCaptor = argumentCaptor<Update>()
 
-        verify(ecommerceMongoTemplate, times(1))
-            .updateMulti(
+        verify(ecommerceMongoTemplate, times(2))
+            .updateFirst(
                 queryCaptor.capture(),
                 updateCaptor.capture(),
                 eq(BaseTransactionEvent::class.java)
             )
 
-        // Verify the query contains the correct event ids
-        val capturedQuery = queryCaptor.firstValue
-        val queryCriteria = capturedQuery.queryObject
-        val inClause = queryCriteria["_id"] as Map<*, *>
-        val eventIds = inClause["\$in"] as List<*>
-        assert(eventIds[0] == "event-1")
-        assert(eventIds[1] == "event-2")
+        // Verify the queries contain the correct event ids
+        val capturedQueries = queryCaptor.allValues
+        val eventIds = capturedQueries.map { it.queryObject["_id"] }
+        assertThat(eventIds).containsExactlyInAnyOrder("event-1", "event-2")
 
-        // Verify the update contains the correct ttl value
-        val capturedUpdate = updateCaptor.firstValue
-        val updateDocument = capturedUpdate.updateObject
-        val setClause = updateDocument["\$set"] as Map<*, *>
-        val ttlValue = setClause["ttl"] as Instant
+        // Verify the updates contain the correct ttl values
+        val capturedUpdates = updateCaptor.allValues
+        capturedUpdates.forEach { update ->
+            val updateDocument = update.updateObject
+            val setClause = updateDocument["\$set"] as Map<*, *>
+            val ttlValue = setClause["ttl"] as Instant
 
-        // ttl check with 5s tolerance
-        val tolerance: Long = 5
-        val expectedTtl = Instant.now().plusSeconds(expectedTtlValue.toLong())
-        assertThat(ttlValue)
-            .isBetween(expectedTtl.minusSeconds(tolerance), expectedTtl.plusSeconds(tolerance))
+            // ttl check with 5s tolerance
+            val tolerance: Long = 5
+            val expectedTtl = Instant.now().plusSeconds(expectedTtlValue.toLong())
+            assertThat(ttlValue)
+                .isBetween(expectedTtl.minusSeconds(tolerance), expectedTtl.plusSeconds(tolerance))
+        }
     }
 
     @Test
@@ -135,9 +137,9 @@ class TransactionMigrationWriteServiceTest {
             .thenReturn(Mono.just(mockEvent3))
 
         val mockUpdateResult: UpdateResult = mock()
-        whenever(mockUpdateResult.modifiedCount).thenReturn(2)
+        whenever(mockUpdateResult.modifiedCount).thenReturn(1)
         whenever(
-                ecommerceMongoTemplate.updateMulti(
+                ecommerceMongoTemplate.updateFirst(
                     any<Query>(),
                     any<Update>(),
                     eq(BaseTransactionEvent::class.java)
@@ -146,15 +148,18 @@ class TransactionMigrationWriteServiceTest {
             .thenReturn(Mono.just(mockUpdateResult))
 
         // ACT
-        val result = transactionMigrationWriteService.writeEvents(inputFlux)
+        val result =
+            transactionMigrationWriteService.updateEventsTtl(
+                transactionMigrationWriteService.writeEvents(inputFlux)
+            )
 
         // ASSERT
-        StepVerifier.create(result).verifyComplete()
+        StepVerifier.create(result).expectNextCount(2).verifyComplete()
 
         verify(typedRepository, times(3)).save(any())
-        // Verify TTL update was called with only successful event IDs (event-1 and event-3)
-        verify(ecommerceMongoTemplate, times(1))
-            .updateMulti(any<Query>(), any<Update>(), eq(BaseTransactionEvent::class.java))
+        // Verify TTL update was called only for successful events (event-1 and event-3)
+        verify(ecommerceMongoTemplate, times(2))
+            .updateFirst(any<Query>(), any<Update>(), eq(BaseTransactionEvent::class.java))
     }
 
     @Test
@@ -182,11 +187,11 @@ class TransactionMigrationWriteServiceTest {
         verify(typedRepository, times(2)).save(any())
         // No TTL update should happen since no events were migrated successfully
         verify(ecommerceMongoTemplate, never())
-            .updateMulti(any<Query>(), any<Update>(), any<Class<*>>())
+            .updateFirst(any<Query>(), any<Update>(), any<Class<*>>())
     }
 
     @Test
-    fun `should complete successfully even if TTL update fails`() {
+    fun `should skip events when TTL update fails`() {
 
         val mockEvent1: BaseTransactionEvent<*> = mock()
         val mockEvent2: BaseTransactionEvent<*> = mock()
@@ -205,29 +210,80 @@ class TransactionMigrationWriteServiceTest {
         whenever(config.eventstore).thenReturn(eventstoreWriteSettings)
         whenever(eventstoreWriteSettings.ttlSeconds).thenReturn(10000000)
 
-        // TTL update fails
+        // First TTL update succeeds, second fails
+        val mockUpdateResult: UpdateResult = mock()
+        whenever(mockUpdateResult.modifiedCount).thenReturn(1)
         whenever(
-                ecommerceMongoTemplate.updateMulti(
+                ecommerceMongoTemplate.updateFirst(
                     any<Query>(),
                     any<Update>(),
                     eq(BaseTransactionEvent::class.java)
                 )
             )
+            .thenReturn(Mono.just(mockUpdateResult))
             .thenReturn(Mono.error(RuntimeException("TTL update failed")))
 
         // ACT
-        val result = transactionMigrationWriteService.writeEvents(inputFlux)
+        val result =
+            transactionMigrationWriteService.updateEventsTtl(
+                transactionMigrationWriteService.writeEvents(inputFlux)
+            )
 
         // ASSERT
-        StepVerifier.create(result).verifyComplete()
+        StepVerifier.create(result)
+            .expectNextCount(1) // Only one event successfully updated
+            .verifyComplete()
 
         verify(typedRepository, times(2)).save(any())
-        verify(ecommerceMongoTemplate, times(1))
-            .updateMulti(any<Query>(), any<Update>(), eq(BaseTransactionEvent::class.java))
+        verify(ecommerceMongoTemplate, times(2))
+            .updateFirst(any<Query>(), any<Update>(), eq(BaseTransactionEvent::class.java))
     }
 
     @Test
-    fun `should write transaction views successfully and update TTL in batch`() {
+    fun `should skip event when TTL update returns zero modified count`() {
+
+        val mockEvent: BaseTransactionEvent<*> = mock()
+
+        whenever(mockEvent.id).thenReturn("event-1")
+
+        val inputFlux = Flux.just(mockEvent)
+
+        @Suppress("UNCHECKED_CAST") val typedRepository = eventHistoryRepository
+
+        whenever(typedRepository.save(any())).thenAnswer { invocation ->
+            Mono.just<Any>(invocation.getArgument(0))
+        }
+
+        whenever(config.eventstore).thenReturn(eventstoreWriteSettings)
+        whenever(eventstoreWriteSettings.ttlSeconds).thenReturn(10000000)
+
+        val mockUpdateResult: UpdateResult = mock()
+        whenever(mockUpdateResult.modifiedCount).thenReturn(0) // No document modified
+        whenever(
+                ecommerceMongoTemplate.updateFirst(
+                    any<Query>(),
+                    any<Update>(),
+                    eq(BaseTransactionEvent::class.java)
+                )
+            )
+            .thenReturn(Mono.just(mockUpdateResult))
+
+        // ACT
+        val result =
+            transactionMigrationWriteService.updateEventsTtl(
+                transactionMigrationWriteService.writeEvents(inputFlux)
+            )
+
+        // ASSERT
+        StepVerifier.create(result).verifyComplete() // No events emitted since modified count was 0
+
+        verify(typedRepository, times(1)).save(any())
+        verify(ecommerceMongoTemplate, times(1))
+            .updateFirst(any<Query>(), any<Update>(), eq(BaseTransactionEvent::class.java))
+    }
+
+    @Test
+    fun `should write transaction views successfully and update TTL individually`() {
         val mockView1: BaseTransactionView = mock()
         val mockView2: BaseTransactionView = mock()
 
@@ -246,9 +302,9 @@ class TransactionMigrationWriteServiceTest {
         }
 
         val mockUpdateResult: UpdateResult = mock()
-        whenever(mockUpdateResult.modifiedCount).thenReturn(2)
+        whenever(mockUpdateResult.modifiedCount).thenReturn(1)
         whenever(
-                ecommerceMongoTemplate.updateMulti(
+                ecommerceMongoTemplate.updateFirst(
                     any<Query>(),
                     any<Update>(),
                     eq(BaseTransactionView::class.java)
@@ -257,42 +313,44 @@ class TransactionMigrationWriteServiceTest {
             .thenReturn(Mono.just(mockUpdateResult))
 
         // ACT
-        val result = transactionMigrationWriteService.writeTransactionViews(inputFlux)
+        val result =
+            transactionMigrationWriteService.updateViewsTtl(
+                transactionMigrationWriteService.writeTransactionViews(inputFlux)
+            )
 
         // ASSERT
-        StepVerifier.create(result).verifyComplete()
+        StepVerifier.create(result).expectNextCount(2).verifyComplete()
 
         verify(viewHistoryRepository, times(2)).save(any())
 
         val queryCaptor = argumentCaptor<Query>()
         val updateCaptor = argumentCaptor<Update>()
 
-        verify(ecommerceMongoTemplate, times(1))
-            .updateMulti(
+        verify(ecommerceMongoTemplate, times(2))
+            .updateFirst(
                 queryCaptor.capture(),
                 updateCaptor.capture(),
                 eq(BaseTransactionView::class.java)
             )
 
-        // Verify the query contains the correct view ids
-        val capturedQuery = queryCaptor.firstValue
-        val queryCriteria = capturedQuery.queryObject
-        val inClause = queryCriteria["_id"] as Map<*, *>
-        val viewIds = inClause["\$in"] as List<*>
-        assert(viewIds[0] == "view-1")
-        assert(viewIds[1] == "view-2")
+        // Verify the queries contain the correct view ids
+        val capturedQueries = queryCaptor.allValues
+        val viewIds = capturedQueries.map { it.queryObject["_id"] }
+        assertThat(viewIds).containsExactlyInAnyOrder("view-1", "view-2")
 
-        // Verify the update contains the correct ttl value
-        val capturedUpdate = updateCaptor.firstValue
-        val updateDocument = capturedUpdate.updateObject
-        val setClause = updateDocument["\$set"] as Map<*, *>
-        val ttlValue = setClause["ttl"] as Instant
+        // Verify the updates contain the correct ttl values
+        val capturedUpdates = updateCaptor.allValues
+        capturedUpdates.forEach { update ->
+            val updateDocument = update.updateObject
+            val setClause = updateDocument["\$set"] as Map<*, *>
+            val ttlValue = setClause["ttl"] as Instant
 
-        // ttl check with 5s tolerance
-        val tolerance: Long = 5
-        val expectedTtl = Instant.now().plusSeconds(expectedTtlValue.toLong())
-        assertThat(ttlValue)
-            .isBetween(expectedTtl.minusSeconds(tolerance), expectedTtl.plusSeconds(tolerance))
+            // ttl check with 5s tolerance
+            val tolerance: Long = 5
+            val expectedTtl = Instant.now().plusSeconds(expectedTtlValue.toLong())
+            assertThat(ttlValue)
+                .isBetween(expectedTtl.minusSeconds(tolerance), expectedTtl.plusSeconds(tolerance))
+        }
     }
 
     @Test
@@ -317,9 +375,9 @@ class TransactionMigrationWriteServiceTest {
             .thenReturn(Mono.just(mockView3))
 
         val mockUpdateResult: UpdateResult = mock()
-        whenever(mockUpdateResult.modifiedCount).thenReturn(2)
+        whenever(mockUpdateResult.modifiedCount).thenReturn(1)
         whenever(
-                ecommerceMongoTemplate.updateMulti(
+                ecommerceMongoTemplate.updateFirst(
                     any<Query>(),
                     any<Update>(),
                     eq(BaseTransactionView::class.java)
@@ -328,14 +386,17 @@ class TransactionMigrationWriteServiceTest {
             .thenReturn(Mono.just(mockUpdateResult))
 
         // ACT
-        val result = transactionMigrationWriteService.writeTransactionViews(inputFlux)
+        val result =
+            transactionMigrationWriteService.updateViewsTtl(
+                transactionMigrationWriteService.writeTransactionViews(inputFlux)
+            )
 
         // ASSERT
-        StepVerifier.create(result).verifyComplete()
+        StepVerifier.create(result).expectNextCount(2).verifyComplete()
 
         verify(viewHistoryRepository, times(3)).save(any())
-        verify(ecommerceMongoTemplate, times(1))
-            .updateMulti(any<Query>(), any<Update>(), eq(BaseTransactionView::class.java))
+        verify(ecommerceMongoTemplate, times(2))
+            .updateFirst(any<Query>(), any<Update>(), eq(BaseTransactionView::class.java))
     }
 
     @Test
@@ -357,11 +418,11 @@ class TransactionMigrationWriteServiceTest {
 
         verify(viewHistoryRepository, times(1)).save(any())
         verify(ecommerceMongoTemplate, never())
-            .updateMulti(any<Query>(), any<Update>(), any<Class<*>>())
+            .updateFirst(any<Query>(), any<Update>(), any<Class<*>>())
     }
 
     @Test
-    fun `should complete successfully even if view TTL update fails`() {
+    fun `should skip views when TTL update fails`() {
 
         val mockView1: BaseTransactionView = mock()
         val mockView2: BaseTransactionView = mock()
@@ -378,25 +439,74 @@ class TransactionMigrationWriteServiceTest {
             Mono.just<Any>(invocation.getArgument(0))
         }
 
-        // TTL update fails
+        // First TTL update succeeds, second fails
+        val mockUpdateResult: UpdateResult = mock()
+        whenever(mockUpdateResult.modifiedCount).thenReturn(1)
         whenever(
-                ecommerceMongoTemplate.updateMulti(
+                ecommerceMongoTemplate.updateFirst(
                     any<Query>(),
                     any<Update>(),
                     eq(BaseTransactionView::class.java)
                 )
             )
+            .thenReturn(Mono.just(mockUpdateResult))
             .thenReturn(Mono.error(RuntimeException("TTL update failed")))
 
         // ACT
-        val result = transactionMigrationWriteService.writeTransactionViews(inputFlux)
+        val result =
+            transactionMigrationWriteService.updateViewsTtl(
+                transactionMigrationWriteService.writeTransactionViews(inputFlux)
+            )
 
         // ASSERT
-        StepVerifier.create(result).verifyComplete()
+        StepVerifier.create(result)
+            .expectNextCount(1) // Only one view successfully updated
+            .verifyComplete()
 
         verify(viewHistoryRepository, times(2)).save(any())
+        verify(ecommerceMongoTemplate, times(2))
+            .updateFirst(any<Query>(), any<Update>(), eq(BaseTransactionView::class.java))
+    }
+
+    @Test
+    fun `should skip view when TTL update returns zero modified count`() {
+
+        val mockView: BaseTransactionView = mock()
+
+        whenever(mockView.transactionId).thenReturn("view-1")
+
+        val inputFlux = Flux.just(mockView)
+
+        whenever(viewHistoryRepository.save(any())).thenAnswer { invocation ->
+            Mono.just<Any>(invocation.getArgument(0))
+        }
+
+        whenever(config.transactionsView).thenReturn(transactionsViewWriteSettings)
+        whenever(transactionsViewWriteSettings.ttlSeconds).thenReturn(10000000)
+
+        val mockUpdateResult: UpdateResult = mock()
+        whenever(mockUpdateResult.modifiedCount).thenReturn(0) // No document modified
+        whenever(
+                ecommerceMongoTemplate.updateFirst(
+                    any<Query>(),
+                    any<Update>(),
+                    eq(BaseTransactionView::class.java)
+                )
+            )
+            .thenReturn(Mono.just(mockUpdateResult))
+
+        // ACT
+        val result =
+            transactionMigrationWriteService.updateViewsTtl(
+                transactionMigrationWriteService.writeTransactionViews(inputFlux)
+            )
+
+        // ASSERT
+        StepVerifier.create(result).verifyComplete() // No views emitted since modified count was 0
+
+        verify(viewHistoryRepository, times(1)).save(any())
         verify(ecommerceMongoTemplate, times(1))
-            .updateMulti(any<Query>(), any<Update>(), eq(BaseTransactionView::class.java))
+            .updateFirst(any<Query>(), any<Update>(), eq(BaseTransactionView::class.java))
     }
 
     @Test
@@ -414,7 +524,7 @@ class TransactionMigrationWriteServiceTest {
 
         verify(typedRepository, never()).save(any())
         verify(ecommerceMongoTemplate, never())
-            .updateMulti(any<Query>(), any<Update>(), any<Class<*>>())
+            .updateFirst(any<Query>(), any<Update>(), any<Class<*>>())
     }
 
     @Test
@@ -430,6 +540,6 @@ class TransactionMigrationWriteServiceTest {
 
         verify(viewHistoryRepository, never()).save(any())
         verify(ecommerceMongoTemplate, never())
-            .updateMulti(any<Query>(), any<Update>(), any<Class<*>>())
+            .updateFirst(any<Query>(), any<Update>(), any<Class<*>>())
     }
 }

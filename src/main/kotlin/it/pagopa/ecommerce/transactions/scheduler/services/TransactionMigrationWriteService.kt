@@ -31,14 +31,11 @@ class TransactionMigrationWriteService(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     /**
-     * Migrates events to history database, then updates TTL in batch. Logs the count of
-     * successfully copied and TTL-updated documents.
-     *
-     * @return Mono<Void> that completes when migration finishes
+     * Migrates events to history database.
+     * @return Flux of successfully migrated events
      */
-    fun writeEvents(events: Flux<BaseTransactionEvent<*>>): Mono<Void> {
+    fun writeEvents(events: Flux<BaseTransactionEvent<*>>): Flux<BaseTransactionEvent<*>> {
         return events
-            // step 1: copy all documents to history database
             .flatMap { event ->
                 eventHistoryRepository
                     .save(event)
@@ -49,35 +46,61 @@ class TransactionMigrationWriteService(
                     }
             }
             .map { it as BaseTransactionEvent<*> }
-            .collectList()
-            // step 2: batch update TTL for all migrated events in source database
-            .flatMap { migratedEvents ->
-                if (migratedEvents.isEmpty()) {
-                    logger.info("No events were copied to history")
-                    Mono.empty()
-                } else {
-                    logger.info("Successfully copied ${migratedEvents.size} events to history")
-                    val eventIds = migratedEvents.map { it.id }
-                    batchUpdateEventTtl(eventIds).onErrorResume { error ->
-                        logger.error(
-                            "Failed to update TTL for ${eventIds.size} events. " +
-                                "Documents were copied but TTL update failed.",
-                            error
-                        )
-                        Mono.empty()
-                    }
-                }
-            }
-            .then()
     }
 
     /**
-     * Migrates transaction views to history database, then updates TTL in batch. Logs the count of
-     * successfully copied and TTL-updated documents.
-     *
-     * @return Mono<Void> that completes when migration finishes
+     * Update ttls on the given eventstore documents
+     * @return Flux of successfully updated events
      */
-    fun writeTransactionViews(views: Flux<BaseTransactionView>): Mono<Void> {
+    fun updateEventsTtl(events: Flux<BaseTransactionEvent<*>>): Flux<BaseTransactionEvent<*>> {
+        return events.flatMap { event ->
+            updateSingleEventTtl(event)
+                .flatMap { wasUpdated ->
+                    if (wasUpdated) {
+                        Mono.just(event)
+                    } else {
+                        Mono.empty()
+                    }
+                }
+                .onErrorResume { error ->
+                    logger.error("Failed to update TTL for event: ${event.id}", error)
+                    Mono.empty()
+                }
+        }
+    }
+
+    /**
+     * Updates the ttl for a single event.
+     * @return true if the update operation was successful
+     */
+    private fun updateSingleEventTtl(event: BaseTransactionEvent<*>): Mono<Boolean> {
+        val query = Query.query(Criteria.where("_id").`is`(event.id))
+        val ttlDate =
+            Instant.now()
+                .plusSeconds(transactionMigrationWriteServiceConfig.eventstore.ttlSeconds.toLong())
+        val update = Update().set("ttl", ttlDate)
+
+        return ecommerceMongoTemplate
+            .updateFirst(query, update, BaseTransactionEvent::class.java)
+            .map { result ->
+                val updated = result.modifiedCount > 0
+                if (updated) {
+                    logger.debug("Updated TTL for event: ${event.id}")
+                } else {
+                    logger.warn("Event not modified: ${event.id}")
+                }
+                updated
+            }
+            .doOnError { error ->
+                logger.error("Failed to update TTL for event: ${event.id}", error)
+            }
+    }
+
+    /**
+     * Migrates transaction views to history database.
+     * @return Flux of successfully migrated views
+     */
+    fun writeTransactionViews(views: Flux<BaseTransactionView>): Flux<BaseTransactionView> {
         return views
             // step 1: copy all documents to history database
             .flatMap { view ->
@@ -94,62 +117,35 @@ class TransactionMigrationWriteService(
                         Mono.empty()
                     }
             }
-            .collectList()
-            // step 2: batch update TTL for all migrated events in source database
-            .flatMap { migratedViews ->
-                if (migratedViews.isEmpty()) {
-                    logger.info("No views were copied to history")
-                    Mono.empty()
-                } else {
-                    logger.info("Successfully copied ${migratedViews.size} views to history")
-                    val viewTransactionIds = migratedViews.map { it.transactionId }
-                    batchUpdateViewTtl(viewTransactionIds).onErrorResume { error ->
-                        logger.error(
-                            "Failed to update TTL for ${viewTransactionIds.size} views. " +
-                                "Documents were copied but TTL update failed.",
-                            error
-                        )
+    }
+
+    /**
+     * Update ttls on the given transactions-view documents
+     * @return Flux of successfully updated views
+     */
+    fun updateViewsTtl(views: Flux<BaseTransactionView>): Flux<BaseTransactionView> {
+        return views.flatMap { view ->
+            updateSingleViewTtl(view)
+                .flatMap { wasUpdated ->
+                    if (wasUpdated) {
+                        Mono.just(view)
+                    } else {
                         Mono.empty()
                     }
                 }
-            }
-            .then()
+                .onErrorResume { error ->
+                    logger.error("Failed to update TTL for event: ${view.transactionId}", error)
+                    Mono.empty()
+                }
+        }
     }
 
     /**
-     * Batch updates TTL for multiple events in the source database (ecommerce). Logs the count of
-     * successfully updated documents.
+     * Updates the ttl for a single view.
+     * @return true if the update operation was successful
      */
-    private fun batchUpdateEventTtl(eventIds: List<String>): Mono<Void> {
-        if (eventIds.isEmpty()) return Mono.empty()
-
-        val query = Query.query(Criteria.where("_id").`in`(eventIds))
-        val ttlDate =
-            Instant.now()
-                .plusSeconds(transactionMigrationWriteServiceConfig.eventstore.ttlSeconds.toLong())
-        val update = Update().set("ttl", ttlDate)
-
-        return ecommerceMongoTemplate
-            .updateMulti(query, update, BaseTransactionEvent::class.java)
-            .doOnSuccess { result ->
-                logger.info(
-                    "Batch TTL update for events: ${result.modifiedCount}/${eventIds.size} documents updated successfully"
-                )
-            }
-            .doOnError { error ->
-                logger.error("Batch TTL update failed for ${eventIds.size} events", error)
-            }
-            .then()
-    }
-
-    /**
-     * Batch updates TTL for multiple views in the source database (ecommerce). Logs the count of
-     * successfully updated documents.
-     */
-    private fun batchUpdateViewTtl(transactionIds: List<String>): Mono<Void> {
-        if (transactionIds.isEmpty()) return Mono.empty()
-
-        val query = Query.query(Criteria.where("_id").`in`(transactionIds))
+    private fun updateSingleViewTtl(view: BaseTransactionView): Mono<Boolean> {
+        val query = Query.query(Criteria.where("_id").`is`(view.transactionId))
         val ttlDate =
             Instant.now()
                 .plusSeconds(
@@ -158,15 +154,18 @@ class TransactionMigrationWriteService(
         val update = Update().set("ttl", ttlDate)
 
         return ecommerceMongoTemplate
-            .updateMulti(query, update, BaseTransactionView::class.java)
-            .doOnSuccess { result ->
-                logger.info(
-                    "Batch TTL update for views: ${result.modifiedCount}/${transactionIds.size} documents updated successfully"
-                )
+            .updateFirst(query, update, BaseTransactionView::class.java)
+            .map { result ->
+                val updated = result.modifiedCount > 0
+                if (updated) {
+                    logger.debug("Updated TTL for event: ${view.transactionId}")
+                } else {
+                    logger.warn("Event not modified: ${view.transactionId}")
+                }
+                updated
             }
             .doOnError { error ->
-                logger.error("Batch TTL update failed for ${transactionIds.size} views", error)
+                logger.error("Failed to update TTL for event: ${view.transactionId}", error)
             }
-            .then()
     }
 }
