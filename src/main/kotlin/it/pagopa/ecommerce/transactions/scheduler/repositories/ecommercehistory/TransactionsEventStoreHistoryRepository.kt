@@ -5,5 +5,5 @@ import org.springframework.data.repository.reactive.ReactiveCrudRepository
 import org.springframework.stereotype.Repository
 
 @Repository
-interface TransactionsEventStoreHistoryRepository<T> :
-    ReactiveCrudRepository<BaseTransactionEvent<T>, String>
+interface TransactionsEventStoreHistoryRepository :
+    ReactiveCrudRepository<BaseTransactionEvent<*>, String>
