@@ -7,12 +7,12 @@ import org.springframework.stereotype.Component
 
 @Component
 class TransactionsViewMigrationBatch(
-    @param:Autowired private val transactionsViewMigrationOrchestrator: TransactionsViewMigrationOrchestrator
+    @param:Autowired
+    private val transactionsViewMigrationOrchestrator: TransactionsViewMigrationOrchestrator
 ) {
 
     @Scheduled(cron = "\${migration.transaction.batch.transactionsView.cronExpression}")
-    fun execute(){
+    fun execute() {
         transactionsViewMigrationOrchestrator.runMigration()
     }
-
 }

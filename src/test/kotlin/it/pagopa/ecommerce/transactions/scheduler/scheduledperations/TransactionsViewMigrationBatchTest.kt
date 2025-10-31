@@ -12,9 +12,9 @@ import org.mockito.kotlin.verify
 @ExtendWith(MockitoExtension::class)
 class TransactionsViewMigrationBatchTest {
     @Mock
-    private lateinit var transactionsViewMigrationOrchestrator: TransactionsViewMigrationOrchestrator
-    @InjectMocks
-    private lateinit var transactionsViewMigrationBatch: TransactionsViewMigrationBatch
+    private lateinit var transactionsViewMigrationOrchestrator:
+        TransactionsViewMigrationOrchestrator
+    @InjectMocks private lateinit var transactionsViewMigrationBatch: TransactionsViewMigrationBatch
 
     @Test
     fun `execute should call runMigration on orchestrator`() {
