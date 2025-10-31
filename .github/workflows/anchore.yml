@@ -38,7 +38,7 @@ jobs:
 
     steps:
       - name: Checkout the code
-        uses: actions/checkout@v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
         with:
           fetch-depth: 0
 
@@ -55,7 +55,7 @@ jobs:
           output-format: "sarif"
 
       - name: Upload Anchore Scan Report
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@5d5cd550d3e189c569da8f16ea8de2d821c9bf7a # v3
         if: always()
         with:
           sarif_file: ${{ steps.scan.outputs.sarif }}
