@@ -23,7 +23,7 @@ import it.pagopa.ecommerce.commons.utils.NpgClientUtils
 import it.pagopa.ecommerce.commons.utils.v2.TransactionUtils.getTransactionFee
 import it.pagopa.ecommerce.transactions.scheduler.deadletter.CommonLogger
 import it.pagopa.ecommerce.transactions.scheduler.exceptions.*
-import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsEventStoreRepository
+import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.TransactionsEventStoreRepository
 import it.pagopa.ecommerce.transactions.scheduler.utils.*
 import java.util.*
 import org.springframework.beans.factory.annotation.Autowired

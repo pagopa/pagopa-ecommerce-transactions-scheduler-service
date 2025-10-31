@@ -1,4 +1,4 @@
-package it.pagopa.ecommerce.transactions.scheduler.repositories
+package it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce
 
 import it.pagopa.ecommerce.commons.documents.DeadLetterEvent
 import org.springframework.data.repository.reactive.ReactiveCrudRepository

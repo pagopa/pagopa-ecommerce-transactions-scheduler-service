@@ -17,8 +17,8 @@ import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
 import it.pagopa.ecommerce.commons.queues.QueueEvent
 import it.pagopa.ecommerce.commons.queues.TracingUtilsTests
 import it.pagopa.ecommerce.commons.v2.TransactionTestUtils
-import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsEventStoreRepository
-import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsViewRepository
+import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.TransactionsEventStoreRepository
+import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.TransactionsViewRepository
 import java.time.Duration
 import java.time.OffsetDateTime
 import java.time.ZonedDateTime

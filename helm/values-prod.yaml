@@ -103,6 +103,7 @@ microservice-chart:
     MONGO_HEARTBEAT_FREQUENCY_MS: "5000"
     MONGO_REPLICA_SET_OPTION: "&replicaSet=globaldb"
     ECOMMERCE_DATABASE_NAME: "ecommerce"
+    ECOMMERCE_HISTORY_DATABASE_NAME: "ecommerce-history"
     TRANSACTION_EXPIRED_EVENTS_QUEUE_NAME: "pagopa-p-weu-ecommerce-transactions-expiration-queue"
     PENDING_TRANSACTIONS_SCHEDULE_CRON: "0 0 */1 * * *"
     PENDING_TRANSACTIONS_WINDOWS_BATCH_EXECUTION_RATE_MULTIPLIER: "2"

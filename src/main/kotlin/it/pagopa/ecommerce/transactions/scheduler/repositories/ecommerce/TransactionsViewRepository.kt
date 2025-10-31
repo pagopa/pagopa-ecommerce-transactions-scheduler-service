@@ -1,4 +1,4 @@
-package it.pagopa.ecommerce.transactions.scheduler.repositories
+package it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce
 
 import it.pagopa.ecommerce.commons.documents.BaseTransactionView
 import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
