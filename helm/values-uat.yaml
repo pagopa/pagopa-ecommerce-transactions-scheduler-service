@@ -1,7 +1,7 @@
 microservice-chart:
   namespace: "ecommerce"
   nameOverride: ""
-  fullnameOverride: "pagopaecommercetxschedulerservice-microservice-chart"
+  fullnameOverride: "beta-pagopaecommercetxschedulerservice-microservice-chart"
   canaryDelivery:
     create: false
     ingress:
@@ -47,7 +47,7 @@ microservice-chart:
   ingress:
     create: true
     host: "weuuat.ecommerce.internal.uat.platform.pagopa.it"
-    path: /pagopa-ecommerce-transactions-scheduler-service/(.*)
+    path: /beta/pagopa-ecommerce-transactions-scheduler-service/(.*)
     servicePort: 8080
   serviceAccount:
     create: false
@@ -99,18 +99,18 @@ microservice-chart:
     ECOMMERCE_DATABASE_NAME: "ecommerce"
     ECOMMERCE_HISTORY_DATABASE_NAME: "ecommerce-history"
     TRANSACTION_EXPIRED_EVENTS_QUEUE_NAME: "pagopa-u-weu-ecommerce-transactions-expiration-queue"
-    PENDING_TRANSACTIONS_SCHEDULE_CRON: "0 0 */1 * * *"
+    PENDING_TRANSACTIONS_SCHEDULE_CRON: "-"
     PENDING_TRANSACTIONS_WINDOWS_BATCH_EXECUTION_RATE_MULTIPLIER: "2"
     PENDING_TRANSACTIONS_PARALLEL_EVENTS_TO_PROCESS: "1"
     PENDING_TRANSACTIONS_MAX_TRANSACTIONS_PER_PAGE: "5"
     PENDING_TRANSACTIONS_PAGE_ANALYSIS_DELAY_SECONDS: "1"
     PENDING_TRANSACTIONS_SEND_PAYMENT_RESULT_TIMEOUT_SECONDS: "3900"
-    OTEL_RESOURCE_ATTRIBUTES: "service.name=pagopa-ecommerce-transactions-scheduler-service,deployment.environment=uat"
+    OTEL_RESOURCE_ATTRIBUTES: "service.name=pagopa-ecommerce-transactions-scheduler-service-blue,deployment.environment=uat"
     OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.elastic-system.svc:4317"
     OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
     OTEL_LOGS_EXPORTER: none
     OTEL_TRACES_SAMPLER: "always_on"
-    ECS_SERVICE_NAME: pagopa-ecommerce-transactions-scheduler-service
+    ECS_SERVICE_NAME: pagopa-ecommerce-transactions-scheduler-service-blue
     ECS_SERVICE_ENVIRONMENT: "uat"
     DEAD_LETTER_LISTENER_TRANSACTION_FIXED_DELAY_MILLIS: "1000"
     DEAD_LETTER_LISTENER_TRANSACTION_MAX_MESSAGE_PER_POLL: "1"
@@ -141,9 +141,9 @@ microservice-chart:
     MIGRATION_TRANSACTION_QUERY_EVENT_STORE_MAX_RESULTS: "10"
     MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_CUTOFF_MONTH_OFFSET: "9"
     MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_MAX_RESULTS: "10"
-    MIGRATION_TRANSACTION_WRITE_EVENT_STORE_TTL_SECONDS: "172800" # 2 days
-    MIGRATION_TRANSACTION_WRITE_TRANSACTIONS_VIEW_TTL_SECONDS: "172800" # 2 days
-    MIGRATION_TRANSACTION_BATCH_EVENTSTORE_CRON_EXPRESSION: "5/10 * * * * *"
+    MIGRATION_TRANSACTION_WRITE_EVENT_STORE_TTL_SECONDS: "5"
+    MIGRATION_TRANSACTION_WRITE_TRANSACTIONS_VIEW_TTL_SECONDS: "5"
+    MIGRATION_TRANSACTION_BATCH_EVENTSTORE_CRON_EXPRESSION: "-"
   envSecret:
     MONGO_PASSWORD: mongo-ecommerce-password
     QUEUE_TRANSIENT_CONNECTION_STRING: ecommerce-storage-transient-connection-string
