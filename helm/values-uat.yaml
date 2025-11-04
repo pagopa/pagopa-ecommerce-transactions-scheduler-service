@@ -1,6 +1,6 @@
 microservice-chart:
   namespace: "ecommerce"
-  nameOverride: ""
+  nameOverride: "beta-pagopaecommercetransactionsschedulerservice"
   fullnameOverride: "beta-pagopaecommercetxschedulerservice-microservice-chart"
   canaryDelivery:
     create: false
