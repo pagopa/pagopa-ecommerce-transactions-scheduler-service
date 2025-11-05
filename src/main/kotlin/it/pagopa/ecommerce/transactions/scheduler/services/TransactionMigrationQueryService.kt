@@ -39,7 +39,8 @@ class TransactionMigrationQueryService(
         val cutoffDate =
             LocalDate.now()
                 .minusMonths(
-                    transactionMigrationQueryServiceConfig.transactionsView.cutoffMonthOffset.toLong()
+                    transactionMigrationQueryServiceConfig.transactionsView.cutoffMonthOffset
+                        .toLong()
                 )
         val pageRequest: Pageable =
             PageRequest.of(0, transactionMigrationQueryServiceConfig.transactionsView.maxResults)
