@@ -7,7 +7,6 @@ import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.Transac
 import it.pagopa.ecommerce.transactions.scheduler.services.TransactionMigrationQueryService
 import java.time.LocalDate
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.InjectMocks
@@ -28,6 +27,7 @@ class TransactionMigrationQueryServiceTest {
     private lateinit var transactionMigrationQueryServiceConfig:
         TransactionMigrationQueryServiceConfig
     @Mock private lateinit var eventstoreQuerySettings: QuerySettings
+    @Mock private lateinit var transactionsViewQuerySettings: QuerySettings
     @InjectMocks
     private lateinit var transactionMigrationQueryService: TransactionMigrationQueryService
 
@@ -37,17 +37,24 @@ class TransactionMigrationQueryServiceTest {
     private val cutoffMonths = 9
     private val maxResults = 100
 
-    @BeforeEach
-    fun setup() {
+    fun setupEventStoreConfig() {
         whenever(transactionMigrationQueryServiceConfig.eventstore)
             .thenReturn(eventstoreQuerySettings)
         whenever(eventstoreQuerySettings.cutoffMonthOffset).thenReturn(cutoffMonths)
         whenever(eventstoreQuerySettings.maxResults).thenReturn(maxResults)
     }
 
+    fun setupTransactionsViewConfig() {
+        whenever(transactionMigrationQueryServiceConfig.transactionsView)
+            .thenReturn(transactionsViewQuerySettings)
+        whenever(transactionsViewQuerySettings.cutoffMonthOffset).thenReturn(cutoffMonths)
+        whenever(transactionsViewQuerySettings.maxResults).thenReturn(maxResults)
+    }
+
     @Test
     fun `should find eligible events correctly`() {
         // ARRANGE
+        setupEventStoreConfig()
         val mockEvent: BaseTransactionEvent<*> = mock(BaseTransactionEvent::class.java)
         val mockFlux: Flux<BaseTransactionEvent<*>> = Flux.just(mockEvent)
 
@@ -78,6 +85,7 @@ class TransactionMigrationQueryServiceTest {
     @Test
     fun `should return empty Flux when repository finds no events`() {
         // ARRANGE
+        setupEventStoreConfig()
         whenever(
                 transactionsEventStoreRepository.findByTtlIsNullAndCreationDateLessThan(
                     any(),
@@ -99,6 +107,7 @@ class TransactionMigrationQueryServiceTest {
     @Test
     fun `should find eligible transactions correctly`() {
         // ARRANGE
+        setupTransactionsViewConfig()
         val mockTransaction: BaseTransactionView = mock(BaseTransactionView::class.java)
         val mockFlux: Flux<BaseTransactionView> = Flux.just(mockTransaction)
 
@@ -124,6 +133,7 @@ class TransactionMigrationQueryServiceTest {
     @Test
     fun `should return empty Flux when repository finds no transactions`() {
         // ARRANGE
+        setupTransactionsViewConfig()
         whenever(transactionViewRepository.findByTtlIsNullAndCreationDateLessThan(any(), any()))
             .thenReturn(Flux.empty())
 
