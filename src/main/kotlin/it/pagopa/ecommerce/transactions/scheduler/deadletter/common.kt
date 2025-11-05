@@ -8,7 +8,7 @@ import it.pagopa.ecommerce.commons.documents.v2.TransactionEvent
 import it.pagopa.ecommerce.commons.documents.v2.deadletter.DeadLetterTransactionInfo
 import it.pagopa.ecommerce.commons.queues.QueueEvent
 import it.pagopa.ecommerce.commons.queues.StrictJsonSerializerProvider
-import it.pagopa.ecommerce.transactions.scheduler.repositories.DeadLetterEventRepository
+import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.DeadLetterEventRepository
 import it.pagopa.ecommerce.transactions.scheduler.services.TransactionInfoService
 import java.nio.charset.StandardCharsets
 import java.time.OffsetDateTime

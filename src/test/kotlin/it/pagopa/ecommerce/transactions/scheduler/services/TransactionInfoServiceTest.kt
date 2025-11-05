@@ -20,7 +20,7 @@ import it.pagopa.ecommerce.commons.utils.NpgApiKeyConfiguration
 import it.pagopa.ecommerce.commons.v2.TransactionTestUtils.*
 import it.pagopa.ecommerce.transactions.scheduler.configurations.PaymentGatewayConfig
 import it.pagopa.ecommerce.transactions.scheduler.exceptions.*
-import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsEventStoreRepository
+import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.TransactionsEventStoreRepository
 import it.pagopa.ecommerce.transactions.scheduler.utils.TransactionInfoUtils
 import it.pagopa.ecommerce.transactions.scheduler.utils.TransactionInfoUtils.Companion.buildOrderResponseDtoForNgpOrderAuthorized
 import it.pagopa.ecommerce.transactions.scheduler.utils.TransactionInfoUtils.Companion.buildOrderResponseDtoForNgpOrderNotAuthorized

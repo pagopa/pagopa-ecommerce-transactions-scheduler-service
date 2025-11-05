@@ -5,8 +5,8 @@ import it.pagopa.ecommerce.commons.documents.BaseTransactionView
 import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
 import it.pagopa.ecommerce.transactions.scheduler.publishers.v1.TransactionExpiredEventPublisher as TransactionExpiredEventPublisherV1
 import it.pagopa.ecommerce.transactions.scheduler.publishers.v2.TransactionExpiredEventPublisher as TransactionExpiredEventPublisherV2
-import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsEventStoreRepository
-import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsViewRepository
+import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.TransactionsEventStoreRepository
+import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.TransactionsViewRepository
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
 import java.util.*

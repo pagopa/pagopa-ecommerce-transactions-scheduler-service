@@ -20,7 +20,7 @@ microservice-chart:
     envSecret: {}
   image:
     repository: pagopapcommonacr.azurecr.io/pagopaecommercetransactionsschedulerservice
-    tag: "3.5.4"
+    tag: "4.0.1"
     pullPolicy: Always
   livenessProbe:
     httpGet:
@@ -103,6 +103,7 @@ microservice-chart:
     MONGO_HEARTBEAT_FREQUENCY_MS: "5000"
     MONGO_REPLICA_SET_OPTION: "&replicaSet=globaldb"
     ECOMMERCE_DATABASE_NAME: "ecommerce"
+    ECOMMERCE_HISTORY_DATABASE_NAME: "ecommerce-history"
     TRANSACTION_EXPIRED_EVENTS_QUEUE_NAME: "pagopa-p-weu-ecommerce-transactions-expiration-queue"
     PENDING_TRANSACTIONS_SCHEDULE_CRON: "0 0 */1 * * *"
     PENDING_TRANSACTIONS_WINDOWS_BATCH_EXECUTION_RATE_MULTIPLIER: "2"
@@ -143,6 +144,14 @@ microservice-chart:
     EVENT_CONTROLLER_STATUS_POLLING_CHRON: "*/10 * * * * *"
     DEPLOYMENT_VERSION: "PROD"
     TRANSACTIONSVIEW_UPDATE_ENABLED: "true"
+    MIGRATION_TRANSACTION_QUERY_EVENT_STORE_CUTOFF_MONTH_OFFSET: "9"
+    MIGRATION_TRANSACTION_QUERY_EVENT_STORE_MAX_RESULTS: "10"
+    MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_CUTOFF_MONTH_OFFSET: "9"
+    MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_MAX_RESULTS: "10"
+    MIGRATION_TRANSACTION_WRITE_EVENT_STORE_TTL_SECONDS: "172800" # 2 days
+    MIGRATION_TRANSACTION_WRITE_TRANSACTIONS_VIEW_TTL_SECONDS: "172800" # 2 days
+    MIGRATION_TRANSACTION_BATCH_EVENTSTORE_CRON_EXPRESSION: "-"
+    MIGRATION_TRANSACTION_BATCH_TRANSACTIONS_VIEW_CRON_EXPRESSION: "-" # every 10 seconds, starting from 00 second
   envSecret:
     MONGO_PASSWORD: mongo-ecommerce-password
     QUEUE_TRANSIENT_CONNECTION_STRING: ecommerce-storage-transient-connection-string
