@@ -1,5 +1,8 @@
 # pagopa-ecommerce-transactions-scheduler-service
 
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=pagopa_pagopa-ecommerce-transactions-scheduler-service&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=pagopa_pagopa-ecommerce-transactions-scheduler-service)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=pagopa_pagopa-ecommerce-transactions-scheduler-service&metric=coverage)](https://sonarcloud.io/summary/new_code?id=pagopa_pagopa-ecommerce-transactions-scheduler-service)
+
 This is a PagoPA scheduler service containing all batches that perform scheduled operations on transactions.
 
 ## PendingTransactionBatch
