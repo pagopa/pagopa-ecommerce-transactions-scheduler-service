@@ -20,7 +20,7 @@ class EventStoreMigrationOrchestrator(
         logger.info("eventstore migration process started")
         return transactionMigrationQueryService
             .findEligibleEvents()
-            .doOnNext { tx -> logger.debug("Processing transaction: ${tx.transactionId}") }
+            .doOnNext { tx -> logger.debug("Processing event: ${tx.id}") }
             .transform { tx -> transactionMigrationWriteService.writeEvents(tx) }
             .transform { tx -> transactionMigrationWriteService.updateEventsTtl(tx) }
             .collectList()
