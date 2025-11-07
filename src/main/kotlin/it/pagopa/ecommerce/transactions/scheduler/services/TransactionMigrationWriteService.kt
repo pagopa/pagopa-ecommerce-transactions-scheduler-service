@@ -135,14 +135,14 @@ class TransactionMigrationWriteService(
             .map { result ->
                 val updated = result.modifiedCount > 0
                 if (updated) {
-                    logger.debug("Updated TTL for event: ${view.transactionId}")
+                    logger.debug("Updated TTL for view: ${view.transactionId}")
                 } else {
-                    logger.warn("Event not modified: ${view.transactionId}")
+                    logger.warn("View not modified: ${view.transactionId}")
                 }
                 updated
             }
             .doOnError { error ->
-                logger.error("Failed to update TTL for event: ${view.transactionId}", error)
+                logger.error("Failed to update TTL for view: ${view.transactionId}", error)
             }
     }
 }
