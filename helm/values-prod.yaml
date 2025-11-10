@@ -181,5 +181,14 @@ microservice-chart:
                 operator: In
                 values:
                   - user
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/instance: pagopaecommercetxschedulerservice
+            namespaces: [ "ecommerce" ]
+            topologyKey: topology.kubernetes.io/zone
   azure:
     workloadIdentityClientId: "d5614882-90dd-47a1-aad1-cdf295201469"
