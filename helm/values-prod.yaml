@@ -38,7 +38,7 @@ microservice-chart:
     periodSeconds: 10
   deployment:
     create: true
-    replicas: 1
+    replicas: 3
   service:
     create: true
     type: ClusterIP
@@ -73,8 +73,8 @@ microservice-chart:
       maxUnavailable: "100%"
   autoscaling:
     enable: true
-    minReplica: 1
-    maxReplica: 1
+    minReplica: 3
+    maxReplica: 3
     pollingInterval: 30 # seconds
     cooldownPeriod: 30 # seconds
     triggers:
