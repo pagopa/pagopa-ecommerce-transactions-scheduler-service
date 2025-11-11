@@ -2,9 +2,12 @@ package it.pagopa.ecommerce.transactions.scheduler.configurations.redis
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import it.pagopa.ecommerce.commons.redis.reactivetemplatewrappers.ReactiveExclusiveLockDocumentWrapper
+import it.pagopa.ecommerce.commons.repositories.ExclusiveLockDocument
 import it.pagopa.ecommerce.transactions.scheduler.repositories.redis.eventreceivers.ReceiversStatus
 import it.pagopa.ecommerce.transactions.scheduler.streams.commands.EventDispatcherReceiverCommand
 import java.time.Duration
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory
@@ -60,6 +63,34 @@ class RedisConfig {
         return EventDispatcherReceiverStatusTemplateWrapper(
             ReactiveRedisTemplate(connectionFactory, context),
             Duration.ofMinutes(1)
+        )
+    }
+
+    @Bean
+    fun exclusiveLockDocumentWrapper(
+        reactiveRedisConnectionFactory: ReactiveRedisConnectionFactory,
+        @Value("\${exclusiveLockDocument.ttlSeconds}") exclusiveLockTtlSeconds: Int
+    ): ReactiveExclusiveLockDocumentWrapper {
+        // serializer
+        val keySer = StringRedisSerializer()
+        val valueSer = Jackson2JsonRedisSerializer(ExclusiveLockDocument::class.java)
+
+        // serialization context
+        val ctx =
+            RedisSerializationContext.newSerializationContext<String, ExclusiveLockDocument>(keySer)
+                .key(keySer)
+                .value(valueSer)
+                .hashKey(keySer)
+                .hashValue(valueSer)
+                .build()
+
+        // reactive template
+        val reactiveTemplate = ReactiveRedisTemplate(reactiveRedisConnectionFactory, ctx)
+
+        return ReactiveExclusiveLockDocumentWrapper(
+            reactiveTemplate,
+            "exclusiveLocks",
+            Duration.ofSeconds(exclusiveLockTtlSeconds.toLong())
         )
     }
 }
