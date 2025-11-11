@@ -1,5 +1,6 @@
 package it.pagopa.ecommerce.transactions.scheduler.scheduledperations
 
+import it.pagopa.ecommerce.transactions.scheduler.services.SchedulerLockService
 import it.pagopa.ecommerce.transactions.scheduler.transactionanalyzer.PendingTransactionAnalyzer
 import it.pagopa.ecommerce.transactions.scheduler.utils.SchedulerUtils
 import java.time.Duration
@@ -13,11 +14,13 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import reactor.core.scheduler.Schedulers
 import reactor.util.function.Tuple2
 
 @Component
 class PendingTransactionBatch(
     @Autowired val pendingTransactionAnalyzer: PendingTransactionAnalyzer,
+    @Autowired val schedulerLockService: SchedulerLockService,
     @Value("\${pendingTransactions.batch.scheduledChron}") val chronExpression: String,
     @Value("\${pendingTransactions.batch.transactionsAnalyzer.executionRateMultiplier}")
     val executionRateMultiplier: Int,
@@ -31,24 +34,36 @@ class PendingTransactionBatch(
     @Scheduled(cron = "\${pendingTransactions.batch.scheduledChron}")
     fun execute() {
         val startTime = System.currentTimeMillis()
-        pendingTransactionAnalyzerPaginatedPipeline()
-            .subscribe(
-                { allPageResult ->
-                    allPageResult.forEach { pageResult ->
-                        val elapsedTime = pageResult.t1
-                        val (executionResult, pageCount) = pageResult.t2
-                        logger.info(
-                            "Process page $pageCount ok: [$executionResult], elapsed time: [$elapsedTime] ms "
-                        )
+        schedulerLockService
+            // acquire lock
+            .acquireJobLock(jobName = "pending-transactions-batch")
+            .doOnError { logger.error("Unable to start job without lock acquiring", it) }
+            .flatMap { lockDocument ->
+                // run job/batch
+                pendingTransactionAnalyzerPaginatedPipeline()
+                    .doOnSuccess { allPageResult ->
+                        allPageResult.forEach { pageResult ->
+                            val elapsedTime = pageResult.t1
+                            val (executionResult, pageCount) = pageResult.t2
+                            logger.info(
+                                "Process page $pageCount ok: [$executionResult], elapsed time: [$elapsedTime] ms "
+                            )
+                        }
                     }
-                },
-                { logger.error("Error executing batch", it) },
-                {
-                    logger.info(
-                        "Overall execution time: [${System.currentTimeMillis() - startTime}] ms"
-                    )
-                }
-            )
+                    .doOnError { logger.error("Exception processing batch", it) }
+                    .doFinally {
+                        logger.info(
+                            "Overall processing completed. Elapsed time: [${System.currentTimeMillis() - startTime}] ms"
+                        )
+                        schedulerLockService
+                            // release lock (always runs)
+                            .releaseJobLock(lockDocument)
+                            .subscribeOn(Schedulers.boundedElastic())
+                            .subscribe()
+                    }
+                    .onErrorResume { Mono.empty() }
+            }
+            .subscribe()
     }
 
     fun pendingTransactionAnalyzerPaginatedPipeline():
