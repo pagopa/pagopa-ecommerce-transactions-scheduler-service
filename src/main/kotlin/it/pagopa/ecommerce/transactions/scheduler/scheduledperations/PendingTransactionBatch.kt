@@ -14,7 +14,6 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
-import reactor.core.scheduler.Schedulers
 import reactor.util.function.Tuple2
 
 @Component
@@ -37,7 +36,7 @@ class PendingTransactionBatch(
         schedulerLockService
             // acquire lock
             .acquireJobLock(jobName = "pending-transactions-batch")
-            .doOnError { logger.error("Unable to start job without lock acquiring", it) }
+            .doOnError { logger.error("Lock not acquired for pending-transactions-batch", it) }
             .flatMap { lockDocument ->
                 // run job/batch
                 pendingTransactionAnalyzerPaginatedPipeline()
@@ -49,19 +48,27 @@ class PendingTransactionBatch(
                                 "Process page $pageCount ok: [$executionResult], elapsed time: [$elapsedTime] ms "
                             )
                         }
-                    }
-                    .doOnError { logger.error("Exception processing batch", it) }
-                    .doFinally {
                         logger.info(
                             "Overall processing completed. Elapsed time: [${System.currentTimeMillis() - startTime}] ms"
                         )
-                        schedulerLockService
-                            // release lock (always runs)
-                            .releaseJobLock(lockDocument)
-                            .subscribeOn(Schedulers.boundedElastic())
-                            .subscribe()
                     }
+                    .doOnError {
+                        logger.error("Exception processing pending-transactions-batch", it)
+                    }
+                    .then(Mono.just(lockDocument))
+                    .onErrorResume { Mono.just(lockDocument) }
+            }
+            .flatMap { lockDocument ->
+                schedulerLockService
+                    // release lock (always runs)
+                    .releaseJobLock(lockDocument)
+                    .doOnSuccess { logger.debug("Lock released successfully") }
+                    .doOnError { logger.error("Failed to release lock", it) }
                     .onErrorResume { Mono.empty() }
+            }
+            .onErrorResume { error ->
+                logger.error("Job execution failed", error)
+                Mono.empty()
             }
             .subscribe()
     }

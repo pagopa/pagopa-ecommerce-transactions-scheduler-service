@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Mono
-import reactor.core.scheduler.Schedulers
 
 @Component
 class EventstoreMigrationBatch(
@@ -27,15 +26,20 @@ class EventstoreMigrationBatch(
                 eventstoreMigrationOrchestrator
                     // run job/batch
                     .runMigration()
-                    .doFinally {
-                        schedulerLockService
-                            // release lock (always runs)
-                            .releaseJobLock(lockDocument)
-                            .subscribeOn(Schedulers.boundedElastic())
-                            .subscribe()
-                    }
-                    .then()
+                    .then(Mono.just(lockDocument))
+                    .onErrorResume { Mono.just(lockDocument) }
+            }
+            .flatMap { lockDocument ->
+                schedulerLockService
+                    // release lock (always runs)
+                    .releaseJobLock(lockDocument)
+                    .doOnSuccess { logger.debug("Lock released successfully") }
+                    .doOnError { logger.error("Failed to release lock", it) }
                     .onErrorResume { Mono.empty() }
+            }
+            .onErrorResume { error ->
+                logger.error("Job execution failed", error)
+                Mono.empty()
             }
             .subscribe()
     }
