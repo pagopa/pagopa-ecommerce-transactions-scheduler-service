@@ -55,12 +55,16 @@ class PendingTransactionBatch(
 
     fun pendingTransactionAnalyzerPaginatedPipeline():
         Mono<MutableList<Tuple2<Long, Pair<Boolean, Int>>>> {
-        val executionInterleaveMillis = getExecutionsInterleaveTimeMillis(chronExpression)
+        val executionInterleaveMillis =
+            SchedulerUtils.getExecutionsInterleaveTimeMillis(chronExpression)
         val (lowerThreshold, upperThreshold) =
-            getTransactionAnalyzerTimeWindow(executionInterleaveMillis, executionRateMultiplier)
+            SchedulerUtils.getTransactionAnalyzerTimeWindow(
+                executionInterleaveMillis,
+                executionRateMultiplier
+            )
 
         val maxBatchExecutionTime =
-            getMaxDuration(executionInterleaveMillis, batchMaxDurationSeconds)
+            SchedulerUtils.getMaxDuration(executionInterleaveMillis, batchMaxDurationSeconds)
         logger.info(
             "Executions chron expression: [$chronExpression], executions interleave time: [$executionInterleaveMillis] ms.  Max execution duration: $maxBatchExecutionTime seconds"
         )
@@ -96,39 +100,5 @@ class PendingTransactionBatch(
             .elapsed()
             .collectList()
             .timeout(maxBatchExecutionTime)
-    }
-
-    fun getMaxDuration(executionInterleaveMillis: Long, batchMaxDurationSeconds: Int): Duration {
-        val maxDuration =
-            if (batchMaxDurationSeconds > 0) {
-                Duration.ofSeconds(batchMaxDurationSeconds.toLong())
-            } else {
-                /*
-                 * Batch max duration set to batch execution interleave divided by 2.
-                 * The only constraint here is that the batch max execution time is less than
-                 * the batch execution interleave in order to avoid one execution to be skipped
-                 * because of the previous batch execution still running
-                 */
-                Duration.ofMillis(executionInterleaveMillis).dividedBy(2)
-            }
-        return maxDuration
-    }
-
-    fun getExecutionsInterleaveTimeMillis(chronExpression: String): Long {
-        val cronSequenceGenerator = CronExpression.parse(chronExpression)
-        val firstExecution = cronSequenceGenerator.next(LocalDateTime.now())!!
-        val secondExecution = cronSequenceGenerator.next(firstExecution)!!
-        return firstExecution.until(secondExecution, ChronoUnit.MILLIS)
-    }
-
-    fun getTransactionAnalyzerTimeWindow(
-        batchExecutionRate: Long,
-        executionRateMultiplier: Int
-    ): Pair<LocalDateTime, LocalDateTime> {
-
-        val windowLength = batchExecutionRate * executionRateMultiplier
-        val upperThreshold = LocalDateTime.now().minus(batchExecutionRate, ChronoUnit.MILLIS)
-        val lowerThreshold = upperThreshold.minus(windowLength, ChronoUnit.MILLIS)
-        return Pair(lowerThreshold, upperThreshold)
     }
 }
