@@ -20,5 +20,5 @@ public class TracingConfig {
     fun tracingUtils(openTelemetry: OpenTelemetry, tracer: Tracer): TracingUtils =
         TracingUtils(openTelemetry, tracer)
 
-    @Bean fun commonTracingUtils(tracer: Tracer): OpenTelemetryUtils = OpenTelemetryUtils(tracer)
+    @Bean fun openTelemetryUtils(tracer: Tracer): OpenTelemetryUtils = OpenTelemetryUtils(tracer)
 }

@@ -1,8 +1,8 @@
 package it.pagopa.ecommerce.transactions.scheduler.services
 
 import it.pagopa.ecommerce.commons.utils.OpenTelemetryUtils
-import it.pagopa.ecommerce.transactions.scheduler.utils.MigrationTracingUtils
 import it.pagopa.ecommerce.transactions.scheduler.utils.MigrationTracingUtils.Companion.ECOMMERCE_MIGRATION_SPAN_NAME
+import it.pagopa.ecommerce.transactions.scheduler.utils.MigrationTracingUtils.Companion.getIterationSpanAttributes
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
@@ -16,8 +16,7 @@ import reactor.util.function.Tuples
 class TransactionsViewMigrationOrchestrator(
     @param:Autowired private val transactionMigrationQueryService: TransactionMigrationQueryService,
     @param:Autowired private val transactionMigrationWriteService: TransactionMigrationWriteService,
-    @param:Autowired private val openTelemetryUtils: OpenTelemetryUtils,
-    @param:Autowired private val migrationTracingUtils: MigrationTracingUtils
+    @param:Autowired private val openTelemetryUtils: OpenTelemetryUtils
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -33,7 +32,7 @@ class TransactionsViewMigrationOrchestrator(
             .map { (elapsedMs, processedTransactions) ->
                 openTelemetryUtils.addSpanWithAttributes(
                     ECOMMERCE_MIGRATION_SPAN_NAME,
-                    migrationTracingUtils.getIterationSpanAttributes(
+                    getIterationSpanAttributes(
                         elapsedMs,
                         processedTransactions,
                         "transactions-view"
