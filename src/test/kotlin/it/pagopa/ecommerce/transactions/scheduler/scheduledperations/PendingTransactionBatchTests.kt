@@ -1,6 +1,7 @@
 package it.pagopa.ecommerce.transactions.scheduler.scheduledperations
 
 import it.pagopa.ecommerce.transactions.scheduler.transactionanalyzer.PendingTransactionAnalyzer
+import it.pagopa.ecommerce.transactions.scheduler.utils.SchedulerUtils
 import java.time.Duration
 import java.time.temporal.ChronoUnit
 import java.util.concurrent.TimeUnit
@@ -74,15 +75,14 @@ class PendingTransactionBatchTests {
 
     @Test
     fun `Should get batch intertime executions correctly`() {
-        val intertime =
-            pendingTransactionBatch.getExecutionsInterleaveTimeMillis(cronExecutionString)
+        val intertime = SchedulerUtils.getExecutionsInterleaveTimeMillis(cronExecutionString)
         assertEquals(10000, intertime)
     }
 
     @Test
     fun `Should get transactions to analyze time window correctly`() {
         val (lower, upper) =
-            pendingTransactionBatch.getTransactionAnalyzerTimeWindow(
+            SchedulerUtils.getTransactionAnalyzerTimeWindow(
                 TimeUnit.HOURS.toMillis(1),
                 executionRateMultiplier
             )
@@ -96,7 +96,7 @@ class PendingTransactionBatchTests {
         val interTimeExecutionDuration = Duration.ofMinutes(10)
         val maxBatchDuration = Duration.ofMinutes(5)
         val calculatedMaxDuration =
-            pendingTransactionBatch.getMaxDuration(
+            SchedulerUtils.getMaxDuration(
                 interTimeExecutionDuration.toMillis(),
                 maxBatchDuration.toSeconds().toInt()
             )
@@ -108,7 +108,7 @@ class PendingTransactionBatchTests {
     fun `Should get batch max duration for max duration not configured as half execution intertime`() {
         val interTimeExecutionDuration = Duration.ofMinutes(10)
         val calculatedMaxDuration =
-            pendingTransactionBatch.getMaxDuration(Duration.ofMinutes(10).toMillis(), -1)
+            SchedulerUtils.getMaxDuration(Duration.ofMinutes(10).toMillis(), -1)
         // assertions
         assertEquals(interTimeExecutionDuration.toMillis() / 2, calculatedMaxDuration.toMillis())
     }
@@ -146,8 +146,8 @@ class PendingTransactionBatchTests {
                 transactionPageAnalysisDelaySeconds = 0
             )
         val maxExecutionTime =
-            pendingTransactionBatch.getMaxDuration(
-                pendingTransactionBatch.getExecutionsInterleaveTimeMillis(
+            SchedulerUtils.getMaxDuration(
+                SchedulerUtils.getExecutionsInterleaveTimeMillis(
                     pendingTransactionBatch.chronExpression
                 ),
                 pendingTransactionBatch.batchMaxDurationSeconds
