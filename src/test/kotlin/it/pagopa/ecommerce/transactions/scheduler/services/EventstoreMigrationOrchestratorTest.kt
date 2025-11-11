@@ -1,6 +1,7 @@
 package it.pagopa.ecommerce.transactions.scheduler.services
 
 import it.pagopa.ecommerce.commons.documents.BaseTransactionEvent
+import it.pagopa.ecommerce.transactions.scheduler.utils.CommonTracingUtils
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.InjectMocks
@@ -8,6 +9,8 @@ import org.mockito.Mock
 import org.mockito.Mockito.mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
+import org.mockito.kotlin.doNothing
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
@@ -18,6 +21,7 @@ import reactor.test.StepVerifier
 class EventstoreMigrationOrchestratorTest {
     @Mock private lateinit var transactionMigrationQueryService: TransactionMigrationQueryService
     @Mock private lateinit var transactionMigrationWriteService: TransactionMigrationWriteService
+    @Mock private lateinit var commonTracingUtils: CommonTracingUtils
     @InjectMocks
     private lateinit var eventstoreMigrationOrchestrator: EventStoreMigrationOrchestrator
 
@@ -34,6 +38,7 @@ class EventstoreMigrationOrchestratorTest {
         whenever(transactionMigrationWriteService.updateEventsTtl(any())).thenAnswer {
             it.arguments[0]
         }
+        doNothing().`when`(commonTracingUtils).addSpan(anyOrNull(), anyOrNull())
 
         // ACT
         StepVerifier.create(eventstoreMigrationOrchestrator.createMigrationPipeline())
