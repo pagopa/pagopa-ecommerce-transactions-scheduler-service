@@ -1,9 +1,8 @@
 package it.pagopa.ecommerce.transactions.scheduler.scheduledperations
 
 import it.pagopa.ecommerce.transactions.scheduler.transactionanalyzer.PendingTransactionAnalyzer
+import it.pagopa.ecommerce.transactions.scheduler.utils.SchedulerUtils
 import java.time.Duration
-import java.time.LocalDateTime
-import java.time.temporal.ChronoUnit
 import java.util.stream.IntStream
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -11,7 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.domain.PageRequest
 import org.springframework.scheduling.annotation.Scheduled
-import org.springframework.scheduling.support.CronExpression
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
