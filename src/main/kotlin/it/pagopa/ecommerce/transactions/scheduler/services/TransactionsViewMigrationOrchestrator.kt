@@ -30,16 +30,20 @@ class TransactionsViewMigrationOrchestrator(
             .transform { tx -> transactionMigrationWriteService.updateViewsTtl(tx) }
             .count()
             .elapsed()
-            .map { (elapsedMs, processedEvents) ->
+            .map { (elapsedMs, processedTransactions) ->
                 openTelemetryUtils.addSpanWithAttributes(
                     ECOMMERCE_MIGRATION_SPAN_NAME,
-                    migrationTracingUtils.getIterationSpanAttributes(elapsedMs, processedEvents)
+                    migrationTracingUtils.getIterationSpanAttributes(
+                        elapsedMs,
+                        processedTransactions,
+                        "transactions-view"
+                    )
                 )
-                Tuples.of(elapsedMs, processedEvents)
+                Tuples.of(elapsedMs, processedTransactions)
             }
-            .doOnSuccess { (elapsedMs, processedEventsCount) ->
+            .doOnSuccess { (elapsedMs, processedTransactionsCount) ->
                 logger.info(
-                    "transactions-view migration process completed. Processed $processedEventsCount items in $elapsedMs ms"
+                    "transactions-view migration process completed. Processed $processedTransactionsCount items in $elapsedMs ms"
                 )
             }
             .onErrorResume { error ->

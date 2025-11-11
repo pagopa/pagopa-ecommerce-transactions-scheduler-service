@@ -33,7 +33,11 @@ class EventStoreMigrationOrchestrator(
             .map { (elapsedMs, processedEvents) ->
                 openTelemetryUtils.addSpanWithAttributes(
                     ECOMMERCE_MIGRATION_SPAN_NAME,
-                    migrationTracingUtils.getIterationSpanAttributes(elapsedMs, processedEvents)
+                    migrationTracingUtils.getIterationSpanAttributes(
+                        elapsedMs,
+                        processedEvents,
+                        "eventstore"
+                    )
                 )
                 Tuples.of(elapsedMs, processedEvents)
             }
