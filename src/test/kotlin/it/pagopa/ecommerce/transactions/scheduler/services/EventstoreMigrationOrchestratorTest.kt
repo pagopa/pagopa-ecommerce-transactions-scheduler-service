@@ -49,6 +49,7 @@ class EventstoreMigrationOrchestratorTest {
         verify(transactionMigrationQueryService, times(1)).findEligibleEvents()
         verify(transactionMigrationWriteService, times(1)).writeEvents(any())
         verify(transactionMigrationWriteService, times(1)).updateEventsTtl(any())
+        verify(commonTracingUtils, times(1)).addSpan(anyOrNull(), anyOrNull())
     }
 
     @Test

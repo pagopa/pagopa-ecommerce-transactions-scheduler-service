@@ -1,11 +1,20 @@
 package it.pagopa.ecommerce.transactions.scheduler.utils
 
+import io.opentelemetry.api.common.AttributeKey
 import io.opentelemetry.api.common.Attributes
 import io.opentelemetry.api.trace.Span
 import io.opentelemetry.api.trace.Tracer
 import io.opentelemetry.context.Context
 
 class CommonTracingUtils(private val tracer: Tracer) {
+    companion object {
+        val ECOMMERCE_MIGRATION_SPAN_NAME = "eCommerceMigration"
+        val ECOMMERCE_MIGRATION_SOURCE_KEY = AttributeKey.stringKey("eCommerce.migration.source")
+        val ECOMMERCE_MIGRATION_ITERATION_ELAPSED_KEY =
+            AttributeKey.longKey("eCommerce.migration.iterationElapsedTime")
+        val ECOMMERCE_MIGRATION_ITERATION_TOTAL_EVENTS_KEY =
+            AttributeKey.longKey("eCommerce.migration.iterationTotalEvents")
+    }
 
     fun addSpan(spanName: String, attributes: Attributes) {
         val span: Span =
@@ -16,4 +25,14 @@ class CommonTracingUtils(private val tracer: Tracer) {
         span.setAllAttributes(attributes)
         span.end()
     }
+
+    fun getIterationSpanAttributes(elapsed: Long, eventsCount: Long) =
+        Attributes.of(
+            ECOMMERCE_MIGRATION_ITERATION_TOTAL_EVENTS_KEY,
+            eventsCount,
+            ECOMMERCE_MIGRATION_ITERATION_ELAPSED_KEY,
+            elapsed,
+            ECOMMERCE_MIGRATION_SOURCE_KEY,
+            "eventstore"
+        )
 }
