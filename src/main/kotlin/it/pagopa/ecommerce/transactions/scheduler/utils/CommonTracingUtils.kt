@@ -12,8 +12,8 @@ class CommonTracingUtils(private val tracer: Tracer) {
         val ECOMMERCE_MIGRATION_SOURCE_KEY = AttributeKey.stringKey("eCommerce.migration.source")
         val ECOMMERCE_MIGRATION_ITERATION_ELAPSED_KEY =
             AttributeKey.longKey("eCommerce.migration.iterationElapsedTime")
-        val ECOMMERCE_MIGRATION_ITERATION_TOTAL_EVENTS_KEY =
-            AttributeKey.longKey("eCommerce.migration.iterationTotalEvents")
+        val ECOMMERCE_MIGRATION_ITERATION_TOTAL_ITEMS_KEY =
+            AttributeKey.longKey("eCommerce.migration.iterationTotalItems")
     }
 
     fun addSpan(spanName: String, attributes: Attributes) {
@@ -26,9 +26,9 @@ class CommonTracingUtils(private val tracer: Tracer) {
         span.end()
     }
 
-    fun getIterationSpanAttributes(elapsed: Long, eventsCount: Long) =
+    fun getIterationSpanAttributes(elapsed: Long, eventsCount: Long): Attributes =
         Attributes.of(
-            ECOMMERCE_MIGRATION_ITERATION_TOTAL_EVENTS_KEY,
+            ECOMMERCE_MIGRATION_ITERATION_TOTAL_ITEMS_KEY,
             eventsCount,
             ECOMMERCE_MIGRATION_ITERATION_ELAPSED_KEY,
             elapsed,
