@@ -1,7 +1,8 @@
 package it.pagopa.ecommerce.transactions.scheduler.services
 
-import it.pagopa.ecommerce.transactions.scheduler.utils.CommonTracingUtils
-import it.pagopa.ecommerce.transactions.scheduler.utils.CommonTracingUtils.Companion.ECOMMERCE_MIGRATION_SPAN_NAME
+import it.pagopa.ecommerce.commons.utils.OpenTelemetryUtils
+import it.pagopa.ecommerce.transactions.scheduler.utils.MigrationTracingUtils
+import it.pagopa.ecommerce.transactions.scheduler.utils.MigrationTracingUtils.Companion.ECOMMERCE_MIGRATION_SPAN_NAME
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
@@ -15,7 +16,8 @@ import reactor.util.function.Tuples
 class TransactionsViewMigrationOrchestrator(
     @param:Autowired private val transactionMigrationQueryService: TransactionMigrationQueryService,
     @param:Autowired private val transactionMigrationWriteService: TransactionMigrationWriteService,
-    @param:Autowired private val commonTracingUtils: CommonTracingUtils
+    @param:Autowired private val openTelemetryUtils: OpenTelemetryUtils,
+    @param:Autowired private val migrationTracingUtils: MigrationTracingUtils
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -29,9 +31,9 @@ class TransactionsViewMigrationOrchestrator(
             .count()
             .elapsed()
             .map { (elapsedMs, processedEvents) ->
-                commonTracingUtils.addSpan(
+                openTelemetryUtils.addSpanWithAttributes(
                     ECOMMERCE_MIGRATION_SPAN_NAME,
-                    commonTracingUtils.getIterationSpanAttributes(elapsedMs, processedEvents)
+                    migrationTracingUtils.getIterationSpanAttributes(elapsedMs, processedEvents)
                 )
                 Tuples.of(elapsedMs, processedEvents)
             }

@@ -4,7 +4,7 @@ import io.opentelemetry.api.GlobalOpenTelemetry
 import io.opentelemetry.api.OpenTelemetry
 import io.opentelemetry.api.trace.Tracer
 import it.pagopa.ecommerce.commons.queues.TracingUtils
-import it.pagopa.ecommerce.transactions.scheduler.utils.CommonTracingUtils
+import it.pagopa.ecommerce.commons.utils.OpenTelemetryUtils
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
@@ -20,5 +20,5 @@ public class TracingConfig {
     fun tracingUtils(openTelemetry: OpenTelemetry, tracer: Tracer): TracingUtils =
         TracingUtils(openTelemetry, tracer)
 
-    @Bean fun commonTracingUtils(tracer: Tracer): CommonTracingUtils = CommonTracingUtils(tracer)
+    @Bean fun commonTracingUtils(tracer: Tracer): OpenTelemetryUtils = OpenTelemetryUtils(tracer)
 }

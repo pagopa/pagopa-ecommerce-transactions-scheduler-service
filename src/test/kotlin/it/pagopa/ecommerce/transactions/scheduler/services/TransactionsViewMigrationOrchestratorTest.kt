@@ -1,7 +1,8 @@
 package it.pagopa.ecommerce.transactions.scheduler.services
 
 import it.pagopa.ecommerce.commons.documents.BaseTransactionView
-import it.pagopa.ecommerce.transactions.scheduler.utils.CommonTracingUtils
+import it.pagopa.ecommerce.commons.utils.OpenTelemetryUtils
+import it.pagopa.ecommerce.transactions.scheduler.utils.MigrationTracingUtils
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.InjectMocks
@@ -21,7 +22,8 @@ import reactor.test.StepVerifier
 class TransactionsViewMigrationOrchestratorTest {
     @Mock private lateinit var transactionMigrationQueryService: TransactionMigrationQueryService
     @Mock private lateinit var transactionMigrationWriteService: TransactionMigrationWriteService
-    @Mock private lateinit var commonTracingUtils: CommonTracingUtils
+    @Mock private lateinit var openTelemetryUtils: OpenTelemetryUtils
+    @Mock private lateinit var migrationTracingUtils: MigrationTracingUtils
     @InjectMocks
     private lateinit var transactionsViewMigrationOrchestrator:
         TransactionsViewMigrationOrchestrator
@@ -42,7 +44,7 @@ class TransactionsViewMigrationOrchestratorTest {
         whenever(transactionMigrationWriteService.updateViewsTtl(any())).thenAnswer {
             it.arguments[0]
         }
-        doNothing().`when`(commonTracingUtils).addSpan(anyOrNull(), anyOrNull())
+        doNothing().`when`(openTelemetryUtils).addSpanWithAttributes(anyOrNull(), anyOrNull())
 
         // ACT
         StepVerifier.create(transactionsViewMigrationOrchestrator.createMigrationPipeline())
@@ -53,7 +55,7 @@ class TransactionsViewMigrationOrchestratorTest {
         verify(transactionMigrationQueryService, times(1)).findEligibleTransactions()
         verify(transactionMigrationWriteService, times(1)).writeTransactionViews(any())
         verify(transactionMigrationWriteService, times(1)).updateViewsTtl(any())
-        verify(commonTracingUtils, times(1)).addSpan(anyOrNull(), anyOrNull())
+        verify(openTelemetryUtils, times(1)).addSpanWithAttributes(anyOrNull(), anyOrNull())
     }
 
     @Test

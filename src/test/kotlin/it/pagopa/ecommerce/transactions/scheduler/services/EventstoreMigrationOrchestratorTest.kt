@@ -1,7 +1,8 @@
 package it.pagopa.ecommerce.transactions.scheduler.services
 
 import it.pagopa.ecommerce.commons.documents.BaseTransactionEvent
-import it.pagopa.ecommerce.transactions.scheduler.utils.CommonTracingUtils
+import it.pagopa.ecommerce.commons.utils.OpenTelemetryUtils
+import it.pagopa.ecommerce.transactions.scheduler.utils.MigrationTracingUtils
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.InjectMocks
@@ -21,7 +22,8 @@ import reactor.test.StepVerifier
 class EventstoreMigrationOrchestratorTest {
     @Mock private lateinit var transactionMigrationQueryService: TransactionMigrationQueryService
     @Mock private lateinit var transactionMigrationWriteService: TransactionMigrationWriteService
-    @Mock private lateinit var commonTracingUtils: CommonTracingUtils
+    @Mock private lateinit var openTelemetryUtils: OpenTelemetryUtils
+    @Mock private lateinit var migrationTracingUtils: MigrationTracingUtils
     @InjectMocks
     private lateinit var eventstoreMigrationOrchestrator: EventStoreMigrationOrchestrator
 
@@ -38,7 +40,7 @@ class EventstoreMigrationOrchestratorTest {
         whenever(transactionMigrationWriteService.updateEventsTtl(any())).thenAnswer {
             it.arguments[0]
         }
-        doNothing().`when`(commonTracingUtils).addSpan(anyOrNull(), anyOrNull())
+        doNothing().`when`(openTelemetryUtils).addSpanWithAttributes(anyOrNull(), anyOrNull())
 
         // ACT
         StepVerifier.create(eventstoreMigrationOrchestrator.createMigrationPipeline())
@@ -49,7 +51,7 @@ class EventstoreMigrationOrchestratorTest {
         verify(transactionMigrationQueryService, times(1)).findEligibleEvents()
         verify(transactionMigrationWriteService, times(1)).writeEvents(any())
         verify(transactionMigrationWriteService, times(1)).updateEventsTtl(any())
-        verify(commonTracingUtils, times(1)).addSpan(anyOrNull(), anyOrNull())
+        verify(openTelemetryUtils, times(1)).addSpanWithAttributes(anyOrNull(), anyOrNull())
     }
 
     @Test
