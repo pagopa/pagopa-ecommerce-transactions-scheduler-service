@@ -22,7 +22,7 @@ class EventstoreMigrationBatch(
         schedulerLockService
             // acquire lock
             .acquireJobLock(jobName = "eventstore-migration-batch")
-            .doOnError { logger.error("Unable to start job without lock acquiring", it) }
+            .doOnError { logger.error("Lock not acquired for eventstore-migration-batch", it) }
             .flatMap { lockDocument ->
                 eventstoreMigrationOrchestrator
                     // run job/batch
