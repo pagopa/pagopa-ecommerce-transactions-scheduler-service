@@ -27,8 +27,6 @@ class EventstoreMigrationBatch(
                 eventstoreMigrationOrchestrator
                     // run job/batch
                     .runMigration()
-                    .doOnSuccess { logger.info("Eventstore migration completed successfully") }
-                    .doOnError { logger.error("Exception processing eventstore migration", it) }
                     .doFinally {
                         schedulerLockService
                             // release lock (always runs)

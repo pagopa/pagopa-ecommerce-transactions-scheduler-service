@@ -28,12 +28,6 @@ class TransactionsViewMigrationBatch(
                 transactionsViewMigrationOrchestrator
                     // run job/batch
                     .runMigration()
-                    .doOnSuccess {
-                        logger.info("Transactions view migration completed successfully")
-                    }
-                    .doOnError {
-                        logger.error("Exception processing transactions view migration", it)
-                    }
                     .doFinally {
                         schedulerLockService
                             // release lock (always runs)
