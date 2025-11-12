@@ -25,9 +25,6 @@ class TransactionsViewMigrationBatch(
         schedulerLockService
             // acquire lock
             .acquireJobLock(jobName = "transactions-view-migration-batch")
-            .doOnError {
-                logger.error("Lock not acquired for transactions-view-migration-batch", it)
-            }
             .flatMap { lockDocument ->
                 transactionsViewMigrationOrchestrator
                     // run job/batch
@@ -44,7 +41,7 @@ class TransactionsViewMigrationBatch(
                     .onErrorResume { Mono.empty() }
             }
             .onErrorResume { error ->
-                logger.error("Job execution failed", error)
+                logger.error("Job execution failed for transactions-view-migration-batch", error)
                 Mono.empty()
             }
             .subscribe()

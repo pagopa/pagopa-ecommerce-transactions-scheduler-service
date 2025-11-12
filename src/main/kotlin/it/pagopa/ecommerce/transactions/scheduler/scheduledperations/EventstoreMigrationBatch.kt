@@ -24,7 +24,6 @@ class EventstoreMigrationBatch(
         schedulerLockService
             // acquire lock
             .acquireJobLock(jobName = "eventstore-migration-batch")
-            .doOnError { logger.error("Lock not acquired for eventstore-migration-batch", it) }
             .flatMap { lockDocument ->
                 eventstoreMigrationOrchestrator
                     // run job/batch
@@ -41,7 +40,7 @@ class EventstoreMigrationBatch(
                     .onErrorResume { Mono.empty() }
             }
             .onErrorResume { error ->
-                logger.error("Job execution failed", error)
+                logger.error("Job execution failed for eventstore-migration-batch", error)
                 Mono.empty()
             }
             .subscribe()

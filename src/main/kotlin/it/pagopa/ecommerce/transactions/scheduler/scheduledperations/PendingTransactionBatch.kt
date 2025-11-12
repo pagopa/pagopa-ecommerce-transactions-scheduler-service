@@ -37,7 +37,6 @@ class PendingTransactionBatch(
         schedulerLockService
             // acquire lock
             .acquireJobLock(jobName = "pending-transactions-batch")
-            .doOnError { logger.error("Lock not acquired for pending-transactions-batch", it) }
             .flatMap { lockDocument ->
                 // run job/batch
                 pendingTransactionAnalyzerPaginatedPipeline()
@@ -68,7 +67,7 @@ class PendingTransactionBatch(
                     .onErrorResume { Mono.empty() }
             }
             .onErrorResume { error ->
-                logger.error("Job execution failed", error)
+                logger.error("Job execution failed for pending-transactions-batch", error)
                 Mono.empty()
             }
             .subscribe()
