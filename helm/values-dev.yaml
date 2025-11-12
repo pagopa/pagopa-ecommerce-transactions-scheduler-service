@@ -36,7 +36,7 @@ microservice-chart:
     periodSeconds: 10
   deployment:
     create: true
-    replicas: 3
+    replicas: 1
   service:
     create: true
     type: ClusterIP
@@ -66,8 +66,8 @@ microservice-chart:
       cpu: "300m"
   autoscaling:
     enable: true
-    minReplica: 3
-    maxReplica: 3
+    minReplica: 1
+    maxReplica: 1
     pollingInterval: 30 # seconds
     cooldownPeriod: 30 # seconds
     triggers:
@@ -137,14 +137,14 @@ microservice-chart:
     EVENT_CONTROLLER_STATUS_POLLING_CHRON: "*/10 * * * * *"
     TRANSACTIONSVIEW_UPDATE_ENABLED: "true"
     MIGRATION_TRANSACTION_QUERY_EVENT_STORE_CUTOFF_MONTH_OFFSET: "9"
-    MIGRATION_TRANSACTION_QUERY_EVENT_STORE_MAX_RESULTS: "1" # TODO restore default 10
+    MIGRATION_TRANSACTION_QUERY_EVENT_STORE_MAX_RESULTS: "10"
     MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_CUTOFF_MONTH_OFFSET: "9"
-    MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_MAX_RESULTS: "1" # TODO restore default 10
-    MIGRATION_TRANSACTION_WRITE_EVENT_STORE_TTL_SECONDS: "5" # TODO restore default 172800 # 2 days
-    MIGRATION_TRANSACTION_WRITE_TRANSACTIONS_VIEW_TTL_SECONDS: "5" # TODO restore default 172800 # 2 days
-    MIGRATION_TRANSACTION_BATCH_EVENTSTORE_CRON_EXPRESSION: "0/30 * * * * *" # TODO restore default "-"
+    MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_MAX_RESULTS: "10"
+    MIGRATION_TRANSACTION_WRITE_EVENT_STORE_TTL_SECONDS: "172800" # 2 days
+    MIGRATION_TRANSACTION_WRITE_TRANSACTIONS_VIEW_TTL_SECONDS: "172800" # 2 days
+    MIGRATION_TRANSACTION_BATCH_EVENTSTORE_CRON_EXPRESSION: "-" # disabled
     MIGRATION_TRANSACTION_BATCH_EVENTSTORE_LOCK_TTL_SECONDS: "60" # 60 seconds - eventstore migration batch
-    MIGRATION_TRANSACTION_BATCH_TRANSACTIONS_VIEW_CRON_EXPRESSION: "10/30 * * * * *" # TODO restore default "-"
+    MIGRATION_TRANSACTION_BATCH_TRANSACTIONS_VIEW_CRON_EXPRESSION: "-" # disabled
     MIGRATION_TRANSACTION_BATCH_TRANSACTIONS_VIEW_LOCK_TTL_SECONDS: "60" # 60 seconds - transactions view migration batch
   envSecret:
     MONGO_PASSWORD: mongo-ecommerce-password
