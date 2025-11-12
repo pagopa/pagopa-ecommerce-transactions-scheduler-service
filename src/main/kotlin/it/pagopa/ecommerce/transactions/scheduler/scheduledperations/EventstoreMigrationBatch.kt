@@ -4,6 +4,7 @@ import it.pagopa.ecommerce.transactions.scheduler.services.EventStoreMigrationOr
 import it.pagopa.ecommerce.transactions.scheduler.services.SchedulerLockService
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Mono
@@ -11,7 +12,9 @@ import reactor.core.publisher.Mono
 @Component
 class EventstoreMigrationBatch(
     @param:Autowired private val eventstoreMigrationOrchestrator: EventStoreMigrationOrchestrator,
-    @param:Autowired private val schedulerLockService: SchedulerLockService
+    @param:Autowired
+    @Qualifier("migrationBatchLockService")
+    private val schedulerLockService: SchedulerLockService
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
