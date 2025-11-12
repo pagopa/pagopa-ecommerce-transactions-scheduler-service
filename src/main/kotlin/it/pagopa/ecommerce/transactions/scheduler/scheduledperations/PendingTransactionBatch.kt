@@ -8,7 +8,6 @@ import java.util.stream.IntStream
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.domain.PageRequest
 import org.springframework.scheduling.annotation.Scheduled
@@ -20,7 +19,7 @@ import reactor.util.function.Tuple2
 @Component
 class PendingTransactionBatch(
     @Autowired val pendingTransactionAnalyzer: PendingTransactionAnalyzer,
-    @Autowired @Qualifier("pendingBatchLockService") val schedulerLockService: SchedulerLockService,
+    @Autowired val schedulerLockService: SchedulerLockService,
     @Value("\${pendingTransactions.batch.scheduledChron}") val chronExpression: String,
     @Value("\${pendingTransactions.batch.transactionsAnalyzer.executionRateMultiplier}")
     val executionRateMultiplier: Int,
@@ -28,15 +27,17 @@ class PendingTransactionBatch(
     @Value("\${pendingTransactions.batch.maxDurationSeconds}") val batchMaxDurationSeconds: Int,
     @Value("\${pendingTransactions.batch.maxTransactionsPerPage}") val maxTransactionPerPage: Int,
     @Value("\${pendingTransactions.batch.pageAnalysisDelaySeconds}")
-    val transactionPageAnalysisDelaySeconds: Int
+    val transactionPageAnalysisDelaySeconds: Int,
+    @Value("\${pendingBatch.exclusiveLockDocument.ttlSeconds}") val lockTtlSeconds: Int
 ) {
 
     @Scheduled(cron = "\${pendingTransactions.batch.scheduledChron}")
     fun execute() {
         val startTime = System.currentTimeMillis()
+        val lockTtl = Duration.ofSeconds(lockTtlSeconds.toLong())
         schedulerLockService
             // acquire lock
-            .acquireJobLock(jobName = "pending-transactions-batch")
+            .acquireJobLock(jobName = "pending-transactions-batch", ttl = lockTtl)
             .flatMap { lockDocument ->
                 // run job/batch
                 pendingTransactionAnalyzerPaginatedPipeline()

@@ -2,9 +2,10 @@ package it.pagopa.ecommerce.transactions.scheduler.scheduledperations
 
 import it.pagopa.ecommerce.transactions.scheduler.services.SchedulerLockService
 import it.pagopa.ecommerce.transactions.scheduler.services.TransactionsViewMigrationOrchestrator
+import java.time.Duration
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.beans.factory.annotation.Qualifier
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Mono
@@ -13,18 +14,19 @@ import reactor.core.publisher.Mono
 class TransactionsViewMigrationBatch(
     @param:Autowired
     private val transactionsViewMigrationOrchestrator: TransactionsViewMigrationOrchestrator,
-    @param:Autowired
-    @Qualifier("migrationBatchLockService")
-    private val schedulerLockService: SchedulerLockService
+    @param:Autowired private val schedulerLockService: SchedulerLockService,
+    @param:Value("\${migrationBatch.exclusiveLockDocument.ttlSeconds}")
+    private val lockTtlSeconds: Int
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
     @Scheduled(cron = "\${migration.transaction.batch.transactionsView.cronExpression}")
     fun execute() {
+        val lockTtl = Duration.ofSeconds(lockTtlSeconds.toLong())
         schedulerLockService
             // acquire lock
-            .acquireJobLock(jobName = "transactions-view-migration-batch")
+            .acquireJobLock(jobName = "transactions-view-migration-batch", ttl = lockTtl)
             .flatMap { lockDocument ->
                 transactionsViewMigrationOrchestrator
                     // run job/batch
