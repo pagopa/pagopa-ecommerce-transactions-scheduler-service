@@ -3,6 +3,7 @@ package it.pagopa.ecommerce.transactions.scheduler.services
 import it.pagopa.ecommerce.commons.redis.reactivetemplatewrappers.ReactiveExclusiveLockDocumentWrapper
 import it.pagopa.ecommerce.commons.repositories.ExclusiveLockDocument
 import it.pagopa.ecommerce.transactions.scheduler.exceptions.LockNotAcquiredException
+import java.time.Duration
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import reactor.core.publisher.Mono
@@ -21,13 +22,14 @@ class SchedulerLockService(
      * if lock cannot be acquired
      *
      * @param jobName the name of the job to lock
+     * @param ttl the time-to-live duration for the lock
      * @return Mono with the ExclusiveLockDocument if lock acquired successfully
      * @throws LockNotAcquiredException if lock cannot be acquired
      */
-    fun acquireJobLock(jobName: String): Mono<ExclusiveLockDocument> {
+    fun acquireJobLock(jobName: String, ttl: Duration): Mono<ExclusiveLockDocument> {
         val lockDocument = ExclusiveLockDocument(jobName, OWNER)
-        logger.info("Trying to acquire lock for job: {}", jobName)
-        return reactiveExclusiveLockDocumentWrapper.saveIfAbsent(lockDocument).flatMap {
+        logger.info("Trying to acquire lock for job: {} with TTL: {}", jobName, ttl)
+        return reactiveExclusiveLockDocumentWrapper.saveIfAbsent(lockDocument, ttl).flatMap {
             lockAcquired ->
             if (lockAcquired) {
                 logger.info("Lock acquired for job: {}", jobName)

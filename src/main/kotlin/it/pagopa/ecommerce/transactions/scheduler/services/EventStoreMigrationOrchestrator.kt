@@ -47,7 +47,7 @@ class EventStoreMigrationOrchestrator(
             }
     }
 
-    fun runMigration(): Mono<Tuple2<Long, List<BaseTransactionEvent<*>>>> {
+    fun runMigration(): Mono<Tuple2<Long, Long>> {
         return this.createMigrationPipeline()
     }
 }

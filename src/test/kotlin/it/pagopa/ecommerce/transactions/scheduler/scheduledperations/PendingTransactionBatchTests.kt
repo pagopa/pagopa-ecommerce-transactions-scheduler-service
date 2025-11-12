@@ -1,5 +1,7 @@
 package it.pagopa.ecommerce.transactions.scheduler.scheduledperations
 
+import it.pagopa.ecommerce.commons.repositories.ExclusiveLockDocument
+import it.pagopa.ecommerce.transactions.scheduler.services.SchedulerLockService
 import it.pagopa.ecommerce.transactions.scheduler.transactionanalyzer.PendingTransactionAnalyzer
 import it.pagopa.ecommerce.transactions.scheduler.utils.SchedulerUtils
 import java.time.Duration
@@ -18,6 +20,7 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 import org.mockito.Mock
+import org.mockito.Mockito.lenient
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.*
 import org.springframework.test.context.TestPropertySource
@@ -30,6 +33,8 @@ class PendingTransactionBatchTests {
 
     @Mock private lateinit var pendingTransactionAnalyzer: PendingTransactionAnalyzer
 
+    @Mock private lateinit var schedulerLockService: SchedulerLockService
+
     private lateinit var pendingTransactionBatch: PendingTransactionBatch
 
     private val cronExecutionString = "*/10 * * * * *"
@@ -40,16 +45,28 @@ class PendingTransactionBatchTests {
 
     private val transactionPageAnalysisDelaySeconds = 0
 
+    private val lockTtlSeconds = 60
+
     @BeforeEach
     fun init() {
+        // Mock lock service behavior with lenient() to avoid UnnecessaryStubbingException
+        // for tests that don't call execute()
+        val lockDocument = ExclusiveLockDocument("test-job", "test-owner")
+        lenient()
+            .`when`(schedulerLockService.acquireJobLock(any(), any()))
+            .thenReturn(Mono.just(lockDocument))
+        lenient().`when`(schedulerLockService.releaseJobLock(any())).thenReturn(Mono.just(true))
+
         pendingTransactionBatch =
             PendingTransactionBatch(
                 pendingTransactionAnalyzer = pendingTransactionAnalyzer,
+                schedulerLockService = schedulerLockService,
                 chronExpression = cronExecutionString,
                 executionRateMultiplier = executionRateMultiplier,
                 batchMaxDurationSeconds = maxDurationSeconds,
                 maxTransactionPerPage = maxTransactionPerPage,
                 transactionPageAnalysisDelaySeconds = transactionPageAnalysisDelaySeconds,
+                lockTtlSeconds = lockTtlSeconds
             )
     }
 
@@ -139,11 +156,13 @@ class PendingTransactionBatchTests {
         val pendingTransactionBatch =
             PendingTransactionBatch(
                 pendingTransactionAnalyzer = pendingTransactionAnalyzer,
+                schedulerLockService = schedulerLockService,
                 chronExpression = cronExecutionString,
                 executionRateMultiplier = executionRateMultiplier,
                 batchMaxDurationSeconds = 1,
                 maxTransactionPerPage = maxTransactionPerPage,
-                transactionPageAnalysisDelaySeconds = 0
+                transactionPageAnalysisDelaySeconds = 0,
+                lockTtlSeconds = lockTtlSeconds
             )
         val maxExecutionTime =
             SchedulerUtils.getMaxDuration(
@@ -218,11 +237,13 @@ class PendingTransactionBatchTests {
         val pendingTransactionBatch =
             PendingTransactionBatch(
                 pendingTransactionAnalyzer = pendingTransactionAnalyzer,
+                schedulerLockService = schedulerLockService,
                 chronExpression = cronExecutionString,
                 executionRateMultiplier = executionRateMultiplier,
                 batchMaxDurationSeconds = 10,
                 maxTransactionPerPage = 2,
-                transactionPageAnalysisDelaySeconds = 1
+                transactionPageAnalysisDelaySeconds = 1,
+                lockTtlSeconds = lockTtlSeconds
             )
         val totalTransactionsToAnalyze = 3
         given(pendingTransactionAnalyzer.getTotalTransactionCount(any(), any()))
