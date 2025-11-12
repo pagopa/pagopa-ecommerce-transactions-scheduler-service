@@ -28,7 +28,7 @@ class PendingTransactionBatch(
     @Value("\${pendingTransactions.batch.maxTransactionsPerPage}") val maxTransactionPerPage: Int,
     @Value("\${pendingTransactions.batch.pageAnalysisDelaySeconds}")
     val transactionPageAnalysisDelaySeconds: Int,
-    @Value("\${pendingBatch.exclusiveLockDocument.ttlSeconds}") val lockTtlSeconds: Int
+    @Value("\${pendingTransactions.batch.exclusiveLockDocument.ttlSeconds}") val lockTtlSeconds: Int
 ) {
 
     @Scheduled(cron = "\${pendingTransactions.batch.scheduledChron}")
