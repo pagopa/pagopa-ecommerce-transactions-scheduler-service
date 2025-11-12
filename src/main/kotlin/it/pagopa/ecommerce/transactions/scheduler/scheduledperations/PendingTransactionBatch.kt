@@ -1,9 +1,9 @@
 package it.pagopa.ecommerce.transactions.scheduler.scheduledperations
 
+import it.pagopa.ecommerce.transactions.scheduler.services.SchedulerLockService
 import it.pagopa.ecommerce.transactions.scheduler.transactionanalyzer.PendingTransactionAnalyzer
+import it.pagopa.ecommerce.transactions.scheduler.utils.SchedulerUtils
 import java.time.Duration
-import java.time.LocalDateTime
-import java.time.temporal.ChronoUnit
 import java.util.stream.IntStream
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -11,7 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.domain.PageRequest
 import org.springframework.scheduling.annotation.Scheduled
-import org.springframework.scheduling.support.CronExpression
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
@@ -20,6 +19,7 @@ import reactor.util.function.Tuple2
 @Component
 class PendingTransactionBatch(
     @Autowired val pendingTransactionAnalyzer: PendingTransactionAnalyzer,
+    @Autowired val schedulerLockService: SchedulerLockService,
     @Value("\${pendingTransactions.batch.scheduledChron}") val chronExpression: String,
     @Value("\${pendingTransactions.batch.transactionsAnalyzer.executionRateMultiplier}")
     val executionRateMultiplier: Int,
@@ -33,34 +33,58 @@ class PendingTransactionBatch(
     @Scheduled(cron = "\${pendingTransactions.batch.scheduledChron}")
     fun execute() {
         val startTime = System.currentTimeMillis()
-        pendingTransactionAnalyzerPaginatedPipeline()
-            .subscribe(
-                { allPageResult ->
-                    allPageResult.forEach { pageResult ->
-                        val elapsedTime = pageResult.t1
-                        val (executionResult, pageCount) = pageResult.t2
+        schedulerLockService
+            // acquire lock
+            .acquireJobLock(jobName = "pending-transactions-batch")
+            .doOnError { logger.error("Lock not acquired for pending-transactions-batch", it) }
+            .flatMap { lockDocument ->
+                // run job/batch
+                pendingTransactionAnalyzerPaginatedPipeline()
+                    .doOnSuccess { allPageResult ->
+                        allPageResult.forEach { pageResult ->
+                            val elapsedTime = pageResult.t1
+                            val (executionResult, pageCount) = pageResult.t2
+                            logger.info(
+                                "Process page $pageCount ok: [$executionResult], elapsed time: [$elapsedTime] ms "
+                            )
+                        }
                         logger.info(
-                            "Process page $pageCount ok: [$executionResult], elapsed time: [$elapsedTime] ms "
+                            "Overall processing completed. Elapsed time: [${System.currentTimeMillis() - startTime}] ms"
                         )
                     }
-                },
-                { logger.error("Error executing batch", it) },
-                {
-                    logger.info(
-                        "Overall execution time: [${System.currentTimeMillis() - startTime}] ms"
-                    )
-                }
-            )
+                    .doOnError {
+                        logger.error("Exception processing pending-transactions-batch", it)
+                    }
+                    .then(Mono.just(lockDocument))
+                    .onErrorResume { Mono.just(lockDocument) }
+            }
+            .flatMap { lockDocument ->
+                schedulerLockService
+                    // release lock (always runs)
+                    .releaseJobLock(lockDocument)
+                    .doOnSuccess { logger.debug("Lock released successfully") }
+                    .doOnError { logger.error("Failed to release lock", it) }
+                    .onErrorResume { Mono.empty() }
+            }
+            .onErrorResume { error ->
+                logger.error("Job execution failed", error)
+                Mono.empty()
+            }
+            .subscribe()
     }
 
     fun pendingTransactionAnalyzerPaginatedPipeline():
         Mono<MutableList<Tuple2<Long, Pair<Boolean, Int>>>> {
-        val executionInterleaveMillis = getExecutionsInterleaveTimeMillis(chronExpression)
+        val executionInterleaveMillis =
+            SchedulerUtils.getExecutionsInterleaveTimeMillis(chronExpression)
         val (lowerThreshold, upperThreshold) =
-            getTransactionAnalyzerTimeWindow(executionInterleaveMillis, executionRateMultiplier)
+            SchedulerUtils.getTransactionAnalyzerTimeWindow(
+                executionInterleaveMillis,
+                executionRateMultiplier
+            )
 
         val maxBatchExecutionTime =
-            getMaxDuration(executionInterleaveMillis, batchMaxDurationSeconds)
+            SchedulerUtils.getMaxDuration(executionInterleaveMillis, batchMaxDurationSeconds)
         logger.info(
             "Executions chron expression: [$chronExpression], executions interleave time: [$executionInterleaveMillis] ms.  Max execution duration: $maxBatchExecutionTime seconds"
         )
@@ -96,39 +120,5 @@ class PendingTransactionBatch(
             .elapsed()
             .collectList()
             .timeout(maxBatchExecutionTime)
-    }
-
-    fun getMaxDuration(executionInterleaveMillis: Long, batchMaxDurationSeconds: Int): Duration {
-        val maxDuration =
-            if (batchMaxDurationSeconds > 0) {
-                Duration.ofSeconds(batchMaxDurationSeconds.toLong())
-            } else {
-                /*
-                 * Batch max duration set to batch execution interleave divided by 2.
-                 * The only constraint here is that the batch max execution time is less than
-                 * the batch execution interleave in order to avoid one execution to be skipped
-                 * because of the previous batch execution still running
-                 */
-                Duration.ofMillis(executionInterleaveMillis).dividedBy(2)
-            }
-        return maxDuration
-    }
-
-    fun getExecutionsInterleaveTimeMillis(chronExpression: String): Long {
-        val cronSequenceGenerator = CronExpression.parse(chronExpression)
-        val firstExecution = cronSequenceGenerator.next(LocalDateTime.now())!!
-        val secondExecution = cronSequenceGenerator.next(firstExecution)!!
-        return firstExecution.until(secondExecution, ChronoUnit.MILLIS)
-    }
-
-    fun getTransactionAnalyzerTimeWindow(
-        batchExecutionRate: Long,
-        executionRateMultiplier: Int
-    ): Pair<LocalDateTime, LocalDateTime> {
-
-        val windowLength = batchExecutionRate * executionRateMultiplier
-        val upperThreshold = LocalDateTime.now().minus(batchExecutionRate, ChronoUnit.MILLIS)
-        val lowerThreshold = upperThreshold.minus(windowLength, ChronoUnit.MILLIS)
-        return Pair(lowerThreshold, upperThreshold)
     }
 }
