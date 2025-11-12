@@ -5,6 +5,7 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import it.pagopa.ecommerce.commons.redis.reactivetemplatewrappers.ReactiveExclusiveLockDocumentWrapper
 import it.pagopa.ecommerce.commons.repositories.ExclusiveLockDocument
 import it.pagopa.ecommerce.transactions.scheduler.repositories.redis.eventreceivers.ReceiversStatus
+import it.pagopa.ecommerce.transactions.scheduler.services.SchedulerLockService
 import it.pagopa.ecommerce.transactions.scheduler.streams.commands.EventDispatcherReceiverCommand
 import java.time.Duration
 import org.springframework.beans.factory.annotation.Value
@@ -66,10 +67,43 @@ class RedisConfig {
         )
     }
 
-    @Bean
-    fun exclusiveLockDocumentWrapper(
+    @Bean(name = ["pendingBatchLockDocumentWrapper"])
+    fun pendingBatchLockDocumentWrapper(
         reactiveRedisConnectionFactory: ReactiveRedisConnectionFactory,
-        @Value("\${exclusiveLockDocument.ttlSeconds}") exclusiveLockTtlSeconds: Int
+        @Value("\${pendingBatch.exclusiveLockDocument.ttlSeconds}") pendingBatchLockTtlSeconds: Int
+    ): ReactiveExclusiveLockDocumentWrapper {
+        return createLockDocumentWrapper(reactiveRedisConnectionFactory, pendingBatchLockTtlSeconds)
+    }
+
+    @Bean(name = ["migrationBatchLockDocumentWrapper"])
+    fun migrationBatchLockDocumentWrapper(
+        reactiveRedisConnectionFactory: ReactiveRedisConnectionFactory,
+        @Value("\${migrationBatch.exclusiveLockDocument.ttlSeconds}")
+        migrationBatchLockTtlSeconds: Int
+    ): ReactiveExclusiveLockDocumentWrapper {
+        return createLockDocumentWrapper(
+            reactiveRedisConnectionFactory,
+            migrationBatchLockTtlSeconds
+        )
+    }
+
+    @Bean(name = ["pendingBatchLockService"])
+    fun pendingBatchLockService(
+        pendingBatchLockDocumentWrapper: ReactiveExclusiveLockDocumentWrapper
+    ): SchedulerLockService {
+        return SchedulerLockService(pendingBatchLockDocumentWrapper)
+    }
+
+    @Bean(name = ["migrationBatchLockService"])
+    fun migrationBatchLockService(
+        migrationBatchLockDocumentWrapper: ReactiveExclusiveLockDocumentWrapper
+    ): SchedulerLockService {
+        return SchedulerLockService(migrationBatchLockDocumentWrapper)
+    }
+
+    private fun createLockDocumentWrapper(
+        reactiveRedisConnectionFactory: ReactiveRedisConnectionFactory,
+        ttlSeconds: Int
     ): ReactiveExclusiveLockDocumentWrapper {
         // serializer
         val keySer = StringRedisSerializer()
@@ -90,7 +124,7 @@ class RedisConfig {
         return ReactiveExclusiveLockDocumentWrapper(
             reactiveTemplate,
             "exclusiveLocks",
-            Duration.ofSeconds(exclusiveLockTtlSeconds.toLong())
+            Duration.ofSeconds(ttlSeconds.toLong())
         )
     }
 }

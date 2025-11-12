@@ -5,13 +5,9 @@ import it.pagopa.ecommerce.commons.repositories.ExclusiveLockDocument
 import it.pagopa.ecommerce.transactions.scheduler.exceptions.LockNotAcquiredException
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 
-@Service
 class SchedulerLockService(
-    @Autowired
     private val reactiveExclusiveLockDocumentWrapper: ReactiveExclusiveLockDocumentWrapper
 ) {
     private val logger: Logger = LoggerFactory.getLogger(javaClass)

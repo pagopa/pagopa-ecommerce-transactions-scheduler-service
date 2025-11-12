@@ -4,6 +4,7 @@ import it.pagopa.ecommerce.transactions.scheduler.services.SchedulerLockService
 import it.pagopa.ecommerce.transactions.scheduler.services.TransactionsViewMigrationOrchestrator
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Mono
@@ -12,7 +13,9 @@ import reactor.core.publisher.Mono
 class TransactionsViewMigrationBatch(
     @param:Autowired
     private val transactionsViewMigrationOrchestrator: TransactionsViewMigrationOrchestrator,
-    @param:Autowired private val schedulerLockService: SchedulerLockService
+    @param:Autowired
+    @Qualifier("migrationBatchLockService")
+    private val schedulerLockService: SchedulerLockService
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -22,9 +25,6 @@ class TransactionsViewMigrationBatch(
         schedulerLockService
             // acquire lock
             .acquireJobLock(jobName = "transactions-view-migration-batch")
-            .doOnError {
-                logger.error("Lock not acquired for transactions-view-migration-batch", it)
-            }
             .flatMap { lockDocument ->
                 transactionsViewMigrationOrchestrator
                     // run job/batch
@@ -41,7 +41,7 @@ class TransactionsViewMigrationBatch(
                     .onErrorResume { Mono.empty() }
             }
             .onErrorResume { error ->
-                logger.error("Job execution failed", error)
+                logger.error("Job execution failed for transactions-view-migration-batch", error)
                 Mono.empty()
             }
             .subscribe()

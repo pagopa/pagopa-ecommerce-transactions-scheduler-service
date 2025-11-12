@@ -8,6 +8,7 @@ import java.util.stream.IntStream
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.domain.PageRequest
 import org.springframework.scheduling.annotation.Scheduled
@@ -19,7 +20,7 @@ import reactor.util.function.Tuple2
 @Component
 class PendingTransactionBatch(
     @Autowired val pendingTransactionAnalyzer: PendingTransactionAnalyzer,
-    @Autowired val schedulerLockService: SchedulerLockService,
+    @Autowired @Qualifier("pendingBatchLockService") val schedulerLockService: SchedulerLockService,
     @Value("\${pendingTransactions.batch.scheduledChron}") val chronExpression: String,
     @Value("\${pendingTransactions.batch.transactionsAnalyzer.executionRateMultiplier}")
     val executionRateMultiplier: Int,
@@ -36,7 +37,6 @@ class PendingTransactionBatch(
         schedulerLockService
             // acquire lock
             .acquireJobLock(jobName = "pending-transactions-batch")
-            .doOnError { logger.error("Lock not acquired for pending-transactions-batch", it) }
             .flatMap { lockDocument ->
                 // run job/batch
                 pendingTransactionAnalyzerPaginatedPipeline()
@@ -67,7 +67,7 @@ class PendingTransactionBatch(
                     .onErrorResume { Mono.empty() }
             }
             .onErrorResume { error ->
-                logger.error("Job execution failed", error)
+                logger.error("Job execution failed for pending-transactions-batch", error)
                 Mono.empty()
             }
             .subscribe()
