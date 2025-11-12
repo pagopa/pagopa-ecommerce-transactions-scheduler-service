@@ -15,7 +15,9 @@ class TransactionsViewMigrationBatch(
     @param:Autowired
     private val transactionsViewMigrationOrchestrator: TransactionsViewMigrationOrchestrator,
     @param:Autowired private val schedulerLockService: SchedulerLockService,
-    @param:Value("\${migration.transaction.batch.exclusiveLockDocument.ttlSeconds}")
+    @param:Value(
+        "\${migration.transaction.batch.transactionsView.exclusiveLockDocument.ttlSeconds}"
+    )
     private val lockTtlSeconds: Int
 ) {
 

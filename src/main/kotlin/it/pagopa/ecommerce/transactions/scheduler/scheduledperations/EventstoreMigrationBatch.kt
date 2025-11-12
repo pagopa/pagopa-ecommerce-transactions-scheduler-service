@@ -14,7 +14,7 @@ import reactor.core.publisher.Mono
 class EventstoreMigrationBatch(
     @param:Autowired private val eventstoreMigrationOrchestrator: EventStoreMigrationOrchestrator,
     @param:Autowired private val schedulerLockService: SchedulerLockService,
-    @param:Value("\${migration.transaction.batch.exclusiveLockDocument.ttlSeconds}")
+    @param:Value("\${migration.transaction.batch.eventstore.exclusiveLockDocument.ttlSeconds}")
     private val lockTtlSeconds: Int
 ) {
 
