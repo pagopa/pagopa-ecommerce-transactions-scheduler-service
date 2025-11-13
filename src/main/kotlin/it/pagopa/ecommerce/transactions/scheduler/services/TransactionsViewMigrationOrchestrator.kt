@@ -51,7 +51,7 @@ class TransactionsViewMigrationOrchestrator(
             }
     }
 
-    fun runMigration() {
-        this.createMigrationPipeline().subscribe()
+    fun runMigration(): Mono<Tuple2<Long, Long>> {
+        return this.createMigrationPipeline()
     }
 }
