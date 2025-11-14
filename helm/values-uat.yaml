@@ -20,7 +20,7 @@ microservice-chart:
     envSecret: {}
   image:
     repository: pagopaucommonacr.azurecr.io/pagopaecommercetransactionsschedulerservice
-    tag: "4.0.3"
+    tag: "4.1.0"
     pullPolicy: Always
   livenessProbe:
     httpGet:
@@ -105,6 +105,7 @@ microservice-chart:
     PENDING_TRANSACTIONS_MAX_TRANSACTIONS_PER_PAGE: "5"
     PENDING_TRANSACTIONS_PAGE_ANALYSIS_DELAY_SECONDS: "1"
     PENDING_TRANSACTIONS_SEND_PAYMENT_RESULT_TIMEOUT_SECONDS: "3900"
+    PENDING_TRANSACTIONS_BATCH_LOCK_TTL_SECONDS: "1800" # 30 minutes - pending transactions batch
     OTEL_RESOURCE_ATTRIBUTES: "service.name=pagopa-ecommerce-transactions-scheduler-service,deployment.environment=uat"
     OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.elastic-system.svc:4317"
     OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
@@ -144,7 +145,9 @@ microservice-chart:
     MIGRATION_TRANSACTION_WRITE_EVENT_STORE_TTL_SECONDS: "172800" # 2 days
     MIGRATION_TRANSACTION_WRITE_TRANSACTIONS_VIEW_TTL_SECONDS: "172800" # 2 days
     MIGRATION_TRANSACTION_BATCH_EVENTSTORE_CRON_EXPRESSION: "-"
+    MIGRATION_TRANSACTION_BATCH_EVENTSTORE_LOCK_TTL_SECONDS: "60" # 60 seconds - eventstore migration batch
     MIGRATION_TRANSACTION_BATCH_TRANSACTIONS_VIEW_CRON_EXPRESSION: "-" # every 10 seconds, starting from 00 second
+    MIGRATION_TRANSACTION_BATCH_TRANSACTIONS_VIEW_LOCK_TTL_SECONDS: "60" # 60 seconds - transactions view migration batch
   envSecret:
     MONGO_PASSWORD: mongo-ecommerce-password
     QUEUE_TRANSIENT_CONNECTION_STRING: ecommerce-storage-transient-connection-string
