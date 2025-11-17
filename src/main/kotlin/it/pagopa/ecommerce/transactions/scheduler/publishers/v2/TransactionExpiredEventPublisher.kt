@@ -13,8 +13,8 @@ import it.pagopa.ecommerce.commons.domain.v2.pojos.BaseTransactionWithRequestedA
 import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
 import it.pagopa.ecommerce.commons.queues.TracingUtils
 import it.pagopa.ecommerce.transactions.scheduler.publishers.EventPublisher
-import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsEventStoreRepository
-import it.pagopa.ecommerce.transactions.scheduler.repositories.TransactionsViewRepository
+import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.TransactionsEventStoreRepository
+import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.TransactionsViewRepository
 import java.time.ZonedDateTime
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory

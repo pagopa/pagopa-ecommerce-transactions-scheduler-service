@@ -1,6 +1,9 @@
 package it.pagopa.ecommerce.transactions.scheduler.scheduledperations
 
+import it.pagopa.ecommerce.commons.repositories.ExclusiveLockDocument
+import it.pagopa.ecommerce.transactions.scheduler.services.SchedulerLockService
 import it.pagopa.ecommerce.transactions.scheduler.transactionanalyzer.PendingTransactionAnalyzer
+import it.pagopa.ecommerce.transactions.scheduler.utils.SchedulerUtils
 import java.time.Duration
 import java.time.temporal.ChronoUnit
 import java.util.concurrent.TimeUnit
@@ -17,6 +20,7 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 import org.mockito.Mock
+import org.mockito.Mockito.lenient
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.*
 import org.springframework.test.context.TestPropertySource
@@ -29,6 +33,8 @@ class PendingTransactionBatchTests {
 
     @Mock private lateinit var pendingTransactionAnalyzer: PendingTransactionAnalyzer
 
+    @Mock private lateinit var schedulerLockService: SchedulerLockService
+
     private lateinit var pendingTransactionBatch: PendingTransactionBatch
 
     private val cronExecutionString = "*/10 * * * * *"
@@ -39,16 +45,28 @@ class PendingTransactionBatchTests {
 
     private val transactionPageAnalysisDelaySeconds = 0
 
+    private val lockTtlSeconds = 60
+
     @BeforeEach
     fun init() {
+        // Mock lock service behavior with lenient() to avoid UnnecessaryStubbingException
+        // for tests that don't call execute()
+        val lockDocument = ExclusiveLockDocument("test-job", "test-owner")
+        lenient()
+            .`when`(schedulerLockService.acquireJobLock(any(), any()))
+            .thenReturn(Mono.just(lockDocument))
+        lenient().`when`(schedulerLockService.releaseJobLock(any())).thenReturn(Mono.just(true))
+
         pendingTransactionBatch =
             PendingTransactionBatch(
                 pendingTransactionAnalyzer = pendingTransactionAnalyzer,
+                schedulerLockService = schedulerLockService,
                 chronExpression = cronExecutionString,
                 executionRateMultiplier = executionRateMultiplier,
                 batchMaxDurationSeconds = maxDurationSeconds,
                 maxTransactionPerPage = maxTransactionPerPage,
                 transactionPageAnalysisDelaySeconds = transactionPageAnalysisDelaySeconds,
+                lockTtlSeconds = lockTtlSeconds
             )
     }
 
@@ -74,15 +92,14 @@ class PendingTransactionBatchTests {
 
     @Test
     fun `Should get batch intertime executions correctly`() {
-        val intertime =
-            pendingTransactionBatch.getExecutionsInterleaveTimeMillis(cronExecutionString)
+        val intertime = SchedulerUtils.getExecutionsInterleaveTimeMillis(cronExecutionString)
         assertEquals(10000, intertime)
     }
 
     @Test
     fun `Should get transactions to analyze time window correctly`() {
         val (lower, upper) =
-            pendingTransactionBatch.getTransactionAnalyzerTimeWindow(
+            SchedulerUtils.getTransactionAnalyzerTimeWindow(
                 TimeUnit.HOURS.toMillis(1),
                 executionRateMultiplier
             )
@@ -96,7 +113,7 @@ class PendingTransactionBatchTests {
         val interTimeExecutionDuration = Duration.ofMinutes(10)
         val maxBatchDuration = Duration.ofMinutes(5)
         val calculatedMaxDuration =
-            pendingTransactionBatch.getMaxDuration(
+            SchedulerUtils.getMaxDuration(
                 interTimeExecutionDuration.toMillis(),
                 maxBatchDuration.toSeconds().toInt()
             )
@@ -108,7 +125,7 @@ class PendingTransactionBatchTests {
     fun `Should get batch max duration for max duration not configured as half execution intertime`() {
         val interTimeExecutionDuration = Duration.ofMinutes(10)
         val calculatedMaxDuration =
-            pendingTransactionBatch.getMaxDuration(Duration.ofMinutes(10).toMillis(), -1)
+            SchedulerUtils.getMaxDuration(Duration.ofMinutes(10).toMillis(), -1)
         // assertions
         assertEquals(interTimeExecutionDuration.toMillis() / 2, calculatedMaxDuration.toMillis())
     }
@@ -139,15 +156,17 @@ class PendingTransactionBatchTests {
         val pendingTransactionBatch =
             PendingTransactionBatch(
                 pendingTransactionAnalyzer = pendingTransactionAnalyzer,
+                schedulerLockService = schedulerLockService,
                 chronExpression = cronExecutionString,
                 executionRateMultiplier = executionRateMultiplier,
                 batchMaxDurationSeconds = 1,
                 maxTransactionPerPage = maxTransactionPerPage,
-                transactionPageAnalysisDelaySeconds = 0
+                transactionPageAnalysisDelaySeconds = 0,
+                lockTtlSeconds = lockTtlSeconds
             )
         val maxExecutionTime =
-            pendingTransactionBatch.getMaxDuration(
-                pendingTransactionBatch.getExecutionsInterleaveTimeMillis(
+            SchedulerUtils.getMaxDuration(
+                SchedulerUtils.getExecutionsInterleaveTimeMillis(
                     pendingTransactionBatch.chronExpression
                 ),
                 pendingTransactionBatch.batchMaxDurationSeconds
@@ -218,11 +237,13 @@ class PendingTransactionBatchTests {
         val pendingTransactionBatch =
             PendingTransactionBatch(
                 pendingTransactionAnalyzer = pendingTransactionAnalyzer,
+                schedulerLockService = schedulerLockService,
                 chronExpression = cronExecutionString,
                 executionRateMultiplier = executionRateMultiplier,
                 batchMaxDurationSeconds = 10,
                 maxTransactionPerPage = 2,
-                transactionPageAnalysisDelaySeconds = 1
+                transactionPageAnalysisDelaySeconds = 1,
+                lockTtlSeconds = lockTtlSeconds
             )
         val totalTransactionsToAnalyze = 3
         given(pendingTransactionAnalyzer.getTotalTransactionCount(any(), any()))

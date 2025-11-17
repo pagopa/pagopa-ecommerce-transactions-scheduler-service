@@ -20,7 +20,7 @@ microservice-chart:
     envSecret: {}
   image:
     repository: pagopapcommonacr.azurecr.io/pagopaecommercetransactionsschedulerservice
-    tag: "3.5.3"
+    tag: "4.1.0"
     pullPolicy: Always
   livenessProbe:
     httpGet:
@@ -38,7 +38,7 @@ microservice-chart:
     periodSeconds: 10
   deployment:
     create: true
-    replicas: 1
+    replicas: 3
   service:
     create: true
     type: ClusterIP
@@ -73,8 +73,8 @@ microservice-chart:
       maxUnavailable: "100%"
   autoscaling:
     enable: true
-    minReplica: 1
-    maxReplica: 1
+    minReplica: 3
+    maxReplica: 3
     pollingInterval: 30 # seconds
     cooldownPeriod: 30 # seconds
     triggers:
@@ -103,6 +103,7 @@ microservice-chart:
     MONGO_HEARTBEAT_FREQUENCY_MS: "5000"
     MONGO_REPLICA_SET_OPTION: "&replicaSet=globaldb"
     ECOMMERCE_DATABASE_NAME: "ecommerce"
+    ECOMMERCE_HISTORY_DATABASE_NAME: "ecommerce-history"
     TRANSACTION_EXPIRED_EVENTS_QUEUE_NAME: "pagopa-p-weu-ecommerce-transactions-expiration-queue"
     PENDING_TRANSACTIONS_SCHEDULE_CRON: "0 0 */1 * * *"
     PENDING_TRANSACTIONS_WINDOWS_BATCH_EXECUTION_RATE_MULTIPLIER: "2"
@@ -110,6 +111,7 @@ microservice-chart:
     PENDING_TRANSACTIONS_PAGE_ANALYSIS_DELAY_SECONDS: "1"
     PENDING_TRANSACTIONS_PARALLEL_EVENTS_TO_PROCESS: "1"
     PENDING_TRANSACTIONS_SEND_PAYMENT_RESULT_TIMEOUT_SECONDS: "3900"
+    PENDING_TRANSACTIONS_BATCH_LOCK_TTL_SECONDS: "1800" # 30 minutes - pending transactions batch
     TRANSIENT_QUEUES_TTL_SECONDS: "2592000"
     OTEL_RESOURCE_ATTRIBUTES: "service.name=pagopa-ecommerce-transactions-scheduler-service,deployment.environment=prod"
     OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.elastic-system.svc:4317"
@@ -143,6 +145,16 @@ microservice-chart:
     EVENT_CONTROLLER_STATUS_POLLING_CHRON: "*/10 * * * * *"
     DEPLOYMENT_VERSION: "PROD"
     TRANSACTIONSVIEW_UPDATE_ENABLED: "true"
+    MIGRATION_TRANSACTION_QUERY_EVENT_STORE_CUTOFF_MONTH_OFFSET: "9"
+    MIGRATION_TRANSACTION_QUERY_EVENT_STORE_MAX_RESULTS: "10"
+    MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_CUTOFF_MONTH_OFFSET: "9"
+    MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_MAX_RESULTS: "10"
+    MIGRATION_TRANSACTION_WRITE_EVENT_STORE_TTL_SECONDS: "172800" # 2 days
+    MIGRATION_TRANSACTION_WRITE_TRANSACTIONS_VIEW_TTL_SECONDS: "172800" # 2 days
+    MIGRATION_TRANSACTION_BATCH_EVENTSTORE_CRON_EXPRESSION: "-"
+    MIGRATION_TRANSACTION_BATCH_EVENTSTORE_LOCK_TTL_SECONDS: "60" # 60 seconds - eventstore migration batch
+    MIGRATION_TRANSACTION_BATCH_TRANSACTIONS_VIEW_CRON_EXPRESSION: "-" # every 10 seconds, starting from 00 second
+    MIGRATION_TRANSACTION_BATCH_TRANSACTIONS_VIEW_LOCK_TTL_SECONDS: "60" # 60 seconds - transactions view migration batch
   envSecret:
     MONGO_PASSWORD: mongo-ecommerce-password
     QUEUE_TRANSIENT_CONNECTION_STRING: ecommerce-storage-transient-connection-string
@@ -172,5 +184,14 @@ microservice-chart:
                 operator: In
                 values:
                   - user
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/instance: pagopaecommercetxschedulerservice
+            namespaces: ["ecommerce"]
+            topologyKey: topology.kubernetes.io/zone
   azure:
     workloadIdentityClientId: "d5614882-90dd-47a1-aad1-cdf295201469"
