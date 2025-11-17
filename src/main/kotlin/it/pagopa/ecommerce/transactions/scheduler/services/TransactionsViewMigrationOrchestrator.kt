@@ -1,6 +1,8 @@
 package it.pagopa.ecommerce.transactions.scheduler.services
 
+import it.pagopa.ecommerce.commons.documents.BaseTransactionView
 import it.pagopa.ecommerce.commons.utils.OpenTelemetryUtils
+import it.pagopa.ecommerce.transactions.scheduler.utils.MigrationTracingUtils
 import it.pagopa.ecommerce.transactions.scheduler.utils.MigrationTracingUtils.Companion.ECOMMERCE_MIGRATION_SPAN_NAME
 import it.pagopa.ecommerce.transactions.scheduler.utils.MigrationTracingUtils.Companion.getIterationSpanAttributes
 import org.slf4j.LoggerFactory
@@ -20,29 +22,32 @@ class TransactionsViewMigrationOrchestrator(
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    fun createMigrationPipeline(): Mono<Tuple2<Long, Long>> {
+    fun createMigrationPipeline(): Mono<Tuple2<Long, MigrationTracingUtils.MigrationStats>> {
         logger.info("transactions-view migration process started")
         return transactionMigrationQueryService
             .findEligibleTransactions()
             .doOnNext { tx -> logger.debug("Processing transaction: ${tx.transactionId}") }
             .transform { tx -> transactionMigrationWriteService.writeTransactionViews(tx) }
             .transform { tx -> transactionMigrationWriteService.updateViewsTtl(tx) }
-            .count()
+            .reduce(MigrationTracingUtils.MigrationStats.empty()) { acc, tx ->
+                MigrationTracingUtils.MigrationStats(acc.count + 1, getLastCreationDate(tx))
+            }
             .elapsed()
-            .map { (elapsedMs, processedTransactions) ->
+            .map { (elapsedMs, migrationStats) ->
                 openTelemetryUtils.addSpanWithAttributes(
                     ECOMMERCE_MIGRATION_SPAN_NAME,
                     getIterationSpanAttributes(
                         elapsedMs,
-                        processedTransactions,
-                        "transactions-view"
+                        migrationStats.count,
+                        "transactions-view",
+                        migrationStats.lastCreationDate
                     )
                 )
-                Tuples.of(elapsedMs, processedTransactions)
+                Tuples.of(elapsedMs, migrationStats)
             }
-            .doOnSuccess { (elapsedMs, processedTransactionsCount) ->
+            .doOnSuccess { (elapsedMs, migrationStats) ->
                 logger.info(
-                    "transactions-view migration process completed. Processed $processedTransactionsCount items in $elapsedMs ms"
+                    "transactions-view migration process completed. Processed ${migrationStats.count} items in $elapsedMs ms. Last creation date ${migrationStats.lastCreationDate}"
                 )
             }
             .onErrorResume { error ->
@@ -51,7 +56,16 @@ class TransactionsViewMigrationOrchestrator(
             }
     }
 
-    fun runMigration(): Mono<Tuple2<Long, Long>> {
+    private fun getLastCreationDate(transactionsView: BaseTransactionView): String {
+        if (transactionsView is it.pagopa.ecommerce.commons.documents.v1.Transaction)
+            return transactionsView.creationDate
+        else if (transactionsView is it.pagopa.ecommerce.commons.documents.v2.Transaction)
+            return transactionsView.creationDate
+
+        return ""
+    }
+
+    fun runMigration(): Mono<Tuple2<Long, MigrationTracingUtils.MigrationStats>> {
         return this.createMigrationPipeline()
     }
 }
