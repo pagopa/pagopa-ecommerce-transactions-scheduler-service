@@ -65,6 +65,19 @@ paths:
                 title: Bad request
                 status: 400
                 detail: Invalid input request
+        '401':
+          description: Unauthorized
+          headers:
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/RateLimitLimit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimitRemaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/RateLimitReset'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemJson'
         '429':
           description: Too many requests
           headers:
@@ -120,6 +133,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/EventReceiverStatusResponse'
+        '401':
+          description: Unauthorized
+          headers:
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/RateLimitLimit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimitRemaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/RateLimitReset'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemJson'
         '404':
           description: No receiver status information found
           headers:
