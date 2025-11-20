@@ -1,6 +1,7 @@
 package it.pagopa.ecommerce.transactions.scheduler.services
 
 import it.pagopa.ecommerce.commons.utils.OpenTelemetryUtils
+import it.pagopa.ecommerce.transactions.scheduler.utils.MigrationTracingUtils
 import it.pagopa.ecommerce.transactions.scheduler.utils.MigrationTracingUtils.Companion.ECOMMERCE_MIGRATION_SPAN_NAME
 import it.pagopa.ecommerce.transactions.scheduler.utils.MigrationTracingUtils.Companion.getIterationSpanAttributes
 import org.slf4j.LoggerFactory
@@ -20,25 +21,33 @@ class EventStoreMigrationOrchestrator(
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    fun createMigrationPipeline(): Mono<Tuple2<Long, Long>> {
+    fun createMigrationPipeline(): Mono<Tuple2<Long, MigrationTracingUtils.MigrationStats>> {
         logger.info("eventstore migration process started")
+
         return transactionMigrationQueryService
             .findEligibleEvents()
             .doOnNext { tx -> logger.debug("Processing event: ${tx.id}") }
             .transform { tx -> transactionMigrationWriteService.writeEvents(tx) }
             .transform { tx -> transactionMigrationWriteService.updateEventsTtl(tx) }
-            .count()
+            .reduce(MigrationTracingUtils.MigrationStats.empty()) { acc, tx ->
+                MigrationTracingUtils.MigrationStats(acc.count + 1, tx.creationDate ?: "")
+            }
             .elapsed()
-            .map { (elapsedMs, processedEvents) ->
+            .map { (elapsedMs, migrationStats) ->
                 openTelemetryUtils.addSpanWithAttributes(
                     ECOMMERCE_MIGRATION_SPAN_NAME,
-                    getIterationSpanAttributes(elapsedMs, processedEvents, "eventstore")
+                    getIterationSpanAttributes(
+                        elapsedMs,
+                        migrationStats.count,
+                        "eventstore",
+                        migrationStats.lastCreationDate
+                    )
                 )
-                Tuples.of(elapsedMs, processedEvents)
+                Tuples.of(elapsedMs, migrationStats)
             }
-            .doOnSuccess { (elapsedMs, processedEventsCount) ->
+            .doOnSuccess { (elapsedMs, migrationStats) ->
                 logger.info(
-                    "eventstore migration process completed. Processed $processedEventsCount items in $elapsedMs ms"
+                    "eventstore migration process completed. Processed ${migrationStats.count} items in $elapsedMs ms. Last creation date ${migrationStats.lastCreationDate}"
                 )
             }
             .onErrorResume { error ->
@@ -47,7 +56,7 @@ class EventStoreMigrationOrchestrator(
             }
     }
 
-    fun runMigration(): Mono<Tuple2<Long, Long>> {
+    fun runMigration(): Mono<Tuple2<Long, MigrationTracingUtils.MigrationStats>> {
         return this.createMigrationPipeline()
     }
 }
