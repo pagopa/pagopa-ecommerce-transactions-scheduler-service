@@ -39,6 +39,9 @@ class EventstoreMigrationOrchestratorTest {
             it.arguments[0]
         }
         doNothing().`when`(openTelemetryUtils).addSpanWithAttributes(anyOrNull(), anyOrNull())
+        whenever(event1.creationDate).thenReturn("01-10-2024")
+        whenever(event2.creationDate).thenReturn("02-10-2024")
+        whenever(event3.creationDate).thenReturn("03-10-2024")
 
         // ACT
         StepVerifier.create(eventstoreMigrationOrchestrator.createMigrationPipeline())
