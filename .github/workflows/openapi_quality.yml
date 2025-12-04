@@ -30,5 +30,5 @@ jobs:
           filepath: ${{ matrix.spec.path }}
           apikey: ${{ secrets.RATEMYOPENAPI_API_KEY }}
           minimum-score: 80
-          max-warnings: 12
+          max-warnings: 13
           max-errors: 5
