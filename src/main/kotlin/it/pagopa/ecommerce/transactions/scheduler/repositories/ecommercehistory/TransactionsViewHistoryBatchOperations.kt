@@ -19,7 +19,10 @@ class TransactionsViewHistoryBatchOperations(
 ) {
 
     fun batchUpsert(views: Flux<BaseTransactionView>): Flux<BaseTransactionView> {
-        return views.buffer(500).flatMap { batch -> executeBulkBatch(batch) }.flatMapIterable { it }
+        return views
+            .collectList()
+            .flatMap { batch -> executeBulkBatch(batch) }
+            .flatMapIterable { it }
     }
 
     private fun executeBulkBatch(

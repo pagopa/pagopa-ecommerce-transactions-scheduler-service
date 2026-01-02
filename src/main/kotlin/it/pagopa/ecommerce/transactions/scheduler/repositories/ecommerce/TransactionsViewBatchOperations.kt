@@ -23,7 +23,7 @@ class TransactionsViewBatchOperations(
 
     fun batchUpdateTtl(views: Flux<BaseTransactionView>, ttlDate: Long): Flux<BaseTransactionView> {
         return views
-            .buffer(500)
+            .collectList()
             .flatMap { batch -> executeTtlBatch(batch, ttlDate) }
             .flatMapIterable { it }
     }
