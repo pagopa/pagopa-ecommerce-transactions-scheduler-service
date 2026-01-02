@@ -27,8 +27,8 @@ class TransactionsViewMigrationOrchestrator(
         return transactionMigrationQueryService
             .findEligibleTransactions()
             .doOnNext { tx -> logger.debug("Processing transaction: ${tx.transactionId}") }
-            .transform { tx -> transactionMigrationWriteService.writeTransactionViews(tx) }
-            .transform { tx -> transactionMigrationWriteService.updateViewsTtl(tx) }
+            .transform { tx -> transactionMigrationWriteService.writeTransactionViews2(tx) }
+            .transform { tx -> transactionMigrationWriteService.updateViewsTtl2(tx) }
             .reduce(MigrationTracingUtils.MigrationStats.empty()) { acc, tx ->
                 MigrationTracingUtils.MigrationStats(acc.count + 1, getLastCreationDate(tx))
             }
