@@ -22,7 +22,8 @@ import reactor.core.publisher.Mono
 class TransactionMigrationWriteService(
     @param:Autowired private val eventHistoryRepository: TransactionsEventStoreHistoryRepository,
     @param:Autowired private val viewHistoryRepository: TransactionsViewHistoryRepository,
-    @param:Autowired private val viewHistoryRepository2: TransactionsViewHistoryBatchOperations,
+    @param:Autowired
+    private val transactionsViewHistoryBatchOperations: TransactionsViewHistoryBatchOperations,
     @param:Autowired private val transactionsViewBatchOperations: TransactionsViewBatchOperations,
     @param:Autowired
     @param:Qualifier("ecommerceReactiveMongoTemplate")
@@ -116,8 +117,8 @@ class TransactionMigrationWriteService(
      * Migrates transaction views to history database.
      * @return Flux of successfully migrated views
      */
-    fun writeTransactionViews2(views: Flux<BaseTransactionView>): Flux<BaseTransactionView> {
-        return viewHistoryRepository2
+    fun writeTransactionViewsBatch(views: Flux<BaseTransactionView>): Flux<BaseTransactionView> {
+        return transactionsViewHistoryBatchOperations
             .batchUpsert(views)
             .map {
                 logger.info("View with ${it.transactionId}")
@@ -146,7 +147,7 @@ class TransactionMigrationWriteService(
      * Update ttls on the given eventstore documents
      * @return Flux of successfully updated events
      */
-    fun updateViewsTtl2(views: Flux<BaseTransactionView>): Flux<BaseTransactionView> {
+    fun updateViewsTtlBatch(views: Flux<BaseTransactionView>): Flux<BaseTransactionView> {
         return transactionsViewBatchOperations.batchUpdateTtl(
             views,
             transactionMigrationWriteServiceConfig.transactionsView.ttlSeconds.toLong()

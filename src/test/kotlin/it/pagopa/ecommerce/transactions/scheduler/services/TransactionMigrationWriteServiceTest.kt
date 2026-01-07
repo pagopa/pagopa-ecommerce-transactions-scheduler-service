@@ -5,7 +5,9 @@ import it.pagopa.ecommerce.commons.documents.BaseTransactionEvent
 import it.pagopa.ecommerce.commons.documents.BaseTransactionView
 import it.pagopa.ecommerce.transactions.scheduler.configurations.TransactionMigrationWriteServiceConfig
 import it.pagopa.ecommerce.transactions.scheduler.configurations.WriteSettings
+import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.TransactionsViewBatchOperations
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommercehistory.TransactionsEventStoreHistoryRepository
+import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommercehistory.TransactionsViewHistoryBatchOperations
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommercehistory.TransactionsViewHistoryRepository
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -28,6 +30,12 @@ class TransactionMigrationWriteServiceTest {
     @Mock private lateinit var eventHistoryRepository: TransactionsEventStoreHistoryRepository
 
     @Mock private lateinit var viewHistoryRepository: TransactionsViewHistoryRepository
+
+    @Mock private lateinit var transactionsViewBatchOperations: TransactionsViewBatchOperations
+
+    @Mock
+    private lateinit var transactionsViewHistoryBatchOperations:
+        TransactionsViewHistoryBatchOperations
 
     @Mock private lateinit var ecommerceMongoTemplate: ReactiveMongoTemplate
 
