@@ -67,11 +67,11 @@ class TransactionsViewBulkOperations(
                         items.filterIndexed { index, _ -> !failedIndexes.contains(index) }
 
                     logger.warn(
-                        "Batch TTL update partial failure. ${failedIndexes.size} failed, ${survivors.size} succeeded."
+                        "Bulk TTL update partial failure. ${failedIndexes.size} failed, ${survivors.size} succeeded."
                     )
                     Mono.just(survivors)
                 } else {
-                    logger.error("Batch TTL update failed completely", ex)
+                    logger.error("Bulk TTL update failed completely", ex)
                     Mono.empty()
                 }
             }
