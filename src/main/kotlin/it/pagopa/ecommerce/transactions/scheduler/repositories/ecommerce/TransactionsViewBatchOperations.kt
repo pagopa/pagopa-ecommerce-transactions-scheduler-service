@@ -52,7 +52,7 @@ class TransactionsViewBatchOperations(
             .execute()
             .map { result ->
                 if (result.modifiedCount < batch.size) {
-                    logger.debug(
+                    logger.warn(
                         "Batch TTL update: ${result.modifiedCount} updated out of ${batch.size} submitted."
                     )
                 }
