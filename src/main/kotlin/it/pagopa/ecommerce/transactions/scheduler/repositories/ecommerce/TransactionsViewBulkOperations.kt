@@ -15,7 +15,7 @@ import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
 @Repository
-class TransactionsViewBatchOperations(
+class TransactionsViewBulkOperations(
     @param:Qualifier("ecommerceReactiveMongoTemplate")
     private val reactiveMongoTemplate: ReactiveMongoTemplate
 ) {

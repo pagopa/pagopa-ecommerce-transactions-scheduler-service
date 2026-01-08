@@ -3,9 +3,9 @@ package it.pagopa.ecommerce.transactions.scheduler.services
 import it.pagopa.ecommerce.commons.documents.BaseTransactionEvent
 import it.pagopa.ecommerce.commons.documents.BaseTransactionView
 import it.pagopa.ecommerce.transactions.scheduler.configurations.TransactionMigrationWriteServiceConfig
-import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.TransactionsViewBatchOperations
+import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.TransactionsViewBulkOperations
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommercehistory.TransactionsEventStoreHistoryRepository
-import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommercehistory.TransactionsViewHistoryBatchOperations
+import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommercehistory.TransactionsViewHistoryBulkOperations
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommercehistory.TransactionsViewHistoryRepository
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -23,8 +23,8 @@ class TransactionMigrationWriteService(
     @param:Autowired private val eventHistoryRepository: TransactionsEventStoreHistoryRepository,
     @param:Autowired private val viewHistoryRepository: TransactionsViewHistoryRepository,
     @param:Autowired
-    private val transactionsViewHistoryBatchOperations: TransactionsViewHistoryBatchOperations,
-    @param:Autowired private val transactionsViewBatchOperations: TransactionsViewBatchOperations,
+    private val transactionsViewHistoryBulkOperations: TransactionsViewHistoryBulkOperations,
+    @param:Autowired private val transactionsViewBulkOperations: TransactionsViewBulkOperations,
     @param:Autowired
     @param:Qualifier("ecommerceReactiveMongoTemplate")
     private val ecommerceMongoTemplate: ReactiveMongoTemplate,
@@ -118,7 +118,7 @@ class TransactionMigrationWriteService(
      * @return Flux of successfully migrated views
      */
     fun writeTransactionViewsBatch(views: Flux<BaseTransactionView>): Flux<BaseTransactionView> {
-        return transactionsViewHistoryBatchOperations
+        return transactionsViewHistoryBulkOperations
             .batchUpsert(views)
             .map {
                 logger.info("View with ${it.transactionId}")
@@ -148,7 +148,7 @@ class TransactionMigrationWriteService(
      * @return Flux of successfully updated events
      */
     fun updateViewsTtlBatch(views: Flux<BaseTransactionView>): Flux<BaseTransactionView> {
-        return transactionsViewBatchOperations.batchUpdateTtl(
+        return transactionsViewBulkOperations.batchUpdateTtl(
             views,
             transactionMigrationWriteServiceConfig.transactionsView.ttlSeconds.toLong()
         )

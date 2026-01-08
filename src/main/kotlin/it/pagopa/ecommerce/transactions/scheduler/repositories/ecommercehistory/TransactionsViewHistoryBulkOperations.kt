@@ -13,7 +13,7 @@ import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
 @Repository
-class TransactionsViewHistoryBatchOperations(
+class TransactionsViewHistoryBulkOperations(
     @param:Qualifier("ecommerceHistoryReactiveMongoTemplate")
     private val reactiveMongoTemplate: ReactiveMongoTemplate
 ) {
