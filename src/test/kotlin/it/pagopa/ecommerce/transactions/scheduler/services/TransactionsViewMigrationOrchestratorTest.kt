@@ -36,10 +36,10 @@ class TransactionsViewMigrationOrchestratorTest {
 
         whenever(transactionMigrationQueryService.findEligibleTransactions())
             .thenReturn(transactionsViewFlux)
-        whenever(transactionMigrationWriteService.writeTransactionViewsBatch(any())).thenAnswer {
+        whenever(transactionMigrationWriteService.writeBulkTransactionViews(any())).thenAnswer {
             it.arguments[0]
         }
-        whenever(transactionMigrationWriteService.updateViewsTtlBatch(any())).thenAnswer {
+        whenever(transactionMigrationWriteService.updateBulkViewsTtl(any())).thenAnswer {
             it.arguments[0]
         }
         doNothing().`when`(openTelemetryUtils).addSpanWithAttributes(anyOrNull(), anyOrNull())
@@ -51,8 +51,8 @@ class TransactionsViewMigrationOrchestratorTest {
 
         // ASSERT
         verify(transactionMigrationQueryService, times(1)).findEligibleTransactions()
-        verify(transactionMigrationWriteService, times(1)).writeTransactionViewsBatch(any())
-        verify(transactionMigrationWriteService, times(1)).updateViewsTtlBatch(any())
+        verify(transactionMigrationWriteService, times(1)).writeBulkTransactionViews(any())
+        verify(transactionMigrationWriteService, times(1)).updateBulkViewsTtl(any())
         verify(openTelemetryUtils, times(1)).addSpanWithAttributes(anyOrNull(), anyOrNull())
     }
 
@@ -62,10 +62,10 @@ class TransactionsViewMigrationOrchestratorTest {
 
         whenever(transactionMigrationQueryService.findEligibleTransactions())
             .thenReturn(Flux.error { RuntimeException("Test error") })
-        whenever(transactionMigrationWriteService.writeTransactionViewsBatch(any())).thenAnswer {
+        whenever(transactionMigrationWriteService.writeBulkTransactionViews(any())).thenAnswer {
             it.arguments[0]
         }
-        whenever(transactionMigrationWriteService.updateViewsTtlBatch(any())).thenAnswer {
+        whenever(transactionMigrationWriteService.updateBulkViewsTtl(any())).thenAnswer {
             it.arguments[0]
         }
 
@@ -76,7 +76,7 @@ class TransactionsViewMigrationOrchestratorTest {
 
         // ASSERT
         verify(transactionMigrationQueryService, times(1)).findEligibleTransactions()
-        verify(transactionMigrationWriteService, times(1)).writeTransactionViewsBatch(any())
-        verify(transactionMigrationWriteService, times(1)).updateViewsTtlBatch(any())
+        verify(transactionMigrationWriteService, times(1)).writeBulkTransactionViews(any())
+        verify(transactionMigrationWriteService, times(1)).updateBulkViewsTtl(any())
     }
 }

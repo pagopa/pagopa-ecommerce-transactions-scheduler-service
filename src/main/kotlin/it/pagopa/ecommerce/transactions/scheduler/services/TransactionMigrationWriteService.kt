@@ -117,9 +117,9 @@ class TransactionMigrationWriteService(
      * Migrates transaction views to history database.
      * @return Flux of successfully migrated views
      */
-    fun writeTransactionViewsBatch(views: Flux<BaseTransactionView>): Flux<BaseTransactionView> {
+    fun writeBulkTransactionViews(views: Flux<BaseTransactionView>): Flux<BaseTransactionView> {
         return transactionsViewHistoryBulkOperations
-            .batchUpsert(views)
+            .bulkUpsert(views)
             .map {
                 logger.info("View with ${it.transactionId}")
                 it
@@ -147,8 +147,8 @@ class TransactionMigrationWriteService(
      * Update ttls on the given eventstore documents
      * @return Flux of successfully updated events
      */
-    fun updateViewsTtlBatch(views: Flux<BaseTransactionView>): Flux<BaseTransactionView> {
-        return transactionsViewBulkOperations.batchUpdateTtl(
+    fun updateBulkViewsTtl(views: Flux<BaseTransactionView>): Flux<BaseTransactionView> {
+        return transactionsViewBulkOperations.bulkUpdateTtl(
             views,
             transactionMigrationWriteServiceConfig.transactionsView.ttlSeconds.toLong()
         )

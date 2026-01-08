@@ -18,14 +18,14 @@ class TransactionsViewHistoryBulkOperations(
     private val reactiveMongoTemplate: ReactiveMongoTemplate
 ) {
 
-    fun batchUpsert(views: Flux<BaseTransactionView>): Flux<BaseTransactionView> {
+    fun bulkUpsert(views: Flux<BaseTransactionView>): Flux<BaseTransactionView> {
         return views
             .collectList()
-            .flatMap { batch -> executeBulkBatch(batch) }
+            .flatMap { items -> executeBulkUpsert(items) }
             .flatMapIterable { it }
     }
 
-    private fun executeBulkBatch(
+    private fun executeBulkUpsert(
         views: List<BaseTransactionView>
     ): Mono<List<BaseTransactionView>> {
         if (views.isEmpty()) return Mono.empty()

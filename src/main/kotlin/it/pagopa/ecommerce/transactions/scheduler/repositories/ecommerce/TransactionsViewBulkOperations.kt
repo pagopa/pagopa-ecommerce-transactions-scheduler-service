@@ -21,18 +21,18 @@ class TransactionsViewBulkOperations(
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    fun batchUpdateTtl(views: Flux<BaseTransactionView>, ttlDate: Long): Flux<BaseTransactionView> {
+    fun bulkUpdateTtl(views: Flux<BaseTransactionView>, ttlDate: Long): Flux<BaseTransactionView> {
         return views
             .collectList()
-            .flatMap { batch -> executeTtlBatch(batch, ttlDate) }
+            .flatMap { items -> executeBulkUpdateTtl(items, ttlDate) }
             .flatMapIterable { it }
     }
 
-    private fun executeTtlBatch(
-        batch: List<BaseTransactionView>,
+    private fun executeBulkUpdateTtl(
+        items: List<BaseTransactionView>,
         ttlDate: Long
     ): Mono<List<BaseTransactionView>> {
-        if (batch.isEmpty()) return Mono.just(emptyList())
+        if (items.isEmpty()) return Mono.just(emptyList())
 
         val bulkOps =
             reactiveMongoTemplate.bulkOps(
@@ -41,7 +41,7 @@ class TransactionsViewBulkOperations(
             )
 
         // Queue up the updates
-        batch.forEach { view ->
+        items.forEach { view ->
             bulkOps.updateOne(
                 Query.query(Criteria.where("_id").`is`(view.transactionId)),
                 Update().set("ttl", ttlDate)
@@ -51,12 +51,12 @@ class TransactionsViewBulkOperations(
         return bulkOps
             .execute()
             .map { result ->
-                if (result.modifiedCount < batch.size) {
+                if (result.modifiedCount < items.size) {
                     logger.warn(
-                        "Batch TTL update: ${result.modifiedCount} updated out of ${batch.size} submitted."
+                        "Bulk TTL update: ${result.modifiedCount} updated out of ${items.size} submitted."
                     )
                 }
-                batch
+                items
             }
             .onErrorResume(DataIntegrityViolationException::class.java) { ex ->
                 val mongoEx = ex.cause as? MongoBulkWriteException
@@ -64,7 +64,7 @@ class TransactionsViewBulkOperations(
                     // Filter out failed items
                     val failedIndexes = mongoEx.writeErrors.map { it.index }.toSet()
                     val survivors =
-                        batch.filterIndexed { index, _ -> !failedIndexes.contains(index) }
+                        items.filterIndexed { index, _ -> !failedIndexes.contains(index) }
 
                     logger.warn(
                         "Batch TTL update partial failure. ${failedIndexes.size} failed, ${survivors.size} succeeded."
