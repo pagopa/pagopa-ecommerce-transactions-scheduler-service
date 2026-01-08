@@ -3,7 +3,9 @@ package it.pagopa.ecommerce.transactions.scheduler.services
 import it.pagopa.ecommerce.commons.documents.BaseTransactionEvent
 import it.pagopa.ecommerce.commons.documents.BaseTransactionView
 import it.pagopa.ecommerce.transactions.scheduler.configurations.TransactionMigrationWriteServiceConfig
+import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.TransactionsViewBulkOperations
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommercehistory.TransactionsEventStoreHistoryRepository
+import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommercehistory.TransactionsViewHistoryBulkOperations
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommercehistory.TransactionsViewHistoryRepository
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -21,7 +23,10 @@ class TransactionMigrationWriteService(
     @param:Autowired private val eventHistoryRepository: TransactionsEventStoreHistoryRepository,
     @param:Autowired private val viewHistoryRepository: TransactionsViewHistoryRepository,
     @param:Autowired
-    @Qualifier("ecommerceReactiveMongoTemplate")
+    private val transactionsViewHistoryBulkOperations: TransactionsViewHistoryBulkOperations,
+    @param:Autowired private val transactionsViewBulkOperations: TransactionsViewBulkOperations,
+    @param:Autowired
+    @param:Qualifier("ecommerceReactiveMongoTemplate")
     private val ecommerceMongoTemplate: ReactiveMongoTemplate,
     @param:Autowired
     private val transactionMigrationWriteServiceConfig: TransactionMigrationWriteServiceConfig
@@ -109,6 +114,23 @@ class TransactionMigrationWriteService(
     }
 
     /**
+     * Migrates transaction views to history database.
+     * @return Flux of successfully migrated views
+     */
+    fun writeBulkTransactionViews(views: Flux<BaseTransactionView>): Flux<BaseTransactionView> {
+        return transactionsViewHistoryBulkOperations
+            .bulkUpsert(views)
+            .map {
+                logger.info("View with ${it.transactionId}")
+                it
+            }
+            .onErrorResume { error ->
+                logger.warn("Skipping failed views migration", error)
+                Mono.empty()
+            }
+    }
+
+    /**
      * Update ttls on the given transactions-view documents
      * @return Flux of successfully updated views
      */
@@ -119,6 +141,17 @@ class TransactionMigrationWriteService(
                 Mono.just(false)
             }
         }
+    }
+
+    /**
+     * Update ttls on the given eventstore documents
+     * @return Flux of successfully updated events
+     */
+    fun updateBulkViewsTtl(views: Flux<BaseTransactionView>): Flux<BaseTransactionView> {
+        return transactionsViewBulkOperations.bulkUpdateTtl(
+            views,
+            transactionMigrationWriteServiceConfig.transactionsView.ttlSeconds.toLong()
+        )
     }
 
     /**
