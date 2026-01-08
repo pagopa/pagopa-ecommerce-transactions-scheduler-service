@@ -25,15 +25,12 @@ import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
 
-
 @ExtendWith(MockitoExtension::class)
 class TransactionsViewBulkOperationsTest {
 
-    @Mock
-    lateinit var reactiveMongoTemplate: ReactiveMongoTemplate
+    @Mock lateinit var reactiveMongoTemplate: ReactiveMongoTemplate
 
-    @Mock
-    lateinit var bulkOps: ReactiveBulkOperations
+    @Mock lateinit var bulkOps: ReactiveBulkOperations
 
     private lateinit var service: TransactionsViewBulkOperations
 
@@ -47,28 +44,28 @@ class TransactionsViewBulkOperationsTest {
         // GIVEN
         val ttlDate = 123456789L
         val item1 = mock<BaseTransactionView>()
-        val item2 =  mock<BaseTransactionView>()
+        val item2 = mock<BaseTransactionView>()
         val items = Flux.just(item1, item2)
 
         val bulkResult = BulkWriteResult.acknowledged(2, 0, 0, 0, emptyList(), emptyList())
 
-        given(reactiveMongoTemplate.bulkOps(any(BulkOperations.BulkMode::class.java), any(Class::class.java)))
+        given(
+                reactiveMongoTemplate.bulkOps(
+                    any(BulkOperations.BulkMode::class.java),
+                    any(Class::class.java)
+                )
+            )
             .willReturn(bulkOps)
 
-        given(bulkOps.updateOne(anyOrNull(), anyOrNull()))
-            .willReturn(bulkOps)
+        given(bulkOps.updateOne(anyOrNull(), anyOrNull())).willReturn(bulkOps)
 
-        given(bulkOps.execute())
-            .willReturn(Mono.just(bulkResult))
+        given(bulkOps.execute()).willReturn(Mono.just(bulkResult))
 
         // WHEN
         val resultFlux = service.bulkUpdateTtl(items, ttlDate)
 
         // THEN
-        StepVerifier.create(resultFlux)
-            .expectNext(item1)
-            .expectNext(item2)
-            .verifyComplete()
+        StepVerifier.create(resultFlux).expectNext(item1).expectNext(item2).verifyComplete()
 
         // Verify calls
         Mockito.verify(bulkOps, Mockito.times(2)).updateOne(anyOrNull(), anyOrNull())
@@ -80,25 +77,29 @@ class TransactionsViewBulkOperationsTest {
         // GIVEN
         val ttlDate = 123456789L
         val item1 = mock<BaseTransactionView>()
-        val item2 =  mock<BaseTransactionView>()
+        val item2 = mock<BaseTransactionView>()
         val items = Flux.just(item1, item2)
 
         val writeError = BulkWriteError(11000, "Duplicate Key", BsonDocument(), 1)
-        val mongoEx = MongoBulkWriteException(
-            BulkWriteResult.unacknowledged(),
-            listOf(writeError),
-            null,
-            ServerAddress("localhost"),
-            emptySet()
-        )
+        val mongoEx =
+            MongoBulkWriteException(
+                BulkWriteResult.unacknowledged(),
+                listOf(writeError),
+                null,
+                ServerAddress("localhost"),
+                emptySet()
+            )
         val springEx = DataIntegrityViolationException("Bulk failed", mongoEx)
 
-        given(reactiveMongoTemplate.bulkOps(any(BulkOperations.BulkMode::class.java), any(Class::class.java)))
+        given(
+                reactiveMongoTemplate.bulkOps(
+                    any(BulkOperations.BulkMode::class.java),
+                    any(Class::class.java)
+                )
+            )
             .willReturn(bulkOps)
-        given(bulkOps.updateOne(anyOrNull(), anyOrNull()))
-            .willReturn(bulkOps)
-        given(bulkOps.execute())
-            .willReturn(Mono.error(springEx))
+        given(bulkOps.updateOne(anyOrNull(), anyOrNull())).willReturn(bulkOps)
+        given(bulkOps.execute()).willReturn(Mono.error(springEx))
 
         // WHEN
         val resultFlux = service.bulkUpdateTtl(items, ttlDate)
@@ -117,15 +118,17 @@ class TransactionsViewBulkOperationsTest {
 
         val unknownEx = DataIntegrityViolationException("Generic DB error")
 
-        given(reactiveMongoTemplate.bulkOps(any(BulkOperations.BulkMode::class.java), any(Class::class.java)))
+        given(
+                reactiveMongoTemplate.bulkOps(
+                    any(BulkOperations.BulkMode::class.java),
+                    any(Class::class.java)
+                )
+            )
             .willReturn(bulkOps)
-        given(bulkOps.updateOne(anyOrNull(), anyOrNull()))
-            .willReturn(bulkOps)
-        given(bulkOps.execute())
-            .willReturn(Mono.error(unknownEx))
+        given(bulkOps.updateOne(anyOrNull(), anyOrNull())).willReturn(bulkOps)
+        given(bulkOps.execute()).willReturn(Mono.error(unknownEx))
 
         // WHEN & THEN
-        StepVerifier.create(service.bulkUpdateTtl(items, 100L))
-            .verifyComplete()
+        StepVerifier.create(service.bulkUpdateTtl(items, 100L)).verifyComplete()
     }
 }
