@@ -34,8 +34,10 @@ class EventstoreMigrationOrchestratorTest {
         val eventsFlux = Flux.just(event1, event2, event3)
 
         whenever(transactionMigrationQueryService.findEligibleEvents()).thenReturn(eventsFlux)
-        whenever(transactionMigrationWriteService.writeEvents(any())).thenAnswer { it.arguments[0] }
-        whenever(transactionMigrationWriteService.updateEventsTtl(any())).thenAnswer {
+        whenever(transactionMigrationWriteService.writeBulkEvents(any())).thenAnswer {
+            it.arguments[0]
+        }
+        whenever(transactionMigrationWriteService.updateBulkEventsTtl(any())).thenAnswer {
             it.arguments[0]
         }
         doNothing().`when`(openTelemetryUtils).addSpanWithAttributes(anyOrNull(), anyOrNull())
@@ -50,8 +52,8 @@ class EventstoreMigrationOrchestratorTest {
 
         // ASSERT
         verify(transactionMigrationQueryService, times(1)).findEligibleEvents()
-        verify(transactionMigrationWriteService, times(1)).writeEvents(any())
-        verify(transactionMigrationWriteService, times(1)).updateEventsTtl(any())
+        verify(transactionMigrationWriteService, times(1)).writeBulkEvents(any())
+        verify(transactionMigrationWriteService, times(1)).updateBulkEventsTtl(any())
         verify(openTelemetryUtils, times(1)).addSpanWithAttributes(anyOrNull(), anyOrNull())
     }
 
@@ -61,8 +63,10 @@ class EventstoreMigrationOrchestratorTest {
 
         whenever(transactionMigrationQueryService.findEligibleEvents())
             .thenReturn(Flux.error { RuntimeException("Test error") })
-        whenever(transactionMigrationWriteService.writeEvents(any())).thenAnswer { it.arguments[0] }
-        whenever(transactionMigrationWriteService.updateEventsTtl(any())).thenAnswer {
+        whenever(transactionMigrationWriteService.writeBulkEvents(any())).thenAnswer {
+            it.arguments[0]
+        }
+        whenever(transactionMigrationWriteService.updateBulkEventsTtl(any())).thenAnswer {
             it.arguments[0]
         }
 
@@ -73,7 +77,7 @@ class EventstoreMigrationOrchestratorTest {
 
         // ASSERT
         verify(transactionMigrationQueryService, times(1)).findEligibleEvents()
-        verify(transactionMigrationWriteService, times(1)).writeEvents(any())
-        verify(transactionMigrationWriteService, times(1)).updateEventsTtl(any())
+        verify(transactionMigrationWriteService, times(1)).writeBulkEvents(any())
+        verify(transactionMigrationWriteService, times(1)).updateBulkEventsTtl(any())
     }
 }
