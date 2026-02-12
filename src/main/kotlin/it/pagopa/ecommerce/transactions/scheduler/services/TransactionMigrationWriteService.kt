@@ -3,7 +3,9 @@ package it.pagopa.ecommerce.transactions.scheduler.services
 import it.pagopa.ecommerce.commons.documents.BaseTransactionEvent
 import it.pagopa.ecommerce.commons.documents.BaseTransactionView
 import it.pagopa.ecommerce.transactions.scheduler.configurations.TransactionMigrationWriteServiceConfig
+import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.EventStoreBulkOperations
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.TransactionsViewBulkOperations
+import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommercehistory.EventStoreHistoryBulkOperations
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommercehistory.TransactionsEventStoreHistoryRepository
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommercehistory.TransactionsViewHistoryBulkOperations
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommercehistory.TransactionsViewHistoryRepository
@@ -24,7 +26,10 @@ class TransactionMigrationWriteService(
     @param:Autowired private val viewHistoryRepository: TransactionsViewHistoryRepository,
     @param:Autowired
     private val transactionsViewHistoryBulkOperations: TransactionsViewHistoryBulkOperations,
+    @param:Autowired
+    private val eventStoreHistoryBulkOperations: EventStoreHistoryBulkOperations,
     @param:Autowired private val transactionsViewBulkOperations: TransactionsViewBulkOperations,
+    @param:Autowired private val eventStoreBulkOperations: EventStoreBulkOperations,
     @param:Autowired
     @param:Qualifier("ecommerceReactiveMongoTemplate")
     private val ecommerceMongoTemplate: ReactiveMongoTemplate,
@@ -53,6 +58,23 @@ class TransactionMigrationWriteService(
     }
 
     /**
+     * Migrates events to history database.
+     * @return Flux of successfully migrated events
+     */
+    fun writeBulkEvents(events: Flux<BaseTransactionEvent<*>>): Flux<BaseTransactionEvent<*>> {
+        return eventStoreHistoryBulkOperations
+            .bulkUpsert(events)
+            .map {
+                logger.info("Event with ${it.transactionId}")
+                it
+            }
+            .onErrorResume { error ->
+                logger.warn("Skipping failed events migration", error)
+                Mono.empty()
+            }
+    }
+
+    /**
      * Update ttls on the given eventstore documents
      * @return Flux of successfully updated events
      */
@@ -63,6 +85,17 @@ class TransactionMigrationWriteService(
                 Mono.just(false)
             }
         }
+    }
+
+    /**
+     * Update ttls on the given eventstore documents
+     * @return Flux of successfully updated events
+     */
+    fun updateBulkEventsTtl(events: Flux<BaseTransactionEvent<*>>): Flux<BaseTransactionEvent<*>> {
+        return eventStoreBulkOperations.bulkUpdateTtl(
+            events,
+            transactionMigrationWriteServiceConfig.eventstore.ttlSeconds.toLong()
+        )
     }
 
     /**
