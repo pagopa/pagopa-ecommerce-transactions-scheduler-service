@@ -2,6 +2,7 @@ package it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce
 
 import com.mongodb.MongoBulkWriteException
 import it.pagopa.ecommerce.commons.documents.BaseTransactionEvent
+import kotlin.collections.forEach
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.dao.DataIntegrityViolationException
@@ -13,7 +14,6 @@ import org.springframework.data.mongodb.core.query.Update
 import org.springframework.stereotype.Repository
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
-import kotlin.collections.forEach
 
 @Repository
 class EventStoreBulkOperations(
@@ -22,7 +22,10 @@ class EventStoreBulkOperations(
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    fun bulkUpdateTtl(events: Flux<BaseTransactionEvent<*>>, ttlDate: Long): Flux<BaseTransactionEvent<*>> {
+    fun bulkUpdateTtl(
+        events: Flux<BaseTransactionEvent<*>>,
+        ttlDate: Long
+    ): Flux<BaseTransactionEvent<*>> {
         return events
             .collectList()
             .flatMap { items -> executeBulkUpdateTtl(items, ttlDate) }

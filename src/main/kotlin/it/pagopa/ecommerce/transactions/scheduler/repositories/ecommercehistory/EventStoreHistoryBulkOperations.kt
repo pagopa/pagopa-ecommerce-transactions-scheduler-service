@@ -2,6 +2,7 @@ package it.pagopa.ecommerce.transactions.scheduler.repositories.ecommercehistory
 
 import com.mongodb.MongoBulkWriteException
 import it.pagopa.ecommerce.commons.documents.BaseTransactionEvent
+import kotlin.collections.forEach
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.data.mongodb.core.BulkOperations
@@ -12,7 +13,6 @@ import org.springframework.data.mongodb.core.query.Query
 import org.springframework.stereotype.Repository
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
-import kotlin.collections.forEach
 
 @Repository
 class EventStoreHistoryBulkOperations(

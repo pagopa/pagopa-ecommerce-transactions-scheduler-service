@@ -26,8 +26,7 @@ class TransactionMigrationWriteService(
     @param:Autowired private val viewHistoryRepository: TransactionsViewHistoryRepository,
     @param:Autowired
     private val transactionsViewHistoryBulkOperations: TransactionsViewHistoryBulkOperations,
-    @param:Autowired
-    private val eventStoreHistoryBulkOperations: EventStoreHistoryBulkOperations,
+    @param:Autowired private val eventStoreHistoryBulkOperations: EventStoreHistoryBulkOperations,
     @param:Autowired private val transactionsViewBulkOperations: TransactionsViewBulkOperations,
     @param:Autowired private val eventStoreBulkOperations: EventStoreBulkOperations,
     @param:Autowired
