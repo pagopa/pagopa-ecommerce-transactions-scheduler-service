@@ -33,7 +33,7 @@ class MigrationUtils {
         ): Mono<List<T>> {
             val mongoEx = extractMongoException(ex)
 
-            if (mongoEx != null) {
+            return if (mongoEx != null) {
                 // Failed items
                 val failedIndexes = mongoEx.writeErrors.map { it.index }.toSet()
 
@@ -42,11 +42,11 @@ class MigrationUtils {
                 logger.warn(
                     "$operationName partial failure. ${failedIndexes.size} failed, ${survivors.size} succeeded."
                 )
-                return Mono.just(survivors)
+                Mono.just(survivors)
             } else {
                 // CASE C: Total System Failure (Network down, DB down, etc)
                 logger.error("$operationName failed completely", mongoEx)
-                return Mono.empty()
+                Mono.empty()
             }
         }
 
