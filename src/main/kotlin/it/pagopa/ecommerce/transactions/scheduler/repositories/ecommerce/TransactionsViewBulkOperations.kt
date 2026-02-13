@@ -1,10 +1,9 @@
 package it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce
 
-import com.mongodb.MongoBulkWriteException
 import it.pagopa.ecommerce.commons.documents.BaseTransactionView
+import it.pagopa.ecommerce.transactions.scheduler.utils.MigrationUtils.Companion.executeBestEffortBulkPipeline
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
-import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.mongodb.core.BulkOperations
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate
 import org.springframework.data.mongodb.core.query.Criteria
@@ -48,32 +47,16 @@ class TransactionsViewBulkOperations(
             )
         }
 
-        return bulkOps
-            .execute()
-            .map { result ->
-                if (result.modifiedCount < items.size) {
-                    logger.warn(
-                        "Bulk TTL update: ${result.modifiedCount} updated out of ${items.size} submitted."
-                    )
-                }
-                items
+        return executeBestEffortBulkPipeline(
+            bulkOps = bulkOps,
+            items = items,
+            operationName = "Bulk TTL Update"
+        ) { result, originalItems ->
+            if (result.modifiedCount < originalItems.size) {
+                logger.warn(
+                    "Bulk TTL Update: ${result.modifiedCount} updated out of ${originalItems.size} submitted."
+                )
             }
-            .onErrorResume(DataIntegrityViolationException::class.java) { ex ->
-                val mongoEx = ex.cause as? MongoBulkWriteException
-                if (mongoEx != null) {
-                    // Filter out failed items
-                    val failedIndexes = mongoEx.writeErrors.map { it.index }.toSet()
-                    val survivors =
-                        items.filterIndexed { index, _ -> !failedIndexes.contains(index) }
-
-                    logger.warn(
-                        "Bulk TTL update partial failure. ${failedIndexes.size} failed, ${survivors.size} succeeded."
-                    )
-                    Mono.just(survivors)
-                } else {
-                    logger.error("Bulk TTL update failed completely", ex)
-                    Mono.empty()
-                }
-            }
+        }
     }
 }

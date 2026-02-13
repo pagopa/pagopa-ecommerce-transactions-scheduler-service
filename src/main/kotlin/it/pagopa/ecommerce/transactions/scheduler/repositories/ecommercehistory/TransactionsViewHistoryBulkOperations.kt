@@ -1,7 +1,7 @@
 package it.pagopa.ecommerce.transactions.scheduler.repositories.ecommercehistory
 
-import com.mongodb.MongoBulkWriteException
 import it.pagopa.ecommerce.commons.documents.BaseTransactionView
+import it.pagopa.ecommerce.transactions.scheduler.utils.MigrationUtils.Companion.executeBestEffortBulkPipeline
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.data.mongodb.core.BulkOperations
@@ -46,39 +46,6 @@ class TransactionsViewHistoryBulkOperations(
             )
         }
 
-        return bulkOps
-            .execute()
-            .map {
-                // CASE A: 100% Success
-                views
-            }
-            .onErrorResume { ex ->
-                // CASE B: Partial Success
-                val mongoEx = extractMongoException(ex)
-                if (mongoEx != null) {
-                    // Failed items
-                    val failedIndexes = mongoEx.writeErrors.map { it.index }.toSet()
-
-                    // Filter out failed items
-                    val survivors =
-                        views.filterIndexed { index, _ -> !failedIndexes.contains(index) }
-                    logger.warn(
-                        "Bulk upsert partial failure. ${failedIndexes.size} failed, ${survivors.size} succeeded."
-                    )
-                    Mono.just(survivors)
-                } else {
-                    // CASE C: Total System Failure (Network down, DB down, etc)
-                    logger.error("Bulk upsert failed completely", ex)
-                    Mono.empty()
-                }
-            }
-    }
-
-    private fun extractMongoException(ex: Throwable): MongoBulkWriteException? {
-        return when {
-            ex is MongoBulkWriteException -> ex
-            ex.cause is MongoBulkWriteException -> ex.cause as MongoBulkWriteException
-            else -> null
-        }
+        return executeBestEffortBulkPipeline(bulkOps, views, "Bulk upsert")
     }
 }
