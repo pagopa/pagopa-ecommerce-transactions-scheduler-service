@@ -5,7 +5,9 @@ import it.pagopa.ecommerce.commons.documents.BaseTransactionEvent
 import it.pagopa.ecommerce.commons.documents.BaseTransactionView
 import it.pagopa.ecommerce.transactions.scheduler.configurations.TransactionMigrationWriteServiceConfig
 import it.pagopa.ecommerce.transactions.scheduler.configurations.WriteSettings
+import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.TransactionsViewBulkOperations
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommercehistory.TransactionsEventStoreHistoryRepository
+import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommercehistory.TransactionsViewHistoryBulkOperations
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommercehistory.TransactionsViewHistoryRepository
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -28,6 +30,12 @@ class TransactionMigrationWriteServiceTest {
     @Mock private lateinit var eventHistoryRepository: TransactionsEventStoreHistoryRepository
 
     @Mock private lateinit var viewHistoryRepository: TransactionsViewHistoryRepository
+
+    @Mock private lateinit var transactionsViewBulkOperations: TransactionsViewBulkOperations
+
+    @Mock
+    private lateinit var transactionsViewHistoryBulkOperations:
+        TransactionsViewHistoryBulkOperations
 
     @Mock private lateinit var ecommerceMongoTemplate: ReactiveMongoTemplate
 
@@ -729,5 +737,65 @@ class TransactionMigrationWriteServiceTest {
         verify(eventHistoryRepository, times(3)).save(any())
         verify(ecommerceMongoTemplate, times(2))
             .updateFirst(any<Query>(), any<Update>(), eq(BaseTransactionEvent::class.java))
+    }
+
+    @Test
+    fun `writeBulkTransactionViews should process and return items successfully`() {
+        // GIVEN
+        val item1 = mock<BaseTransactionView>()
+        val item2 = mock<BaseTransactionView>()
+        val inputFlux = Flux.just(item1, item2)
+        val outputFlux = Flux.just(item1, item2)
+
+        given(transactionsViewHistoryBulkOperations.bulkUpsert(any())).willReturn(outputFlux)
+
+        // WHEN
+        val result = transactionMigrationWriteService.writeBulkTransactionViews(inputFlux)
+
+        // THEN
+        StepVerifier.create(result).expectNext(item1).expectNext(item2).verifyComplete()
+
+        // Verify
+        verify(transactionsViewHistoryBulkOperations).bulkUpsert(any())
+    }
+
+    @Test
+    fun `writeBulkTransactionViews should return empty stream when bulk operation fails`() {
+        // GIVEN
+        val inputFlux = Flux.just(mock<BaseTransactionView>())
+
+        // Simulate a failure in the dependent service
+        given(transactionsViewHistoryBulkOperations.bulkUpsert(any()))
+            .willReturn(Flux.error(RuntimeException("No bueno")))
+
+        // WHEN
+        val result = transactionMigrationWriteService.writeBulkTransactionViews(inputFlux)
+
+        // THEN
+        StepVerifier.create(result).verifyComplete()
+    }
+
+    @Test
+    fun `updateBulkViewsTtl should delegate to bulkOps with configured TTL`() {
+        // GIVEN
+        val viewsFlux = Flux.just(mock<BaseTransactionView>())
+        val resultFlux = Flux.just(mock<BaseTransactionView>())
+        val ttlFromConfig = 3600
+        val expectedTtlLong = 3600L
+
+        given(config.transactionsView).willReturn(transactionsViewWriteSettings)
+        given(config.transactionsView.ttlSeconds).willReturn(ttlFromConfig)
+
+        given(transactionsViewBulkOperations.bulkUpdateTtl(eq(viewsFlux), eq(expectedTtlLong)))
+            .willReturn(resultFlux)
+
+        // WHEN
+        val result = transactionMigrationWriteService.updateBulkViewsTtl(viewsFlux)
+
+        // THEN
+        StepVerifier.create(result).expectNextCount(1).verifyComplete()
+
+        // Verify
+        verify(transactionsViewBulkOperations).bulkUpdateTtl(viewsFlux, expectedTtlLong)
     }
 }
