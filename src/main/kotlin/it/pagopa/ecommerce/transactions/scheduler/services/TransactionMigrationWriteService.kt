@@ -64,7 +64,7 @@ class TransactionMigrationWriteService(
         return eventStoreHistoryBulkOperations
             .bulkUpsert(events)
             .map {
-                logger.info("Event with ${it.transactionId}")
+                logger.info("Event with id ${it.id}") //TODO update to debug
                 it
             }
             .onErrorResume { error ->
@@ -153,7 +153,7 @@ class TransactionMigrationWriteService(
         return transactionsViewHistoryBulkOperations
             .bulkUpsert(views)
             .map {
-                logger.info("View with ${it.transactionId}")
+                logger.info("View with id ${it.transactionId}") //TODO update to debug
                 it
             }
             .onErrorResume { error ->
