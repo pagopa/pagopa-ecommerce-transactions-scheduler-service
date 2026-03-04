@@ -63,10 +63,7 @@ class TransactionMigrationWriteService(
     fun writeBulkEvents(events: Flux<BaseTransactionEvent<*>>): Flux<BaseTransactionEvent<*>> {
         return eventStoreHistoryBulkOperations
             .bulkUpsert(events)
-            .map {
-                logger.info("Event with id ${it.id}") // TODO update to debug
-                it
-            }
+            .doOnNext { logger.debug("Event with id ${it.id}") }
             .onErrorResume { error ->
                 logger.warn("Skipping failed events migration", error)
                 Mono.empty()
@@ -152,10 +149,7 @@ class TransactionMigrationWriteService(
     fun writeBulkTransactionViews(views: Flux<BaseTransactionView>): Flux<BaseTransactionView> {
         return transactionsViewHistoryBulkOperations
             .bulkUpsert(views)
-            .map {
-                logger.info("View with id ${it.transactionId}") // TODO update to debug
-                it
-            }
+            .doOnNext { logger.debug("View with id ${it.transactionId}") }
             .onErrorResume { error ->
                 logger.warn("Skipping failed views migration", error)
                 Mono.empty()
