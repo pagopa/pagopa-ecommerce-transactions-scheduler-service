@@ -27,8 +27,8 @@ class EventStoreMigrationOrchestrator(
         return transactionMigrationQueryService
             .findEligibleEvents()
             .doOnNext { tx -> logger.debug("Processing event: ${tx.id}") }
-            .transform { tx -> transactionMigrationWriteService.writeEvents(tx) }
-            .transform { tx -> transactionMigrationWriteService.updateEventsTtl(tx) }
+            .transform { tx -> transactionMigrationWriteService.writeBulkEvents(tx) }
+            .transform { tx -> transactionMigrationWriteService.updateBulkEventsTtl(tx) }
             .reduce(MigrationTracingUtils.MigrationStats.empty()) { acc, tx ->
                 MigrationTracingUtils.MigrationStats(acc.count + 1, tx.creationDate ?: "")
             }

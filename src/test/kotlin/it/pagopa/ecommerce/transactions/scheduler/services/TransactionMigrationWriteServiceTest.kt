@@ -5,7 +5,9 @@ import it.pagopa.ecommerce.commons.documents.BaseTransactionEvent
 import it.pagopa.ecommerce.commons.documents.BaseTransactionView
 import it.pagopa.ecommerce.transactions.scheduler.configurations.TransactionMigrationWriteServiceConfig
 import it.pagopa.ecommerce.transactions.scheduler.configurations.WriteSettings
+import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.EventStoreBulkOperations
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.TransactionsViewBulkOperations
+import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommercehistory.EventStoreHistoryBulkOperations
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommercehistory.TransactionsEventStoreHistoryRepository
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommercehistory.TransactionsViewHistoryBulkOperations
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommercehistory.TransactionsViewHistoryRepository
@@ -33,9 +35,13 @@ class TransactionMigrationWriteServiceTest {
 
     @Mock private lateinit var transactionsViewBulkOperations: TransactionsViewBulkOperations
 
+    @Mock private lateinit var eventStoreBulkOperations: EventStoreBulkOperations
+
     @Mock
     private lateinit var transactionsViewHistoryBulkOperations:
         TransactionsViewHistoryBulkOperations
+
+    @Mock private lateinit var eventStoreHistoryBulkOperations: EventStoreHistoryBulkOperations
 
     @Mock private lateinit var ecommerceMongoTemplate: ReactiveMongoTemplate
 
@@ -797,5 +803,65 @@ class TransactionMigrationWriteServiceTest {
 
         // Verify
         verify(transactionsViewBulkOperations).bulkUpdateTtl(viewsFlux, expectedTtlLong)
+    }
+
+    @Test
+    fun `writeBulkEventStore should process and return items successfully`() {
+        // GIVEN
+        val item1 = mock<BaseTransactionEvent<*>>()
+        val item2 = mock<BaseTransactionEvent<*>>()
+        val inputFlux = Flux.just(item1, item2)
+        val outputFlux = Flux.just(item1, item2)
+
+        given(eventStoreHistoryBulkOperations.bulkUpsert(any())).willReturn(outputFlux)
+
+        // WHEN
+        val result = transactionMigrationWriteService.writeBulkEvents(inputFlux)
+
+        // THEN
+        StepVerifier.create(result).expectNext(item1).expectNext(item2).verifyComplete()
+
+        // Verify
+        verify(eventStoreHistoryBulkOperations).bulkUpsert(any())
+    }
+
+    @Test
+    fun `writeBulkEventStore should return empty stream when bulk operation fails`() {
+        // GIVEN
+        val inputFlux = Flux.just(mock<BaseTransactionEvent<*>>())
+
+        // Simulate a failure in the dependent service
+        given(eventStoreHistoryBulkOperations.bulkUpsert(any()))
+            .willReturn(Flux.error(RuntimeException("No bueno")))
+
+        // WHEN
+        val result = transactionMigrationWriteService.writeBulkEvents(inputFlux)
+
+        // THEN
+        StepVerifier.create(result).verifyComplete()
+    }
+
+    @Test
+    fun `updateBulkEventsTtl should delegate to bulkOps with configured TTL`() {
+        // GIVEN
+        val eventsFlux = Flux.just(mock<BaseTransactionEvent<*>>())
+        val resultFlux = Flux.just(mock<BaseTransactionEvent<*>>())
+        val ttlFromConfig = 3600
+        val expectedTtlLong = 3600L
+
+        given(config.eventstore).willReturn(eventstoreWriteSettings)
+        given(config.eventstore.ttlSeconds).willReturn(ttlFromConfig)
+
+        given(eventStoreBulkOperations.bulkUpdateTtl(eq(eventsFlux), eq(expectedTtlLong)))
+            .willReturn(resultFlux)
+
+        // WHEN
+        val result = transactionMigrationWriteService.updateBulkEventsTtl(eventsFlux)
+
+        // THEN
+        StepVerifier.create(result).expectNextCount(1).verifyComplete()
+
+        // Verify
+        verify(eventStoreBulkOperations).bulkUpdateTtl(eventsFlux, expectedTtlLong)
     }
 }

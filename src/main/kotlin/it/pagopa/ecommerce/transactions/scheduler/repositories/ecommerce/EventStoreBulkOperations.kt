@@ -1,7 +1,8 @@
 package it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce
 
-import it.pagopa.ecommerce.commons.documents.BaseTransactionView
+import it.pagopa.ecommerce.commons.documents.BaseTransactionEvent
 import it.pagopa.ecommerce.transactions.scheduler.utils.MigrationUtils.Companion.executeBestEffortBulkPipeline
+import kotlin.collections.forEach
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.data.mongodb.core.BulkOperations
@@ -14,35 +15,38 @@ import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
 @Repository
-class TransactionsViewBulkOperations(
+class EventStoreBulkOperations(
     @param:Qualifier("ecommerceReactiveMongoTemplate")
     private val reactiveMongoTemplate: ReactiveMongoTemplate
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    fun bulkUpdateTtl(views: Flux<BaseTransactionView>, ttlDate: Long): Flux<BaseTransactionView> {
-        return views
+    fun bulkUpdateTtl(
+        events: Flux<BaseTransactionEvent<*>>,
+        ttlDate: Long
+    ): Flux<BaseTransactionEvent<*>> {
+        return events
             .collectList()
             .flatMap { items -> executeBulkUpdateTtl(items, ttlDate) }
             .flatMapIterable { it }
     }
 
     private fun executeBulkUpdateTtl(
-        items: List<BaseTransactionView>,
+        items: List<BaseTransactionEvent<*>>,
         ttlDate: Long
-    ): Mono<List<BaseTransactionView>> {
+    ): Mono<List<BaseTransactionEvent<*>>> {
         if (items.isEmpty()) return Mono.just(emptyList())
 
         val bulkOps =
             reactiveMongoTemplate.bulkOps(
                 BulkOperations.BulkMode.UNORDERED,
-                BaseTransactionView::class.java
+                BaseTransactionEvent::class.java
             )
 
         // Queue up the updates
-        items.forEach { view ->
+        items.forEach { event ->
             bulkOps.updateOne(
-                Query.query(Criteria.where("_id").`is`(view.transactionId)),
+                Query.query(Criteria.where("_id").`is`(event.id)),
                 Update().set("ttl", ttlDate)
             )
         }
