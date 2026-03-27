@@ -1,10 +1,10 @@
 package it.pagopa.ecommerce.transactions.scheduler.utils
 
 import it.pagopa.ecommerce.transactions.scheduler.configurations.QuerySettings
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.time.LocalTime
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 /** This class models a time based rate */
 class TimeBasedRate(
@@ -65,11 +65,11 @@ class TimeBasedRate(
                 val isInRange = at !in to..from || at == to || at == from
                 val rangeElapsedTime =
                     if (at > LocalTime.MIDNIGHT) {
-                        Duration.between(from, LocalTime.MIDNIGHT) +
+                            Duration.between(from, LocalTime.MIDNIGHT) +
                                 Duration.between(LocalTime.MIDNIGHT, at)
-                    } else {
-                        Duration.between(from, at)
-                    }
+                        } else {
+                            Duration.between(from, at)
+                        }
                         .toPositiveTimeDiff()
                 Pair(rangeElapsedTime, isInRange)
             }
@@ -79,7 +79,7 @@ class TimeBasedRate(
                     highRate
                 } else {
                     lowRate +
-                            ((highRate - lowRate) * rangeElapsedTime.seconds / rampUp.seconds).toInt()
+                        ((highRate - lowRate) * rangeElapsedTime.seconds / rampUp.seconds).toInt()
                 }
             } else {
                 lowRate

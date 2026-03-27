@@ -1,7 +1,7 @@
 package it.pagopa.ecommerce.transactions.scheduler.configurations
 
-import org.springframework.boot.context.properties.ConfigurationProperties
 import java.time.LocalTime
+import org.springframework.boot.context.properties.ConfigurationProperties
 
 @ConfigurationProperties(prefix = "migration.transaction.query")
 data class TransactionMigrationQueryServiceConfig(
