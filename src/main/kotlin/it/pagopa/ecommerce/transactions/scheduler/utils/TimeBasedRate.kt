@@ -38,12 +38,7 @@ class TimeBasedRate(
         require(lowRate > 0 && highRate > 0 && lowRate <= highRate) {
             "Invalid parameters -> lowRate: [$lowRate] and highRate: [$highRate]. rates must be positive with high rate >= low rate!"
         }
-        rangeDuration =
-            if (to > from) {
-                Duration.between(from, to)
-            } else {
-                Duration.ofHours(24) - Duration.between(to, from)
-            }
+        rangeDuration = Duration.between(from, to).toPositiveTimeDiff()
         require(rampUp > Duration.ZERO && rangeDuration >= rampUp) {
             "rampUp: [$rampUp] must be positive and lte range duration: [$rangeDuration]!"
         }
