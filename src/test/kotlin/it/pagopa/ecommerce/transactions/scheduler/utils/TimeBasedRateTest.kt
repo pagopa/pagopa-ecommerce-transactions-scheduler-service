@@ -79,22 +79,22 @@ class TimeBasedRateTest {
                 Arguments.of(
                     0,
                     0,
-                    "Invalid parameters -> lowRate: [0] and highRate: [0]. rates must be positive with high rate > low rate!"
+                    "Invalid parameters -> lowRate: [0] and highRate: [0]. rates must be positive with high rate >= low rate!"
                 ),
                 Arguments.of(
                     -1,
                     1,
-                    "Invalid parameters -> lowRate: [-1] and highRate: [1]. rates must be positive with high rate > low rate!"
+                    "Invalid parameters -> lowRate: [-1] and highRate: [1]. rates must be positive with high rate >= low rate!"
                 ),
                 Arguments.of(
                     1,
                     -1,
-                    "Invalid parameters -> lowRate: [1] and highRate: [-1]. rates must be positive with high rate > low rate!"
+                    "Invalid parameters -> lowRate: [1] and highRate: [-1]. rates must be positive with high rate >= low rate!"
                 ),
                 Arguments.of(
                     2,
                     1,
-                    "Invalid parameters -> lowRate: [2] and highRate: [1]. rates must be positive with high rate > low rate!"
+                    "Invalid parameters -> lowRate: [2] and highRate: [1]. rates must be positive with high rate >= low rate!"
                 ),
             )
     }
