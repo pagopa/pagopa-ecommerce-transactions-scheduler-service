@@ -18,8 +18,8 @@ class TimeBasedRate(
         require(from != to) {
             "Invalid parameters -> from: [$from] and to: [$to]. from and to must be different!"
         }
-        require(lowRate > 0 && highRate > 0) {
-            "Invalid parameters -> lowRate: [$lowRate] and highRate: [$highRate]. rates must be positive!"
+        require(lowRate > 0 && highRate > 0 && lowRate <= highRate) {
+            "Invalid parameters -> lowRate: [$lowRate] and highRate: [$highRate]. rates must be positive with high rate > low rate!"
         }
         rangeDuration =
             if (to > from) {
@@ -32,13 +32,12 @@ class TimeBasedRate(
         }
     }
 
-    fun actualRate(): Int {
-        val now = LocalTime.now()
+    fun calculateRate(at: LocalTime = LocalTime.now()): Int {
         // case where temporal window is in the same day. ex. 09:00 (d) -> 18:00 (d)
         val (rangeElapsedTime, isInRange) =
             if (to > from) {
-                val isInRange = now in from..to
-                val rangeElapsedTime = Duration.between(from, now)
+                val isInRange = at in from..to
+                val rangeElapsedTime = Duration.between(from, at)
                 Pair(rangeElapsedTime, isInRange)
             }
             // case where temporal window cover different two consecutive days ex. 22:00 (d) ->
@@ -46,14 +45,15 @@ class TimeBasedRate(
             // in those cases time window duration and check that now is in range is done checking
             // negating above conditions
             else {
-                val isInRange = now !in to..from
+                val isInRange = at !in to..from || at == to || at == from
                 val rangeElapsedTime =
-                    if (now > LocalTime.MIDNIGHT) {
-                        Duration.between(from, LocalTime.MAX) +
-                                Duration.between(LocalTime.MIDNIGHT, now)
-                    } else {
-                        Duration.between(from, now)
-                    }
+                    if (at > LocalTime.MIDNIGHT) {
+                            Duration.between(from, LocalTime.MIDNIGHT) +
+                                Duration.between(LocalTime.MIDNIGHT, at)
+                        } else {
+                            Duration.between(from, at)
+                        }
+                        .toPositiveTimeDiff()
                 Pair(rangeElapsedTime, isInRange)
             }
         val finalRate: Int =
@@ -61,11 +61,19 @@ class TimeBasedRate(
                 if (rangeElapsedTime > rampUp) {
                     highRate
                 } else {
-                    lowRate + ((highRate - lowRate) * rangeElapsedTime.seconds / rampUp.seconds).toInt()
+                    lowRate +
+                        ((highRate - lowRate) * rangeElapsedTime.seconds / rampUp.seconds).toInt()
                 }
             } else {
                 lowRate
             }
         return finalRate
     }
+
+    fun Duration.toPositiveTimeDiff(): Duration =
+        if (this.isNegative) {
+            Duration.ofHours(24) + this
+        } else {
+            this
+        }
 }
