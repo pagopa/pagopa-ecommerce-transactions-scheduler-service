@@ -5,7 +5,6 @@ import it.pagopa.ecommerce.commons.documents.BaseTransactionView
 import it.pagopa.ecommerce.transactions.scheduler.configurations.TransactionMigrationQueryServiceConfig
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.TransactionsEventStoreRepository
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.TransactionsViewRepository
-import it.pagopa.ecommerce.transactions.scheduler.utils.TimeBasedRate
 import java.time.LocalDate
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -26,9 +25,12 @@ class TransactionMigrationQueryService(
 
     val logger: Logger = LoggerFactory.getLogger(javaClass)
     fun findEligibleEvents(): Flux<BaseTransactionEvent<*>> {
-        val querySettings = transactionMigrationQueryServiceConfig.eventstore
-        val timeBasedRate = TimeBasedRate.fromQuerySettings(querySettings)
-        val cutoffDate = LocalDate.now().minusMonths(querySettings.cutoffMonthOffset.toLong())
+        val timeBasedRate = transactionMigrationQueryServiceConfig.eventStoreTimeBasedRate
+        val cutoffDate =
+            LocalDate.now()
+                .minusMonths(
+                    transactionMigrationQueryServiceConfig.eventstore.cutoffMonthOffset.toLong()
+                )
         val pageRequest: Pageable = PageRequest.of(0, timeBasedRate.calculateRate())
         logger.info("Calculated paged request for finding eligible events: $pageRequest")
         return transactionsEventStoreRepository.findByTtlIsNullAndCreationDateLessThan(
@@ -38,9 +40,13 @@ class TransactionMigrationQueryService(
     }
 
     fun findEligibleTransactions(): Flux<BaseTransactionView> {
-        val querySettings = transactionMigrationQueryServiceConfig.transactionsView
-        val timeBasedRate = TimeBasedRate.fromQuerySettings(querySettings)
-        val cutoffDate = LocalDate.now().minusMonths(querySettings.cutoffMonthOffset.toLong())
+        val timeBasedRate = transactionMigrationQueryServiceConfig.transactionsViewTimeBasedRate
+        val cutoffDate =
+            LocalDate.now()
+                .minusMonths(
+                    transactionMigrationQueryServiceConfig.transactionsView.cutoffMonthOffset
+                        .toLong()
+                )
         val pageRequest: Pageable = PageRequest.of(0, timeBasedRate.calculateRate())
         logger.info("Calculated paged request for finding eligible views: $pageRequest")
         return transactionViewRepository.findByTtlIsNullAndCreationDateLessThan(
