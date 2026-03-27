@@ -1,5 +1,8 @@
 package it.pagopa.ecommerce.transactions.scheduler.utils
 
+import it.pagopa.ecommerce.transactions.scheduler.configurations.QuerySettings
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.time.LocalTime
 
@@ -11,15 +14,29 @@ class TimeBasedRate(
     val highRate: Int,
     val rampUp: Duration
 ) {
+
+    companion object {
+        fun fromQuerySettings(querySettings: QuerySettings): TimeBasedRate =
+            TimeBasedRate(
+                from = querySettings.burstStartWindow,
+                to = querySettings.burstEndWindow,
+                lowRate = querySettings.lowRate,
+                highRate = querySettings.highRate,
+                rampUp = Duration.ofSeconds(querySettings.rampUpDurationSeconds.toLong())
+            )
+    }
+
     // the total range duration
     val rangeDuration: Duration
+
+    val logger: Logger = LoggerFactory.getLogger(javaClass)
 
     init {
         require(from != to) {
             "Invalid parameters -> from: [$from] and to: [$to]. from and to must be different!"
         }
         require(lowRate > 0 && highRate > 0 && lowRate <= highRate) {
-            "Invalid parameters -> lowRate: [$lowRate] and highRate: [$highRate]. rates must be positive with high rate > low rate!"
+            "Invalid parameters -> lowRate: [$lowRate] and highRate: [$highRate]. rates must be positive with high rate >= low rate!"
         }
         rangeDuration =
             if (to > from) {
@@ -48,11 +65,11 @@ class TimeBasedRate(
                 val isInRange = at !in to..from || at == to || at == from
                 val rangeElapsedTime =
                     if (at > LocalTime.MIDNIGHT) {
-                            Duration.between(from, LocalTime.MIDNIGHT) +
+                        Duration.between(from, LocalTime.MIDNIGHT) +
                                 Duration.between(LocalTime.MIDNIGHT, at)
-                        } else {
-                            Duration.between(from, at)
-                        }
+                    } else {
+                        Duration.between(from, at)
+                    }
                         .toPositiveTimeDiff()
                 Pair(rangeElapsedTime, isInRange)
             }
@@ -62,11 +79,19 @@ class TimeBasedRate(
                     highRate
                 } else {
                     lowRate +
-                        ((highRate - lowRate) * rangeElapsedTime.seconds / rampUp.seconds).toInt()
+                            ((highRate - lowRate) * rangeElapsedTime.seconds / rampUp.seconds).toInt()
                 }
             } else {
                 lowRate
             }
+        logger.info(
+            "Dynamic rate configuration: Time window: [{} - {}], ramping up: [{} -> {}]. Calculated rate: [{}]",
+            from,
+            to,
+            lowRate,
+            highRate,
+            finalRate
+        )
         return finalRate
     }
 
@@ -76,4 +101,22 @@ class TimeBasedRate(
         } else {
             this
         }
+}
+
+fun main() {
+    val timeBaseRate =
+        TimeBasedRate(
+            from = LocalTime.of(10, 0),
+            to = LocalTime.of(12, 0),
+            lowRate = 100,
+            highRate = 200,
+            rampUp = Duration.ofHours(1)
+        )
+
+    println(timeBaseRate.calculateRate(LocalTime.of(10, 0)))
+    println(timeBaseRate.calculateRate(LocalTime.of(10, 22)))
+    println(timeBaseRate.calculateRate(LocalTime.of(10, 30)))
+    println(timeBaseRate.calculateRate(LocalTime.of(11, 0)))
+    println(timeBaseRate.calculateRate(LocalTime.of(12, 0)))
+    println(timeBaseRate)
 }

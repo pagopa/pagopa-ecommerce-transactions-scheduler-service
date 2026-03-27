@@ -80,81 +80,89 @@ the previous time slot.
 
 These are all environment variables needed by the application:
 
-| Variable name                                                     | Description                                                                                                                                                                                                                                                                                         | type    | default |
-|-------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|---------|
-| MONGO_HOST                                                        | Mongo hostname                                                                                                                                                                                                                                                                                      | string  |         |
-| MONGO_USERNAME                                                    | Mongo username                                                                                                                                                                                                                                                                                      | string  |         |
-| MONGO_PORT                                                        | Mongo port                                                                                                                                                                                                                                                                                          | int     |         |
-| MONGO_SSL_ENABLED                                                 | Mongo SSL enabled                                                                                                                                                                                                                                                                                   | boolean |         |
-| MONGO_PORT                                                        | Port used for connecting to MongoDB instance                                                                                                                                                                                                                                                        | string  |         |
-| MONGO_MIN_POOL_SIZE                                               | Min amount of connections to be retained into connection pool. See docs *                                                                                                                                                                                                                           | string  |         |
-| MONGO_MAX_POOL_SIZE                                               | Max amount of connections to be retained into connection pool.See docs *                                                                                                                                                                                                                            | string  |         |
-| MONGO_MAX_IDLE_TIMEOUT_MS                                         | Max timeout after which an idle connection is killed in milliseconds. See docs *                                                                                                                                                                                                                    | string  |         |
-| MONGO_CONNECTION_TIMEOUT_MS                                       | Max time to wait for a connection to be opened. See docs *                                                                                                                                                                                                                                          | string  |         |
-| MONGO_SOCKET_TIMEOUT_MS                                           | Max time to wait for a command send or receive before timing out. See docs *                                                                                                                                                                                                                        | string  |         |
-| MONGO_SERVER_SELECTION_TIMEOUT_MS                                 | Max time to wait for a server to be selected while performing a communication with Mongo in milliseconds. See docs *                                                                                                                                                                                | string  |         |
-| MONGO_WAITING_QUEUE_MS                                            | Max time a thread has to wait for a connection to be available in milliseconds. See docs *                                                                                                                                                                                                          | string  |         |
-| MONGO_HEARTBEAT_FREQUENCY_MS                                      | Hearth beat frequency in milliseconds. This is an hello command that is sent periodically on each active connection to perform an health check. See docs *                                                                                                                                          | string  |         |
-| MONGO_REPLICA_SET_OPTION                                          | The replica set connection string option valued with the name of the replica set. See docs *                                                                                                                                                                                                        | string  |         |
-| ECOMMERCE_DATABASE_NAME                                           | Mongo ecommerce database name                                                                                                                                                                                                                                                                       | string  |         |
-| ECOMMERCE_HISTORY_DATABASE_NAME                                   | Mongo ecommerce history database name                                                                                                                                                                                                                                                               | string  |         |
-| TRANSACTION_EXPIRED_EVENTS_QUEUE_NAME                             | Transaction expired event queue name. This is the queue where transaction expired events will be sent                                                                                                                                                                                               | string  |         |
-| QUEUE_TRANSIENT_CONNECTION_STRING                                 | Transient queues connection string                                                                                                                                                                                                                                                                  | string  |         |
-| TRANSIENT_QUEUES_TTL_SECONDS                                      | TTL to be used when sending events on transient queues                                                                                                                                                                                                                                              | number  | 7 days  |
-| PENDING_TRANSACTIONS_SCHEDULE_CRON                                | Pending transactions batch execution chron expression                                                                                                                                                                                                                                               | string  |         |
-| PENDING_TRANSACTIONS_WINDOWS_BATCH_EXECUTION_RATE_MULTIPLIER      | Pending transactions execution rate multiplier (used for calculate transactions window, see [Transactions to analyze time window](#Transactions-to-analyze-time-window)                                                                                                                             | int     |         |
-| PENDING_TRANSACTIONS_PARALLEL_EVENTS_TO_PROCESS                   | Pending transactions parallel events to be processed                                                                                                                                                                                                                                                | int     |         |
-| PENDING_TRANSACTIONS_MAX_DURATION_SECONDS                         | Single batch max duration in seconds. Indicate the max time to wait for a single batch iteration to be completed. If negative the execution-rate-inter-time/2 will be used (Ex: if batch is configured to be executed every 10 minutes max duration will be set to 5 minutes                        | int     | -1      |
-| PENDING_TRANSACTIONS_SEND_PAYMENT_RESULT_TIMEOUT_SECONDS          | Timeout for a `sendPaymentResult` callback (`POST /user-receipts` on `transactions-service`) to be received. This timeout is evaluated for a transaction stuck in CLOSED status for which an OK authorization outcome has been received by Nodo and inhibits expiration if it is yet to be reached. | int     |         |
-| PENDING_TRANSACTIONS_MAX_TRANSACTIONS_PER_PAGE                    | Max transactions to be fetched by paginated query                                                                                                                                                                                                                                                   | int     |         |
-| PENDING_TRANSACTIONS_PAGE_ANALYSIS_DELAY_SECONDS                  | Delay for the next pending transaction page to be analyzed (in seconds). This parameter in pair with `PENDING_TRANSACTIONS_MAX_TRANSACTIONS_PER_PAGE` define the max batch tps                                                                                                                      | int     |         |
-| PENDING_TRANSACTIONS_BATCH_LOCK_TTL_SECONDS                       | TTL in seconds for the distributed lock used by the pending transactions batch to ensure exclusive execution across multiple service instances                                                                                                                                                      | int     |         |
-| DEAD_LETTER_LISTENER_TRANSACTION_FIXED_DELAY_MILLIS               | Transaction dead letter queue poll delay in milliseconds                                                                                                                                                                                                                                            | int     |         |
-| DEAD_LETTER_LISTENER_TRANSACTION_MAX_MESSAGE_PER_POLL             | Transaction dead letter queue max messages to retrieve per poll                                                                                                                                                                                                                                     | int     |         |
-| DEAD_LETTER_LISTENER_TRANSACTION_QUEUE_NAME                       | Transaction dead letter queue name                                                                                                                                                                                                                                                                  | string  |         |
-| DEAD_LETTER_LISTENER_NOTIFICATION_FIXED_DELAY_MILLIS              | Notification dead letter queue poll delay in milliseconds                                                                                                                                                                                                                                           | int     |         |
-| DEAD_LETTER_LISTENER_NOTIFICATION_MAX_MESSAGE_PER_POLL            | Notification dead letter queue max messages to retrieve per poll                                                                                                                                                                                                                                    | int     |         |
-| DEAD_LETTER_LISTENER_NOTIFICATION_QUEUE_NAME                      | Notification dead letter queue name                                                                                                                                                                                                                                                                 | string  |         |
-| ECOMMERCE_STORAGE_DEAD_LETTER_QUEUE_ACCOUNT_NAME                  | Dead letter storage account name                                                                                                                                                                                                                                                                    | string  |         |
-| ECOMMERCE_STORAGE_DEAD_LETTER_QUEUE_ENDPOINT                      | Dead letter storage account endpoint                                                                                                                                                                                                                                                                | string  |         |
-| ECOMMERCE_STORAGE_DEAD_LETTER_QUEUE_KEY                           | Dead letter storage account key                                                                                                                                                                                                                                                                     | string  |         |
-| MIGRATION_TRANSACTION_BATCH_EVENTSTORE_CRON_EXPRESSION            | The schedule (cron format) for running the 'eventstore' migration batch                                                                                                                                                                                                                             | string  |         |
-| MIGRATION_TRANSACTION_BATCH_EVENTSTORE_LOCK_TTL_SECONDS           | TTL in seconds for the distributed lock used by the eventstore migration batch to ensure exclusive execution across multiple service instances                                                                                                                                                      | int     |         |
-| MIGRATION_TRANSACTION_BATCH_TRANSACTIONS_VIEW_CRON_EXPRESSION     | The schedule (cron format) for running the 'transactions view' migration batch.                                                                                                                                                                                                                     | string  |         |
-| MIGRATION_TRANSACTION_BATCH_TRANSACTIONS_VIEW_LOCK_TTL_SECONDS    | TTL in seconds for the distributed lock used by the transactions view migration batch to ensure exclusive execution across multiple service instances                                                                                                                                               | int     |         |
-| MIGRATION_TRANSACTION_QUERY_EVENT_STORE_CUTOFF_MONTH_OFFSET       | The age in months (offset from the current date) that a transaction in the event store collection must be to be eligible for migration                                                                                                                                                              | integer |         |
-| MIGRATION_TRANSACTION_QUERY_EVENT_STORE_MAX_RESULTS               | The maximum number of eligible transactions to fetch from the event store collection in a single batch                                                                                                                                                                                              | integer |         |
-| MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_CUTOFF_MONTH_OFFSET | The age in months (offset from the current date) that a transaction in the transactions view collection must be to be eligible for migration                                                                                                                                                        | integer |         |
-| MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_MAX_RESULTS         | The maximum number of eligible transactions to fetch from the transactions view collection in a single batch                                                                                                                                                                                        | integer |         |
-| MIGRATION_TRANSACTION_WRITE_EVENT_STORE_TTL_SECONDS               | The TTL value to set on the individual eventstore document, which determines when the document will expire and be automatically deleted                                                                                                                                                             | integer |         |
-| MIGRATION_TRANSACTION_WRITE_TRANSACTIONS_VIEW_TTL_SECONDS         | The TTL value to set on the individual transactions-view document, which determines when the document will expire and be automatically deleted                                                                                                                                                      | integer |         |
-| NPG_URI                                                           | NPG service URI                                                                                                                                                                                                                                                                                     | string  |         |
-| NPG_READ_TIMEOUT                                                  | NPG service HTTP read timeout                                                                                                                                                                                                                                                                       | integer |         |
-| NPG_CONNECTION_TIMEOUT                                            | NPG service HTTP connection timeout                                                                                                                                                                                                                                                                 | integer |         |
-| NPG_API_KEY                                                       | NPG service api-key                                                                                                                                                                                                                                                                                 | string  |         |
-| NPG_CARDS_PSP_KEYS                                                | Secret structure that holds psp - api keys association for authorization request                                                                                                                                                                                                                    | string  |         |
-| NPG_CARDS_PSP_LIST                                                | List of all psp ids that are expected to be found into the NPG_CARDS_PSP_KEYS configuration (used for configuration cross validation)                                                                                                                                                               | string  |         |
-| NPG_PAYPAL_PSP_KEYS                                               | Secret structure that holds psp - api keys association for authorization request used for APM PAYPAL payment method                                                                                                                                                                                 | string  |         |
-| NPG_PAYPAL_PSP_LIST                                               | List of all psp ids that are expected to be found into the NPG_PAYPAL_PSP_KEYS configuration (used for configuration cross validation)                                                                                                                                                              | string  |         |
-| NPG_BANCOMATPAY_PSP_KEYS                                          | Secret structure that holds psp - api keys association for authorization request used for APM Bancomat pay payment method                                                                                                                                                                           | string  |         |
-| NPG_BANCOMATPAY_PSP_LIST                                          | List of all psp ids that are expected to be found into the NPG_BANCOMATPAY_PSP_KEYS configuration (used for configuration cross validation)                                                                                                                                                         | string  |         |
-| NPG_MYBANK_PSP_KEYS                                               | Secret structure that holds psp - api keys association for authorization request used for APM My bank payment method                                                                                                                                                                                | string  |         |
-| NPG_MYBANK_PSP_LIST                                               | List of all psp ids that are expected to be found into the NPG_MYBANK_PSP_KEYS configuration (used for configuration cross validation)                                                                                                                                                              | string  |         |
-| NPG_SATISPAY_PSP_KEYS                                             | Secret structure that holds psp - api keys association for authorization request used for APM Satispay payment method                                                                                                                                                                               | string  |         |
-| NPG_SATISPAY_PSP_LIST                                             | List of all psp ids that are expected to be found into the NPG_SATISPAY_PSP_KEYS configuration (used for configuration cross validation)                                                                                                                                                            | string  |         |
-| NPG_APPLEPAY_PSP_KEYS                                             | Secret structure that holds psp - api keys association for authorization request used for APM Apple pay payment method                                                                                                                                                                              | string  |         |
-| NPG_APPLEPAY_PSP_LIST                                             | List of all psp ids that are expected to be found into the NPG_APPLEPAY_PSP_KEYS configuration (used for configuration cross validation)                                                                                                                                                            | string  |         |
-| REDIS_HOST                                                        | Redis hostname                                                                                                                                                                                                                                                                                      | string  |         |
-| REDIS_PORT                                                        | Redis port                                                                                                                                                                                                                                                                                          | number  |         |
-| REDIS_PASSWORD                                                    | Redis password                                                                                                                                                                                                                                                                                      | string  |         |
-| REDIS_SSL_ENABLED                                                 | Redis ssl enabled                                                                                                                                                                                                                                                                                   | boolean |         |
-| REDIS_STREAM_EVENT_CONTROLLER_STREAM_KEY                          | Event (receivers) controller redis stream key                                                                                                                                                                                                                                                       | string  |         |
-| REDIS_STREAM_EVENT_CONTROLLER_CONSUMER_NAME_PREFIX                | Event (receivers) controller redis stream consumer name prefix                                                                                                                                                                                                                                      | string  |         |
-| EVENT_CONTROLLER_STATUS_POLLING_CHRON                             | Chron used to schedule event receivers status polling                                                                                                                                                                                                                                               | string  |         |
-| DEPLOYMENT_VERSION                                                | Env property used to identify deployment version (STAGING/PROD)                                                                                                                                                                                                                                     | string  | PROD    |
-| NPG_GOOGLE_PAY_PSP_KEYS                                           | Secret structure that holds psp - api keys association for authorization request used for APM Google pay payment method                                                                                                                                                                             | string  |         |
-| NPG_GOOGLE_PAY_PSP_LIST                                           | List of all psp ids that are expected to be found into the NPG_GOOGLE_PAY_PSP_KEYS configuration (used for configuration cross validation)                                                                                                                                                          | string  |         |
-| TRANSACTIONSVIEW_UPDATE_ENABLED                                   | Flag to enable/disable transaction view collection updates in MongoDB. When true (default), the publisher updates the transactions-view collection. When false, only the event store is updated, skipping the view update.                                                                          | boolean | true    |
+| Variable name                                                          | Description                                                                                                                                                                                                                                                                                         | type    | default |
+|------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|---------|
+| MONGO_HOST                                                             | Mongo hostname                                                                                                                                                                                                                                                                                      | string  |         |
+| MONGO_USERNAME                                                         | Mongo username                                                                                                                                                                                                                                                                                      | string  |         |
+| MONGO_PORT                                                             | Mongo port                                                                                                                                                                                                                                                                                          | int     |         |
+| MONGO_SSL_ENABLED                                                      | Mongo SSL enabled                                                                                                                                                                                                                                                                                   | boolean |         |
+| MONGO_PORT                                                             | Port used for connecting to MongoDB instance                                                                                                                                                                                                                                                        | string  |         |
+| MONGO_MIN_POOL_SIZE                                                    | Min amount of connections to be retained into connection pool. See docs *                                                                                                                                                                                                                           | string  |         |
+| MONGO_MAX_POOL_SIZE                                                    | Max amount of connections to be retained into connection pool.See docs *                                                                                                                                                                                                                            | string  |         |
+| MONGO_MAX_IDLE_TIMEOUT_MS                                              | Max timeout after which an idle connection is killed in milliseconds. See docs *                                                                                                                                                                                                                    | string  |         |
+| MONGO_CONNECTION_TIMEOUT_MS                                            | Max time to wait for a connection to be opened. See docs *                                                                                                                                                                                                                                          | string  |         |
+| MONGO_SOCKET_TIMEOUT_MS                                                | Max time to wait for a command send or receive before timing out. See docs *                                                                                                                                                                                                                        | string  |         |
+| MONGO_SERVER_SELECTION_TIMEOUT_MS                                      | Max time to wait for a server to be selected while performing a communication with Mongo in milliseconds. See docs *                                                                                                                                                                                | string  |         |
+| MONGO_WAITING_QUEUE_MS                                                 | Max time a thread has to wait for a connection to be available in milliseconds. See docs *                                                                                                                                                                                                          | string  |         |
+| MONGO_HEARTBEAT_FREQUENCY_MS                                           | Hearth beat frequency in milliseconds. This is an hello command that is sent periodically on each active connection to perform an health check. See docs *                                                                                                                                          | string  |         |
+| MONGO_REPLICA_SET_OPTION                                               | The replica set connection string option valued with the name of the replica set. See docs *                                                                                                                                                                                                        | string  |         |
+| ECOMMERCE_DATABASE_NAME                                                | Mongo ecommerce database name                                                                                                                                                                                                                                                                       | string  |         |
+| ECOMMERCE_HISTORY_DATABASE_NAME                                        | Mongo ecommerce history database name                                                                                                                                                                                                                                                               | string  |         |
+| TRANSACTION_EXPIRED_EVENTS_QUEUE_NAME                                  | Transaction expired event queue name. This is the queue where transaction expired events will be sent                                                                                                                                                                                               | string  |         |
+| QUEUE_TRANSIENT_CONNECTION_STRING                                      | Transient queues connection string                                                                                                                                                                                                                                                                  | string  |         |
+| TRANSIENT_QUEUES_TTL_SECONDS                                           | TTL to be used when sending events on transient queues                                                                                                                                                                                                                                              | number  | 7 days  |
+| PENDING_TRANSACTIONS_SCHEDULE_CRON                                     | Pending transactions batch execution chron expression                                                                                                                                                                                                                                               | string  |         |
+| PENDING_TRANSACTIONS_WINDOWS_BATCH_EXECUTION_RATE_MULTIPLIER           | Pending transactions execution rate multiplier (used for calculate transactions window, see [Transactions to analyze time window](#Transactions-to-analyze-time-window)                                                                                                                             | int     |         |
+| PENDING_TRANSACTIONS_PARALLEL_EVENTS_TO_PROCESS                        | Pending transactions parallel events to be processed                                                                                                                                                                                                                                                | int     |         |
+| PENDING_TRANSACTIONS_MAX_DURATION_SECONDS                              | Single batch max duration in seconds. Indicate the max time to wait for a single batch iteration to be completed. If negative the execution-rate-inter-time/2 will be used (Ex: if batch is configured to be executed every 10 minutes max duration will be set to 5 minutes                        | int     | -1      |
+| PENDING_TRANSACTIONS_SEND_PAYMENT_RESULT_TIMEOUT_SECONDS               | Timeout for a `sendPaymentResult` callback (`POST /user-receipts` on `transactions-service`) to be received. This timeout is evaluated for a transaction stuck in CLOSED status for which an OK authorization outcome has been received by Nodo and inhibits expiration if it is yet to be reached. | int     |         |
+| PENDING_TRANSACTIONS_MAX_TRANSACTIONS_PER_PAGE                         | Max transactions to be fetched by paginated query                                                                                                                                                                                                                                                   | int     |         |
+| PENDING_TRANSACTIONS_PAGE_ANALYSIS_DELAY_SECONDS                       | Delay for the next pending transaction page to be analyzed (in seconds). This parameter in pair with `PENDING_TRANSACTIONS_MAX_TRANSACTIONS_PER_PAGE` define the max batch tps                                                                                                                      | int     |         |
+| PENDING_TRANSACTIONS_BATCH_LOCK_TTL_SECONDS                            | TTL in seconds for the distributed lock used by the pending transactions batch to ensure exclusive execution across multiple service instances                                                                                                                                                      | int     |         |
+| DEAD_LETTER_LISTENER_TRANSACTION_FIXED_DELAY_MILLIS                    | Transaction dead letter queue poll delay in milliseconds                                                                                                                                                                                                                                            | int     |         |
+| DEAD_LETTER_LISTENER_TRANSACTION_MAX_MESSAGE_PER_POLL                  | Transaction dead letter queue max messages to retrieve per poll                                                                                                                                                                                                                                     | int     |         |
+| DEAD_LETTER_LISTENER_TRANSACTION_QUEUE_NAME                            | Transaction dead letter queue name                                                                                                                                                                                                                                                                  | string  |         |
+| DEAD_LETTER_LISTENER_NOTIFICATION_FIXED_DELAY_MILLIS                   | Notification dead letter queue poll delay in milliseconds                                                                                                                                                                                                                                           | int     |         |
+| DEAD_LETTER_LISTENER_NOTIFICATION_MAX_MESSAGE_PER_POLL                 | Notification dead letter queue max messages to retrieve per poll                                                                                                                                                                                                                                    | int     |         |
+| DEAD_LETTER_LISTENER_NOTIFICATION_QUEUE_NAME                           | Notification dead letter queue name                                                                                                                                                                                                                                                                 | string  |         |
+| ECOMMERCE_STORAGE_DEAD_LETTER_QUEUE_ACCOUNT_NAME                       | Dead letter storage account name                                                                                                                                                                                                                                                                    | string  |         |
+| ECOMMERCE_STORAGE_DEAD_LETTER_QUEUE_ENDPOINT                           | Dead letter storage account endpoint                                                                                                                                                                                                                                                                | string  |         |
+| ECOMMERCE_STORAGE_DEAD_LETTER_QUEUE_KEY                                | Dead letter storage account key                                                                                                                                                                                                                                                                     | string  |         |
+| MIGRATION_TRANSACTION_BATCH_EVENTSTORE_CRON_EXPRESSION                 | The schedule (cron format) for running the 'eventstore' migration batch                                                                                                                                                                                                                             | string  |         |
+| MIGRATION_TRANSACTION_BATCH_EVENTSTORE_LOCK_TTL_SECONDS                | TTL in seconds for the distributed lock used by the eventstore migration batch to ensure exclusive execution across multiple service instances                                                                                                                                                      | int     |         |
+| MIGRATION_TRANSACTION_BATCH_TRANSACTIONS_VIEW_CRON_EXPRESSION          | The schedule (cron format) for running the 'transactions view' migration batch.                                                                                                                                                                                                                     | string  |         |
+| MIGRATION_TRANSACTION_BATCH_TRANSACTIONS_VIEW_LOCK_TTL_SECONDS         | TTL in seconds for the distributed lock used by the transactions view migration batch to ensure exclusive execution across multiple service instances                                                                                                                                               | int     |         |
+| MIGRATION_TRANSACTION_QUERY_EVENT_STORE_CUTOFF_MONTH_OFFSET            | The age in months (offset from the current date) that a transaction in the event store collection must be to be eligible for migration                                                                                                                                                              | integer |         |
+| MIGRATION_TRANSACTION_QUERY_EVENT_STORE_LOW_RATE                       | The maximum number of eligible transactions events to fetch from the event store collection in a single batch outside of the burst window                                                                                                                                                           | integer |         |
+| MIGRATION_TRANSACTION_QUERY_EVENT_STORE_HIGH_RATE                      | The maximum number of eligible transactions events to fetch from the event store collection in a single batch inside of the burst window once ramping up period ends                                                                                                                                | integer |         |
+| MIGRATION_TRANSACTION_QUERY_EVENT_STORE_RAMP_UP_DURATION_SECONDS       | The duration of the ramping up process: this is the duration used by the dynamic range calculator to pass from low rate to high rate once entered burst window                                                                                                                                      | integer |         |
+| MIGRATION_TRANSACTION_QUERY_EVENT_STORE_BURST_START_WINDOW             | The burst window start window expressed as local time (ex: 22:00)                                                                                                                                                                                                                                   | integer |         |
+| MIGRATION_TRANSACTION_QUERY_EVENT_STORE_BURST_END_WINDOW               | The burst window end window expressed as local time (ex: 05:00)                                                                                                                                                                                                                                     | integer |         |
+| MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_CUTOFF_MONTH_OFFSET      | The age in months (offset from the current date) that a transaction in the transactions view collection must be to be eligible for migration                                                                                                                                                        | integer |         |
+| MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_LOW_RATE                 | The maximum number of eligible transactions views to fetch from the event store collection in a single batch outside of the burst window                                                                                                                                                            | integer |         |
+| MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_HIGH_RATE                | The maximum number of eligible transactions events to fetch from the event store collection in a single batch inside of the burst window once ramping up period ends                                                                                                                                | integer |         |
+| MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_RAMP_UP_DURATION_SECONDS | The duration of the ramping up process: this is the duration used by the dynamic range calculator to pass from low rate to high rate once entered burst window                                                                                                                                      | integer |         |
+| MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_BURST_START_WINDOW       | The burst window start window expressed as local time (ex: 22:00)                                                                                                                                                                                                                                   | integer |         |
+| MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_BURST_END_WINDOW         | The burst window end window expressed as local time (ex: 05:00)                                                                                                                                                                                                                                     | integer |         |
+| MIGRATION_TRANSACTION_WRITE_EVENT_STORE_TTL_SECONDS                    | The TTL value to set on the individual eventstore document, which determines when the document will expire and be automatically deleted                                                                                                                                                             | integer |         |
+| MIGRATION_TRANSACTION_WRITE_TRANSACTIONS_VIEW_TTL_SECONDS              | The TTL value to set on the individual transactions-view document, which determines when the document will expire and be automatically deleted                                                                                                                                                      | integer |         |
+| NPG_URI                                                                | NPG service URI                                                                                                                                                                                                                                                                                     | string  |         |
+| NPG_READ_TIMEOUT                                                       | NPG service HTTP read timeout                                                                                                                                                                                                                                                                       | integer |         |
+| NPG_CONNECTION_TIMEOUT                                                 | NPG service HTTP connection timeout                                                                                                                                                                                                                                                                 | integer |         |
+| NPG_API_KEY                                                            | NPG service api-key                                                                                                                                                                                                                                                                                 | string  |         |
+| NPG_CARDS_PSP_KEYS                                                     | Secret structure that holds psp - api keys association for authorization request                                                                                                                                                                                                                    | string  |         |
+| NPG_CARDS_PSP_LIST                                                     | List of all psp ids that are expected to be found into the NPG_CARDS_PSP_KEYS configuration (used for configuration cross validation)                                                                                                                                                               | string  |         |
+| NPG_PAYPAL_PSP_KEYS                                                    | Secret structure that holds psp - api keys association for authorization request used for APM PAYPAL payment method                                                                                                                                                                                 | string  |         |
+| NPG_PAYPAL_PSP_LIST                                                    | List of all psp ids that are expected to be found into the NPG_PAYPAL_PSP_KEYS configuration (used for configuration cross validation)                                                                                                                                                              | string  |         |
+| NPG_BANCOMATPAY_PSP_KEYS                                               | Secret structure that holds psp - api keys association for authorization request used for APM Bancomat pay payment method                                                                                                                                                                           | string  |         |
+| NPG_BANCOMATPAY_PSP_LIST                                               | List of all psp ids that are expected to be found into the NPG_BANCOMATPAY_PSP_KEYS configuration (used for configuration cross validation)                                                                                                                                                         | string  |         |
+| NPG_MYBANK_PSP_KEYS                                                    | Secret structure that holds psp - api keys association for authorization request used for APM My bank payment method                                                                                                                                                                                | string  |         |
+| NPG_MYBANK_PSP_LIST                                                    | List of all psp ids that are expected to be found into the NPG_MYBANK_PSP_KEYS configuration (used for configuration cross validation)                                                                                                                                                              | string  |         |
+| NPG_SATISPAY_PSP_KEYS                                                  | Secret structure that holds psp - api keys association for authorization request used for APM Satispay payment method                                                                                                                                                                               | string  |         |
+| NPG_SATISPAY_PSP_LIST                                                  | List of all psp ids that are expected to be found into the NPG_SATISPAY_PSP_KEYS configuration (used for configuration cross validation)                                                                                                                                                            | string  |         |
+| NPG_APPLEPAY_PSP_KEYS                                                  | Secret structure that holds psp - api keys association for authorization request used for APM Apple pay payment method                                                                                                                                                                              | string  |         |
+| NPG_APPLEPAY_PSP_LIST                                                  | List of all psp ids that are expected to be found into the NPG_APPLEPAY_PSP_KEYS configuration (used for configuration cross validation)                                                                                                                                                            | string  |         |
+| REDIS_HOST                                                             | Redis hostname                                                                                                                                                                                                                                                                                      | string  |         |
+| REDIS_PORT                                                             | Redis port                                                                                                                                                                                                                                                                                          | number  |         |
+| REDIS_PASSWORD                                                         | Redis password                                                                                                                                                                                                                                                                                      | string  |         |
+| REDIS_SSL_ENABLED                                                      | Redis ssl enabled                                                                                                                                                                                                                                                                                   | boolean |         |
+| REDIS_STREAM_EVENT_CONTROLLER_STREAM_KEY                               | Event (receivers) controller redis stream key                                                                                                                                                                                                                                                       | string  |         |
+| REDIS_STREAM_EVENT_CONTROLLER_CONSUMER_NAME_PREFIX                     | Event (receivers) controller redis stream consumer name prefix                                                                                                                                                                                                                                      | string  |         |
+| EVENT_CONTROLLER_STATUS_POLLING_CHRON                                  | Chron used to schedule event receivers status polling                                                                                                                                                                                                                                               | string  |         |
+| DEPLOYMENT_VERSION                                                     | Env property used to identify deployment version (STAGING/PROD)                                                                                                                                                                                                                                     | string  | PROD    |
+| NPG_GOOGLE_PAY_PSP_KEYS                                                | Secret structure that holds psp - api keys association for authorization request used for APM Google pay payment method                                                                                                                                                                             | string  |         |
+| NPG_GOOGLE_PAY_PSP_LIST                                                | List of all psp ids that are expected to be found into the NPG_GOOGLE_PAY_PSP_KEYS configuration (used for configuration cross validation)                                                                                                                                                          | string  |         |
+| TRANSACTIONSVIEW_UPDATE_ENABLED                                        | Flag to enable/disable transaction view collection updates in MongoDB. When true (default), the publisher updates the transactions-view collection. When false, only the event store is updated, skipping the view update.                                                                          | boolean | true    |
 
 (*): for Mongo connection string options
 see [docs](https://www.mongodb.com/docs/drivers/java/sync/v4.3/fundamentals/connection/connection-options/#connection-options)
@@ -165,9 +173,9 @@ Pending transaction are processed at a configurable TPS (transactions per second
 This can be done changing the below parameters:
 
 - `PENDING_TRANSACTIONS_MAX_TRANSACTIONS_PER_PAGE` parameter allow to specify how many transactions to retrieve for each
-page -> chunk size
+  page -> chunk size
 - `PENDING_TRANSACTIONS_PAGE_ANALYSIS_DELAY_SECONDS` parameter allow to specify time to be waited between the next page
-to be analyzed -> chunk rate
+  to be analyzed -> chunk rate
 
 Example of configurations:
 
@@ -179,32 +187,61 @@ Example of configurations:
 
 ---
 
+### Migration batch dynamic range calculation
+
+Migration batches have dynamic range calculation parameters to allow for fine batch rate calculation.
+This is done with specific configuration properties.
+
+For example, this configuration
+
+- MIGRATION_TRANSACTION_QUERY_*_LOW_RATE: 100
+- MIGRATION_TRANSACTION_QUERY_*_HIGH_RATE: 200
+- MIGRATION_TRANSACTION_QUERY_*_RAMP_UP_DURATION_SECONDS: 14400 #4 hour
+- MIGRATION_TRANSACTION_QUERY_*_BURST_START_WINDOW: 22:00
+- MIGRATION_TRANSACTION_QUERY_*_BURST_END_WINDOW: 06:00
+
+will lead to the following rate calculation:
+
+- from 06:00 to 22:00 → 100
+- from 22:00 to 02:00 → linear ramp up from 100 to 200 (125 at 23:00, 150 at 00:00, 175 at 01:00, 200 at 02:00)
+- from 02:00 to 06:00 → 200
+- and the flow repeat. after 06:00 the rate taken into account drops from 200 to 100 without ramping down phase
+
+---
+
 ## Run locally with Docker
 
 ### Prerequisites
+
 Set up GitHub authentication for packages (required for pagopa-ecommerce-commons dependency):
 
 1. Configure Maven settings file:
+
 - **If you don't have ~/.m2/settings.xml:**
-	```sh
-	cp settings.xml.template ~/.m2/settings.xml
-	```
-- **If you already have ~/.m2/settings.xml:** Edit the file to add the GitHub server configuration from `settings.xml.template`, or replace the `${GITHUB_TOKEN}` placeholder with your actual token.
+  ```sh
+  cp settings.xml.template ~/.m2/settings.xml
+  ```
+- **If you already have ~/.m2/settings.xml:** Edit the file to add the GitHub server configuration from
+  `settings.xml.template`, or replace the `${GITHUB_TOKEN}` placeholder with your actual token.
 
 
 2. Set your GitHub token:
+
 ```sh
 export GITHUB_TOKEN=your_github_token_with_packages_read_permission
 ```
 
-**Note:** The settings.xml file is required for Maven to authenticate with GitHub Packages. Without proper configuration, builds will fail with 401 Unauthorized errors.
+**Note:** The settings.xml file is required for Maven to authenticate with GitHub Packages. Without proper
+configuration, builds will fail with 401 Unauthorized errors.
 
 ### Build Docker Image
+
 ```sh
 docker build --secret id=GITHUB_TOKEN,env=GITHUB_TOKEN -t pagopa-ecommerce-transactions-scheduler-service .
 ```
 
 ### Run Container
+
 ```sh
 docker run -p 8999:8080 pagopa-ecommerce-transactions-scheduler-service
 ```
@@ -212,32 +249,39 @@ docker run -p 8999:8080 pagopa-ecommerce-transactions-scheduler-service
 ## Run locally with Maven
 
 ### Prerequisites
+
 Set up GitHub authentication for packages (required for pagopa-ecommerce-commons dependency):
 
 1. Configure Maven settings file:
+
 - **If you don't have ~/.m2/settings.xml:**
-	```sh
-	cp settings.xml.template ~/.m2/settings.xml
-	```
-- **If you already have ~/.m2/settings.xml:** Edit the file to add the GitHub server configuration from `settings.xml.template`, or replace the `${GITHUB_TOKEN}` placeholder with your actual token.
+  ```sh
+  cp settings.xml.template ~/.m2/settings.xml
+  ```
+- **If you already have ~/.m2/settings.xml:** Edit the file to add the GitHub server configuration from
+  `settings.xml.template`, or replace the `${GITHUB_TOKEN}` placeholder with your actual token.
 
 
 2. Create your environment:
+
 ```sh
 export $(grep -v '^#' .env.local | xargs)
 ```
 
 3. Set your GitHub token:
+
 ```sh
 export GITHUB_TOKEN=your_github_token_with_packages_read_permission
 ```
 
 Then from current project directory run:
+
 ```sh
 mvn clean spring-boot:run
 ```
 
-**Note:** The application now uses pagopa-ecommerce-commons library directly from GitHub Packages. Make sure your GitHub token has `packages:read` permission for the `pagopa/pagopa-ecommerce-commons` repository.
+**Note:** The application now uses pagopa-ecommerce-commons library directly from GitHub Packages. Make sure your GitHub
+token has `packages:read` permission for the `pagopa/pagopa-ecommerce-commons` repository.
 
 ## Code formatting
 
@@ -283,52 +327,61 @@ the `Chart version` labels must be contemporary present for a given PR or the `s
 
 ## Dependency Verification
 
-This project uses the [pagopa/depcheck](https://github.com/pagopa/depcheck) Maven plugin to verify SHA-256 hashes of all dependencies, ensuring supply chain integrity and preventing dependency tampering attacks.
+This project uses the [pagopa/depcheck](https://github.com/pagopa/depcheck) Maven plugin to verify SHA-256 hashes of all
+dependencies, ensuring supply chain integrity and preventing dependency tampering attacks.
 
 ### How It Works
-The plugin maintains a JSON file containing SHA-256 hashes of all project dependencies. During verification, it compares the hashes of resolved artifacts against the stored values, failing the build if any mismatches are detected.
+
+The plugin maintains a JSON file containing SHA-256 hashes of all project dependencies. During verification, it compares
+the hashes of resolved artifacts against the stored values, failing the build if any mismatches are detected.
 
 ### Configuration
 
 ```xml
+
 <plugin>
-<groupId>it.pagopa.maven</groupId>
-<artifactId>depcheck</artifactId>
-<version>1.3.0</version>
-<configuration>
-	<fileName>dep-sha256.json</fileName>
-	<includePlugins>false</includePlugins>
-	<includeParent>false</includeParent>
-	<excludes>
-	<!-- Optional: Exclude specific dependencies -->
-	</excludes>
-</configuration>
-<executions>
-	<execution>
-	<phase>validate</phase>
-	<goals>
-		<goal>verify</goal>
-	</goals>
-	</execution>
-</executions>
+    <groupId>it.pagopa.maven</groupId>
+    <artifactId>depcheck</artifactId>
+    <version>1.3.0</version>
+    <configuration>
+        <fileName>dep-sha256.json</fileName>
+        <includePlugins>false</includePlugins>
+        <includeParent>false</includeParent>
+        <excludes>
+            <!-- Optional: Exclude specific dependencies -->
+        </excludes>
+    </configuration>
+    <executions>
+        <execution>
+            <phase>validate</phase>
+            <goals>
+                <goal>verify</goal>
+            </goals>
+        </execution>
+    </executions>
 </plugin>
 ```
 
 ### Usage
+
 First of all, ensure your GitHub token and `settings.xml` are properly configured.
 
 1. **Generate hashes**: When adding new dependencies or updating existing ones:
+
 ```sh
 mvn depcheck:generate
 ```
+
 **NOTE**: Always commit the updated hash file to version control after adding or updating dependencies
 
 2. **Verify hashes**: This happens automatically during the `validate` phase, and so, automatically, in CI/CD pipelines.
-You can also explicitly run:
+   You can also explicitly run:
+
 ```sh
 mvn depcheck:verify
 ```
 
 ### Important Notes
 
-- **Maven plugins** have empty SHA-256 values by default as they're not resolved as JAR files during the regular build. Right now `includePlugins=false` avoid empty hashes and plugin check.
+- **Maven plugins** have empty SHA-256 values by default as they're not resolved as JAR files during the regular build.
+  Right now `includePlugins=false` avoid empty hashes and plugin check.

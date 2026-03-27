@@ -1,6 +1,7 @@
 package it.pagopa.ecommerce.transactions.scheduler.configurations
 
 import org.springframework.boot.context.properties.ConfigurationProperties
+import java.time.LocalTime
 
 @ConfigurationProperties(prefix = "migration.transaction.query")
 data class TransactionMigrationQueryServiceConfig(
@@ -8,4 +9,11 @@ data class TransactionMigrationQueryServiceConfig(
     val transactionsView: QuerySettings
 )
 
-data class QuerySettings(val cutoffMonthOffset: Int, val maxResults: Int)
+data class QuerySettings(
+    val cutoffMonthOffset: Int,
+    val lowRate: Int,
+    val highRate: Int,
+    val rampUpDurationSeconds: Int,
+    val burstStartWindow: LocalTime,
+    val burstEndWindow: LocalTime
+)
