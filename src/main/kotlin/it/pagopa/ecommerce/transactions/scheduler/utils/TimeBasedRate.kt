@@ -102,21 +102,3 @@ class TimeBasedRate(
             this
         }
 }
-
-fun main() {
-    val timeBaseRate =
-        TimeBasedRate(
-            from = LocalTime.of(10, 0),
-            to = LocalTime.of(12, 0),
-            lowRate = 100,
-            highRate = 200,
-            rampUp = Duration.ofHours(1)
-        )
-
-    println(timeBaseRate.calculateRate(LocalTime.of(10, 0)))
-    println(timeBaseRate.calculateRate(LocalTime.of(10, 22)))
-    println(timeBaseRate.calculateRate(LocalTime.of(10, 30)))
-    println(timeBaseRate.calculateRate(LocalTime.of(11, 0)))
-    println(timeBaseRate.calculateRate(LocalTime.of(12, 0)))
-    println(timeBaseRate)
-}
