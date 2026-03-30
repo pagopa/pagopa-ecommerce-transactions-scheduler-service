@@ -121,6 +121,7 @@ class TimeBasedRateTest {
 
         // assertions
         assertEquals(expectedRate, result, description)
+        assertEquals(timeBaseRate.rangeDuration, Duration.ofHours(2))
     }
 
     @ParameterizedTest
@@ -145,6 +146,7 @@ class TimeBasedRateTest {
 
         // assertions
         assertEquals(expectedRate, result, description)
+        assertEquals(timeBaseRate.rangeDuration, Duration.ofHours(3))
     }
 
     @ParameterizedTest
@@ -169,6 +171,7 @@ class TimeBasedRateTest {
 
         // assertions
         assertEquals(expectedRate, result, description)
+        assertEquals(timeBaseRate.rangeDuration, Duration.ofHours(3))
     }
 
     @Test
