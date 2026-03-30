@@ -79,7 +79,7 @@ class TimeBasedRate(
      */
     fun calculateRate(at: LocalTime = LocalTime.now()): Int {
         // case where temporal window is in the same day. ex. 09:00 (d) -> 18:00 (d)
-        val (rangeElapsedTime, isInRange) =
+        val (rangeElapsedTime, isInBurstRange) =
             if (to > from) {
                 val isInRange = at in from..to
                 val rangeElapsedTime = Duration.between(from, at)
@@ -102,7 +102,7 @@ class TimeBasedRate(
                 Pair(rangeElapsedTime, isInRange)
             }
         val finalRate: Int =
-            if (isInRange) {
+            if (isInBurstRange) {
                 if (rangeElapsedTime > rampUp) {
                     highRate
                 } else {
