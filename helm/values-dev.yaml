@@ -14,8 +14,8 @@ microservice-chart:
     image:
       repository: pagopadcommonacr.azurecr.io/pagopaecommercetransactionsschedulerservic
       tag: "latest"
-    envConfig: {}
-    envSecret: {}
+    envConfig: { }
+    envSecret: { }
   image:
     repository: pagopadcommonacr.azurecr.io/pagopaecommercetransactionsschedulerservice
     tag: "4.3.3"
@@ -49,9 +49,9 @@ microservice-chart:
     servicePort: 8080
   serviceAccount:
     create: false
-    annotations: {}
+    annotations: { }
     name: "ecommerce-workload-identity"
-  podAnnotations: {}
+  podAnnotations: { }
   podSecurityContext:
     seccompProfile:
       type: RuntimeDefault
@@ -137,9 +137,17 @@ microservice-chart:
     EVENT_CONTROLLER_STATUS_POLLING_CHRON: "*/10 * * * * *"
     TRANSACTIONSVIEW_UPDATE_ENABLED: "false"
     MIGRATION_TRANSACTION_QUERY_EVENT_STORE_CUTOFF_MONTH_OFFSET: "9"
-    MIGRATION_TRANSACTION_QUERY_EVENT_STORE_MAX_RESULTS: "10"
+    MIGRATION_TRANSACTION_QUERY_EVENT_STORE_LOW_RATE: "1"
+    MIGRATION_TRANSACTION_QUERY_EVENT_STORE_HIGH_RATE: "5"
+    MIGRATION_TRANSACTION_QUERY_EVENT_STORE_RAMP_UP_DURATION_SECONDS: "7200" #2 hours
+    MIGRATION_TRANSACTION_QUERY_EVENT_STORE_BURST_START_WINDOW: "22:00"
+    MIGRATION_TRANSACTION_QUERY_EVENT_STORE_BURST_END_WINDOW: "01:00"
     MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_CUTOFF_MONTH_OFFSET: "9"
-    MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_MAX_RESULTS: "10"
+    MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_LOW_RATE: "1"
+    MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_HIGH_RATE: "5"
+    MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_RAMP_UP_DURATION_SECONDS: "7200" #2 hours
+    MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_BURST_START_WINDOW: "22:00"
+    MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_BURST_END_WINDOW: "01:00"
     MIGRATION_TRANSACTION_WRITE_EVENT_STORE_TTL_SECONDS: "172800" # 2 days
     MIGRATION_TRANSACTION_WRITE_TRANSACTIONS_VIEW_TTL_SECONDS: "172800" # 2 days
     MIGRATION_TRANSACTION_BATCH_EVENTSTORE_CRON_EXPRESSION: "-" # disabled
@@ -164,8 +172,8 @@ microservice-chart:
   keyvault:
     name: "pagopa-d-ecommerce-kv"
     tenantId: "7788edaf-0346-4068-9d79-c868aed15b3d"
-  nodeSelector: {}
-  tolerations: []
+  nodeSelector: { }
+  tolerations: [ ]
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
