@@ -126,14 +126,14 @@ These are all environment variables needed by the application:
 | MIGRATION_TRANSACTION_QUERY_EVENT_STORE_LOW_RATE                       | The maximum number of eligible transactions events to fetch from the event store collection in a single batch outside of the burst window                                                                                                                                                           | integer |         |
 | MIGRATION_TRANSACTION_QUERY_EVENT_STORE_HIGH_RATE                      | The maximum number of eligible transactions events to fetch from the event store collection in a single batch inside of the burst window once ramping up period ends                                                                                                                                | integer |         |
 | MIGRATION_TRANSACTION_QUERY_EVENT_STORE_RAMP_UP_DURATION_SECONDS       | The duration of the ramping up process: this is the duration used by the dynamic range calculator to pass from low rate to high rate once entered burst window                                                                                                                                      | integer |         |
-| MIGRATION_TRANSACTION_QUERY_EVENT_STORE_BURST_START_WINDOW             | The burst window start window expressed as local time (ex: 22:00)                                                                                                                                                                                                                                   | integer |         |
-| MIGRATION_TRANSACTION_QUERY_EVENT_STORE_BURST_END_WINDOW               | The burst window end window expressed as local time (ex: 05:00)                                                                                                                                                                                                                                     | integer |         |
+| MIGRATION_TRANSACTION_QUERY_EVENT_STORE_BURST_START_WINDOW             | The burst window start window expressed as local time (ex: 22:00). This local time will be taken into account in the system default local time (for k8s unix env is UTC) but can vary depending on system settings                                                                                  | integer |         |
+| MIGRATION_TRANSACTION_QUERY_EVENT_STORE_BURST_END_WINDOW               | The burst window end window expressed as local time (ex: 05:00). This local time will be taken into account in the system default local time (for k8s unix env is UTC) but can vary depending on system settings                                                                                    | integer |         |
 | MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_CUTOFF_MONTH_OFFSET      | The age in months (offset from the current date) that a transaction in the transactions view collection must be to be eligible for migration                                                                                                                                                        | integer |         |
 | MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_LOW_RATE                 | The maximum number of eligible transactions views to fetch from the event store collection in a single batch outside of the burst window                                                                                                                                                            | integer |         |
 | MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_HIGH_RATE                | The maximum number of eligible transactions events to fetch from the event store collection in a single batch inside of the burst window once ramping up period ends                                                                                                                                | integer |         |
 | MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_RAMP_UP_DURATION_SECONDS | The duration of the ramping up process: this is the duration used by the dynamic range calculator to pass from low rate to high rate once entered burst window                                                                                                                                      | integer |         |
-| MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_BURST_START_WINDOW       | The burst window start window expressed as local time (ex: 22:00)                                                                                                                                                                                                                                   | integer |         |
-| MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_BURST_END_WINDOW         | The burst window end window expressed as local time (ex: 05:00)                                                                                                                                                                                                                                     | integer |         |
+| MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_BURST_START_WINDOW       | The burst window start window expressed as local time (ex: 22:00). This local time will be taken into account in the system default local time (for k8s unix env is UTC) but can vary depending on system settings                                                                                  | integer |         |
+| MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_BURST_END_WINDOW         | The burst window end window expressed as local time (ex: 05:00). This local time will be taken into account in the system default local time (for k8s unix env is UTC) but can vary depending on system settings                                                                                    | integer |         |
 | MIGRATION_TRANSACTION_WRITE_EVENT_STORE_TTL_SECONDS                    | The TTL value to set on the individual eventstore document, which determines when the document will expire and be automatically deleted                                                                                                                                                             | integer |         |
 | MIGRATION_TRANSACTION_WRITE_TRANSACTIONS_VIEW_TTL_SECONDS              | The TTL value to set on the individual transactions-view document, which determines when the document will expire and be automatically deleted                                                                                                                                                      | integer |         |
 | NPG_URI                                                                | NPG service URI                                                                                                                                                                                                                                                                                     | string  |         |
@@ -218,9 +218,11 @@ Set up GitHub authentication for packages (required for pagopa-ecommerce-commons
 1. Configure Maven settings file:
 
 - **If you don't have ~/.m2/settings.xml:**
+
 ```sh
 cp settings.xml.template ~/.m2/settings.xml
 ```
+
 - **If you already have ~/.m2/settings.xml:** Edit the file to add the GitHub server configuration from
 `settings.xml.template`, or replace the `${GITHUB_TOKEN}` placeholder with your actual token.
 
@@ -255,9 +257,11 @@ Set up GitHub authentication for packages (required for pagopa-ecommerce-commons
 1. Configure Maven settings file:
 
 - **If you don't have ~/.m2/settings.xml:**
+
 ```sh
 cp settings.xml.template ~/.m2/settings.xml
 ```
+
 - **If you already have ~/.m2/settings.xml:** Edit the file to add the GitHub server configuration from
 `settings.xml.template`, or replace the `${GITHUB_TOKEN}` placeholder with your actual token.
 
