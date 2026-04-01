@@ -126,14 +126,14 @@ These are all environment variables needed by the application:
 | MIGRATION_TRANSACTION_QUERY_EVENT_STORE_LOW_RATE                       | The maximum number of eligible transactions events to fetch from the event store collection in a single batch outside of the burst window                                                                                                                                                           | integer |         |
 | MIGRATION_TRANSACTION_QUERY_EVENT_STORE_HIGH_RATE                      | The maximum number of eligible transactions events to fetch from the event store collection in a single batch inside of the burst window once ramping up period ends                                                                                                                                | integer |         |
 | MIGRATION_TRANSACTION_QUERY_EVENT_STORE_RAMP_UP_DURATION_SECONDS       | The duration of the ramping up process: this is the duration used by the dynamic range calculator to pass from low rate to high rate once entered burst window                                                                                                                                      | integer |         |
-| MIGRATION_TRANSACTION_QUERY_EVENT_STORE_BURST_START_WINDOW             | The burst window start window expressed as local time (ex: 22:00)                                                                                                                                                                                                                                   | integer |         |
-| MIGRATION_TRANSACTION_QUERY_EVENT_STORE_BURST_END_WINDOW               | The burst window end window expressed as local time (ex: 05:00)                                                                                                                                                                                                                                     | integer |         |
+| MIGRATION_TRANSACTION_QUERY_EVENT_STORE_BURST_START_WINDOW             | The burst window start window expressed as local time (ex: 22:00). This local time will be taken into account in the system default local time (for k8s unix env is UTC) but can vary depending on system settings                                                                                  | integer |         |
+| MIGRATION_TRANSACTION_QUERY_EVENT_STORE_BURST_END_WINDOW               | The burst window end window expressed as local time (ex: 05:00). This local time will be taken into account in the system default local time (for k8s unix env is UTC) but can vary depending on system settings                                                                                    | integer |         |
 | MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_CUTOFF_MONTH_OFFSET      | The age in months (offset from the current date) that a transaction in the transactions view collection must be to be eligible for migration                                                                                                                                                        | integer |         |
 | MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_LOW_RATE                 | The maximum number of eligible transactions views to fetch from the event store collection in a single batch outside of the burst window                                                                                                                                                            | integer |         |
 | MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_HIGH_RATE                | The maximum number of eligible transactions events to fetch from the event store collection in a single batch inside of the burst window once ramping up period ends                                                                                                                                | integer |         |
 | MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_RAMP_UP_DURATION_SECONDS | The duration of the ramping up process: this is the duration used by the dynamic range calculator to pass from low rate to high rate once entered burst window                                                                                                                                      | integer |         |
-| MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_BURST_START_WINDOW       | The burst window start window expressed as local time (ex: 22:00)                                                                                                                                                                                                                                   | integer |         |
-| MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_BURST_END_WINDOW         | The burst window end window expressed as local time (ex: 05:00)                                                                                                                                                                                                                                     | integer |         |
+| MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_BURST_START_WINDOW       | The burst window start window expressed as local time (ex: 22:00). This local time will be taken into account in the system default local time (for k8s unix env is UTC) but can vary depending on system settings                                                                                  | integer |         |
+| MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_BURST_END_WINDOW         | The burst window end window expressed as local time (ex: 05:00). This local time will be taken into account in the system default local time (for k8s unix env is UTC) but can vary depending on system settings                                                                                    | integer |         |
 | MIGRATION_TRANSACTION_WRITE_EVENT_STORE_TTL_SECONDS                    | The TTL value to set on the individual eventstore document, which determines when the document will expire and be automatically deleted                                                                                                                                                             | integer |         |
 | MIGRATION_TRANSACTION_WRITE_TRANSACTIONS_VIEW_TTL_SECONDS              | The TTL value to set on the individual transactions-view document, which determines when the document will expire and be automatically deleted                                                                                                                                                      | integer |         |
 | NPG_URI                                                                | NPG service URI                                                                                                                                                                                                                                                                                     | string  |         |
@@ -173,9 +173,9 @@ Pending transaction are processed at a configurable TPS (transactions per second
 This can be done changing the below parameters:
 
 - `PENDING_TRANSACTIONS_MAX_TRANSACTIONS_PER_PAGE` parameter allow to specify how many transactions to retrieve for each
-page -> chunk size
+  page -> chunk size
 - `PENDING_TRANSACTIONS_PAGE_ANALYSIS_DELAY_SECONDS` parameter allow to specify time to be waited between the next page
-to be analyzed -> chunk rate
+  to be analyzed -> chunk rate
 
 Example of configurations:
 
@@ -218,11 +218,13 @@ Set up GitHub authentication for packages (required for pagopa-ecommerce-commons
 1. Configure Maven settings file:
 
 - **If you don't have ~/.m2/settings.xml:**
+
 ```sh
 cp settings.xml.template ~/.m2/settings.xml
 ```
+
 - **If you already have ~/.m2/settings.xml:** Edit the file to add the GitHub server configuration from
-`settings.xml.template`, or replace the `${GITHUB_TOKEN}` placeholder with your actual token.
+  `settings.xml.template`, or replace the `${GITHUB_TOKEN}` placeholder with your actual token.
 
 
 2. Set your GitHub token:
@@ -255,11 +257,13 @@ Set up GitHub authentication for packages (required for pagopa-ecommerce-commons
 1. Configure Maven settings file:
 
 - **If you don't have ~/.m2/settings.xml:**
+
 ```sh
 cp settings.xml.template ~/.m2/settings.xml
 ```
+
 - **If you already have ~/.m2/settings.xml:** Edit the file to add the GitHub server configuration from
-`settings.xml.template`, or replace the `${GITHUB_TOKEN}` placeholder with your actual token.
+  `settings.xml.template`, or replace the `${GITHUB_TOKEN}` placeholder with your actual token.
 
 
 2. Create your environment:
@@ -340,25 +344,25 @@ the hashes of resolved artifacts against the stored values, failing the build if
 ```xml
 
 <plugin>
-	<groupId>it.pagopa.maven</groupId>
-	<artifactId>depcheck</artifactId>
-	<version>1.3.0</version>
-	<configuration>
-		<fileName>dep-sha256.json</fileName>
-		<includePlugins>false</includePlugins>
-		<includeParent>false</includeParent>
-		<excludes>
-			<!-- Optional: Exclude specific dependencies -->
-		</excludes>
-	</configuration>
-	<executions>
-		<execution>
-			<phase>validate</phase>
-			<goals>
-				<goal>verify</goal>
-			</goals>
-		</execution>
-	</executions>
+    <groupId>it.pagopa.maven</groupId>
+    <artifactId>depcheck</artifactId>
+    <version>1.3.0</version>
+    <configuration>
+        <fileName>dep-sha256.json</fileName>
+        <includePlugins>false</includePlugins>
+        <includeParent>false</includeParent>
+        <excludes>
+            <!-- Optional: Exclude specific dependencies -->
+        </excludes>
+    </configuration>
+    <executions>
+        <execution>
+            <phase>validate</phase>
+            <goals>
+                <goal>verify</goal>
+            </goals>
+        </execution>
+    </executions>
 </plugin>
 ```
 
@@ -375,7 +379,7 @@ mvn depcheck:generate
 **NOTE**: Always commit the updated hash file to version control after adding or updating dependencies
 
 2. **Verify hashes**: This happens automatically during the `validate` phase, and so, automatically, in CI/CD pipelines.
-You can also explicitly run:
+   You can also explicitly run:
 
 ```sh
 mvn depcheck:verify
@@ -384,4 +388,4 @@ mvn depcheck:verify
 ### Important Notes
 
 - **Maven plugins** have empty SHA-256 values by default as they're not resolved as JAR files during the regular build.
-Right now `includePlugins=false` avoid empty hashes and plugin check.
+  Right now `includePlugins=false` avoid empty hashes and plugin check.
