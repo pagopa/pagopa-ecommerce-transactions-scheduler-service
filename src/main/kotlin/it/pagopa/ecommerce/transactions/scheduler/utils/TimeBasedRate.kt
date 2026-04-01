@@ -1,8 +1,7 @@
 package it.pagopa.ecommerce.transactions.scheduler.utils
 
 import it.pagopa.ecommerce.transactions.scheduler.configurations.QuerySettings
-import java.time.Duration
-import java.time.LocalTime
+import java.time.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -79,10 +78,12 @@ class TimeBasedRate(
      */
     fun calculateRate(at: LocalTime = LocalTime.now()): Int {
         // case where temporal window is in the same day. ex. 09:00 (d) -> 18:00 (d)
+        val toSystemTimeZone = to.fromItalyToSystemDefault()
+        val fromSystemTimeZone = from.fromItalyToSystemDefault()
         val (rangeElapsedTime, isInBurstRange) =
-            if (to > from) {
-                val isInRange = at in from..to
-                val rangeElapsedTime = Duration.between(from, at)
+            if (toSystemTimeZone > from) {
+                val isInRange = at in fromSystemTimeZone..toSystemTimeZone
+                val rangeElapsedTime = Duration.between(fromSystemTimeZone, at)
                 Pair(rangeElapsedTime, isInRange)
             }
             // case where temporal window cover different two consecutive days ex. 22:00 (d) ->
@@ -90,13 +91,16 @@ class TimeBasedRate(
             // in those cases time window duration and check that now is in range is done checking
             // negating above conditions
             else {
-                val isInRange = at !in to..from || at == to || at == from
+                val isInRange =
+                    at !in toSystemTimeZone..fromSystemTimeZone ||
+                        at == toSystemTimeZone ||
+                        at == fromSystemTimeZone
                 val rangeElapsedTime =
                     if (at > LocalTime.MIDNIGHT) {
-                            Duration.between(from, LocalTime.MIDNIGHT) +
+                            Duration.between(fromSystemTimeZone, LocalTime.MIDNIGHT) +
                                 Duration.between(LocalTime.MIDNIGHT, at)
                         } else {
-                            Duration.between(from, at)
+                            Duration.between(fromSystemTimeZone, at)
                         }
                         .toPositiveTimeDiff()
                 Pair(rangeElapsedTime, isInRange)
@@ -113,9 +117,11 @@ class TimeBasedRate(
                 lowRate
             }
         logger.info(
-            "Dynamic rate configuration: Time window: [{} - {}], ramping up: [{} -> {}]. Calculated rate: [{}]",
+            "Dynamic rate configuration: Time window: [{} - {}] [Europe/Rome] converted to [{} - {}] , ramping up: [{} -> {}]. Calculated rate: [{}]",
             from,
             to,
+            fromSystemTimeZone,
+            toSystemTimeZone,
             lowRate,
             highRate,
             finalRate
@@ -129,4 +135,12 @@ class TimeBasedRate(
         } else {
             this
         }
+
+    fun LocalTime.fromItalyToSystemDefault(): LocalTime {
+        val today = LocalDate.now()
+        val zonedDateTime =
+            ZonedDateTime.of(today, this, ZoneId.of("Europe/Rome"))
+                .withZoneSameInstant(ZoneId.systemDefault())
+        return zonedDateTime.toLocalTime()
+    }
 }
