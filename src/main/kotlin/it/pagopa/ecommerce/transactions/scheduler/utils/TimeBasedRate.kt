@@ -135,12 +135,12 @@ class TimeBasedRate(
         } else {
             this
         }
+}
 
-    fun LocalTime.fromItalyToSystemDefault(): LocalTime {
-        val today = LocalDate.now()
-        val zonedDateTime =
-            ZonedDateTime.of(today, this, ZoneId.of("Europe/Rome"))
-                .withZoneSameInstant(ZoneId.systemDefault())
-        return zonedDateTime.toLocalTime()
-    }
+fun LocalTime.fromItalyToSystemDefault(): LocalTime {
+    val today = LocalDate.now()
+    val zonedDateTime =
+        ZonedDateTime.of(today, this, ZoneId.of("Europe/Rome"))
+            .withZoneSameInstant(ZoneId.systemDefault())
+    return zonedDateTime.toLocalTime()
 }

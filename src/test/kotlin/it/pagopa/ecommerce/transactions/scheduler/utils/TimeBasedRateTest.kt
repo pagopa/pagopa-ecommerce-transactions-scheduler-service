@@ -117,7 +117,7 @@ class TimeBasedRateTest {
             )
 
         // test
-        val result = timeBaseRate.calculateRate(calculateRateAt)
+        val result = timeBaseRate.calculateRate(calculateRateAt.fromItalyToSystemDefault())
 
         // assertions
         assertEquals(expectedRate, result, description)
@@ -142,7 +142,7 @@ class TimeBasedRateTest {
             )
 
         // test
-        val result = timeBaseRate.calculateRate(calculateRateAt)
+        val result = timeBaseRate.calculateRate(calculateRateAt.fromItalyToSystemDefault())
 
         // assertions
         assertEquals(expectedRate, result, description)
@@ -167,7 +167,7 @@ class TimeBasedRateTest {
             )
 
         // test
-        val result = timeBaseRate.calculateRate(calculateRateAt)
+        val result = timeBaseRate.calculateRate(calculateRateAt.fromItalyToSystemDefault())
 
         // assertions
         assertEquals(expectedRate, result, description)
