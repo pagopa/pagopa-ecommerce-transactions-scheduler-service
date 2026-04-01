@@ -173,9 +173,9 @@ Pending transaction are processed at a configurable TPS (transactions per second
 This can be done changing the below parameters:
 
 - `PENDING_TRANSACTIONS_MAX_TRANSACTIONS_PER_PAGE` parameter allow to specify how many transactions to retrieve for each
-  page -> chunk size
+page -> chunk size
 - `PENDING_TRANSACTIONS_PAGE_ANALYSIS_DELAY_SECONDS` parameter allow to specify time to be waited between the next page
-  to be analyzed -> chunk rate
+to be analyzed -> chunk rate
 
 Example of configurations:
 
@@ -224,7 +224,7 @@ cp settings.xml.template ~/.m2/settings.xml
 ```
 
 - **If you already have ~/.m2/settings.xml:** Edit the file to add the GitHub server configuration from
-  `settings.xml.template`, or replace the `${GITHUB_TOKEN}` placeholder with your actual token.
+`settings.xml.template`, or replace the `${GITHUB_TOKEN}` placeholder with your actual token.
 
 
 2. Set your GitHub token:
@@ -263,7 +263,7 @@ cp settings.xml.template ~/.m2/settings.xml
 ```
 
 - **If you already have ~/.m2/settings.xml:** Edit the file to add the GitHub server configuration from
-  `settings.xml.template`, or replace the `${GITHUB_TOKEN}` placeholder with your actual token.
+`settings.xml.template`, or replace the `${GITHUB_TOKEN}` placeholder with your actual token.
 
 
 2. Create your environment:
@@ -344,25 +344,25 @@ the hashes of resolved artifacts against the stored values, failing the build if
 ```xml
 
 <plugin>
-    <groupId>it.pagopa.maven</groupId>
-    <artifactId>depcheck</artifactId>
-    <version>1.3.0</version>
-    <configuration>
-        <fileName>dep-sha256.json</fileName>
-        <includePlugins>false</includePlugins>
-        <includeParent>false</includeParent>
-        <excludes>
-            <!-- Optional: Exclude specific dependencies -->
-        </excludes>
-    </configuration>
-    <executions>
-        <execution>
-            <phase>validate</phase>
-            <goals>
-                <goal>verify</goal>
-            </goals>
-        </execution>
-    </executions>
+	<groupId>it.pagopa.maven</groupId>
+	<artifactId>depcheck</artifactId>
+	<version>1.3.0</version>
+	<configuration>
+		<fileName>dep-sha256.json</fileName>
+		<includePlugins>false</includePlugins>
+		<includeParent>false</includeParent>
+		<excludes>
+			<!-- Optional: Exclude specific dependencies -->
+		</excludes>
+	</configuration>
+	<executions>
+		<execution>
+			<phase>validate</phase>
+			<goals>
+				<goal>verify</goal>
+			</goals>
+		</execution>
+	</executions>
 </plugin>
 ```
 
@@ -379,7 +379,7 @@ mvn depcheck:generate
 **NOTE**: Always commit the updated hash file to version control after adding or updating dependencies
 
 2. **Verify hashes**: This happens automatically during the `validate` phase, and so, automatically, in CI/CD pipelines.
-   You can also explicitly run:
+You can also explicitly run:
 
 ```sh
 mvn depcheck:verify
@@ -388,4 +388,4 @@ mvn depcheck:verify
 ### Important Notes
 
 - **Maven plugins** have empty SHA-256 values by default as they're not resolved as JAR files during the regular build.
-  Right now `includePlugins=false` avoid empty hashes and plugin check.
+Right now `includePlugins=false` avoid empty hashes and plugin check.
