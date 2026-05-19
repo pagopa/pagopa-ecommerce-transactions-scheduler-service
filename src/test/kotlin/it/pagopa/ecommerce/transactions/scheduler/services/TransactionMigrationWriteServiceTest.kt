@@ -65,7 +65,8 @@ class TransactionMigrationWriteServiceTest {
 
         val inputFlux = Flux.just(mockEvent1, mockEvent2)
 
-        whenever(eventHistoryRepository.save(any())).thenAnswer { invocation ->
+        whenever(eventHistoryRepository.insert(any<BaseTransactionEvent<*>>())).thenAnswer {
+            invocation ->
             Mono.just<BaseTransactionEvent<*>>(invocation.getArgument(0))
         }
 
@@ -75,7 +76,7 @@ class TransactionMigrationWriteServiceTest {
         // ASSERT
         StepVerifier.create(result).expectNextCount(2).verifyComplete()
 
-        verify(eventHistoryRepository, times(2)).save(any())
+        verify(eventHistoryRepository, times(2)).insert(any<BaseTransactionEvent<*>>())
     }
 
     @Test
@@ -91,7 +92,7 @@ class TransactionMigrationWriteServiceTest {
 
         val inputFlux = Flux.just(mockEvent1, mockEvent2, mockEvent3)
 
-        whenever(eventHistoryRepository.save(any()))
+        whenever(eventHistoryRepository.insert(any<BaseTransactionEvent<*>>()))
             .thenReturn(Mono.just(mockEvent1))
             .thenReturn(Mono.error(RuntimeException("Database error")))
             .thenReturn(Mono.just(mockEvent3))
@@ -102,7 +103,7 @@ class TransactionMigrationWriteServiceTest {
         // ASSERT
         StepVerifier.create(result).expectNextCount(2).verifyComplete()
 
-        verify(eventHistoryRepository, times(3)).save(any())
+        verify(eventHistoryRepository, times(3)).insert(any<BaseTransactionEvent<*>>())
     }
 
     @Test
@@ -116,7 +117,7 @@ class TransactionMigrationWriteServiceTest {
 
         val inputFlux = Flux.just(mockEvent1, mockEvent2)
 
-        whenever(eventHistoryRepository.save(any()))
+        whenever(eventHistoryRepository.insert(any<BaseTransactionEvent<*>>()))
             .thenReturn(Mono.error(RuntimeException("Database error")))
             .thenReturn(Mono.error(RuntimeException("Database error")))
 
@@ -126,7 +127,7 @@ class TransactionMigrationWriteServiceTest {
         // ASSERT
         StepVerifier.create(result).expectNextCount(0).verifyComplete()
 
-        verify(eventHistoryRepository, times(2)).save(any())
+        verify(eventHistoryRepository, times(2)).insert(any<BaseTransactionEvent<*>>())
     }
 
     @Test
@@ -140,7 +141,7 @@ class TransactionMigrationWriteServiceTest {
         // ASSERT
         StepVerifier.create(result).verifyComplete()
 
-        verify(eventHistoryRepository, never()).save(any())
+        verify(eventHistoryRepository, never()).insert(any<BaseTransactionEvent<*>>())
     }
 
     @Test
@@ -621,7 +622,8 @@ class TransactionMigrationWriteServiceTest {
 
         val inputFlux = Flux.just(mockEvent1, mockEvent2)
 
-        whenever(eventHistoryRepository.save(any())).thenAnswer { invocation ->
+        whenever(eventHistoryRepository.insert(any<BaseTransactionEvent<*>>())).thenAnswer {
+            invocation ->
             Mono.just<BaseTransactionEvent<*>>(invocation.getArgument(0))
         }
 
@@ -645,7 +647,7 @@ class TransactionMigrationWriteServiceTest {
         // ASSERT
         StepVerifier.create(result).expectNextCount(2).verifyComplete()
 
-        verify(eventHistoryRepository, times(2)).save(any())
+        verify(eventHistoryRepository, times(2)).insert(any<BaseTransactionEvent<*>>())
         verify(ecommerceMongoTemplate, times(2))
             .updateFirst(any<Query>(), any<Update>(), eq(BaseTransactionEvent::class.java))
     }
@@ -710,7 +712,7 @@ class TransactionMigrationWriteServiceTest {
         val inputFlux = Flux.just(mockEvent1, mockEvent2, mockEvent3)
 
         // Event 2 fails to copy
-        whenever(eventHistoryRepository.save(any()))
+        whenever(eventHistoryRepository.insert(any<BaseTransactionEvent<*>>()))
             .thenReturn(Mono.just(mockEvent1))
             .thenReturn(Mono.error(RuntimeException("Copy failed")))
             .thenReturn(Mono.just(mockEvent3))
@@ -740,7 +742,7 @@ class TransactionMigrationWriteServiceTest {
             .expectNextCount(1) // Only event-1 succeeds both operations
             .verifyComplete()
 
-        verify(eventHistoryRepository, times(3)).save(any())
+        verify(eventHistoryRepository, times(3)).insert(any<BaseTransactionEvent<*>>())
         verify(ecommerceMongoTemplate, times(2))
             .updateFirst(any<Query>(), any<Update>(), eq(BaseTransactionEvent::class.java))
     }
