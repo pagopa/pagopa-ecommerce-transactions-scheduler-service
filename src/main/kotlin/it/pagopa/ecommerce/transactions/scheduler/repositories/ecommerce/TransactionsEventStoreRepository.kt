@@ -3,13 +3,13 @@ package it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce
 import it.pagopa.ecommerce.commons.documents.BaseTransactionEvent
 import org.springframework.data.domain.Pageable
 import org.springframework.data.mongodb.repository.Query
-import org.springframework.data.repository.reactive.ReactiveCrudRepository
+import org.springframework.data.mongodb.repository.ReactiveMongoRepository
 import org.springframework.stereotype.Repository
 import reactor.core.publisher.Flux
 
 @Repository
 interface TransactionsEventStoreRepository<T> :
-    ReactiveCrudRepository<BaseTransactionEvent<T>, String> {
+    ReactiveMongoRepository<BaseTransactionEvent<T>, String> {
     fun findByTransactionIdOrderByCreationDateAsc(
         idTransaction: String
     ): Flux<BaseTransactionEvent<T>>

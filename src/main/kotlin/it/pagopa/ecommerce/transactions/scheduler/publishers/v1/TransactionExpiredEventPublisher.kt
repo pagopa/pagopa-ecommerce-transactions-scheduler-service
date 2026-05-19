@@ -96,7 +96,7 @@ class TransactionExpiredEventPublisher(
         newStatus: TransactionStatusDto
     ): Mono<TransactionExpiredEventV1> =
         toEvent(transaction)
-            .flatMap { eventStoreRepository.save(it) }
+            .flatMap { eventStoreRepository.insert(it) }
             .flatMap { event ->
                 viewRepository
                     .findByTransactionId(transaction.transactionId.value())

@@ -46,7 +46,7 @@ class TransactionMigrationWriteService(
         return events
             .flatMap { event ->
                 eventHistoryRepository
-                    .save(event)
+                    .insert(event)
                     .doOnSuccess { logger.debug("Successfully copied event to history: ${it.id}") }
                     .onErrorResume { error ->
                         logger.warn("Skipping failed event migration for id: ${event.id}", error)
