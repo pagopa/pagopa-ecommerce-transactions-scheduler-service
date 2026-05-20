@@ -168,8 +168,7 @@ class TransactionExpiredEventPublisherTests {
                 any(),
                 eq(Duration.ofSeconds(transientQueueTTLSeconds.toLong()))
             )
-        verify(eventStoreRepository, times(5))
-            .insert(any<TransactionExpiredEvent>())
+        verify(eventStoreRepository, times(5)).insert(any<TransactionExpiredEvent>())
         verify(viewRepository, times(5)).save(any())
     }
 
