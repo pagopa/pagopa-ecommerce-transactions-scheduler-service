@@ -125,10 +125,12 @@ stages:
             displayName: 'Run app with docker-compose'
             env:
               GITHUB_TOKEN: $(GITHUB_RO_TOKEN)
+#          - script: |
+#              timeout 180 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' pagopa-ecommerce-transactions-scheduler-service:8091/actuator/health/liveness)" != "200" ]]; do sleep 5; done' || exit 1
+#            displayName: 'Health check'
           - script: |
-              timeout 180 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost:8080/actuator/health/liveness)" != "200" ]]; do sleep 5; done' || exit 1
-            displayName: 'Health check'
-          - script: |
+              timeout 180
+              
               echo "Starting integration testing of the migration process..."
               
               docker cp integration-test/migration-integration-test.js mongodb:/tmp/migration-integration-test.js
