@@ -13,6 +13,14 @@ trigger:
 pool:
   vmImage: 'ubuntu-latest'
 
+resources:
+  repositories:
+    - repository: pagopaEcommerceLocal
+      type: github
+      name: pagopa/pagopa-ecommerce-local
+      ref: main
+      endpoint: 'io-azure-devops-github-ro'
+
 variables:
   MAVEN_CACHE_FOLDER: $(Pipeline.Workspace)/.m2/repository
   MAVEN_OPTS: '-Dmaven.repo.local=$(MAVEN_CACHE_FOLDER)'
