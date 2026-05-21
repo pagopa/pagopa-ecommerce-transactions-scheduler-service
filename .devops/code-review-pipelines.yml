@@ -16,82 +16,130 @@ pool:
 variables:
   MAVEN_CACHE_FOLDER: $(Pipeline.Workspace)/.m2/repository
   MAVEN_OPTS: '-Dmaven.repo.local=$(MAVEN_CACHE_FOLDER)'
+  BRANCH_NAME: $[ replace(variables['System.PullRequest.SourceBranch'], 'refs/heads/', '') ]
 
-steps:
-  - task: Cache@2
-    inputs:
-      key: 'maven | "$(Agent.OS)" | pom.xml'
-      restoreKeys: |
-        maven | "$(Agent.OS)"
-        maven
-      path: $(MAVEN_CACHE_FOLDER)
-    displayName: Cache Maven local repo
+stages:
+  - stage: BuildAndUnitTest
+    jobs:
+      -job: make_buildAndUnitTest
+      steps:
+      - task: SonarCloudPrepare@3
+        displayName: 'Prepare SonarCloud analysis configuration'
+        inputs:
+          SonarCloud: '$(SONARCLOUD_SERVICE_CONN)'
+          organization: '$(SONARCLOUD_ORG)'
+          scannerMode: Other
+          extraProperties: |
+            sonar.projectKey=$(SONARCLOUD_PROJECT_KEY)
+            sonar.projectName=$(SONARCLOUD_PROJECT_NAME)
+            sonar.coverage.exclusions=**/config/*,**/*Mock*,**/model/**,**/entity/*
+            sonar.coverage.jacoco.xmlReportPaths=./target/site/jacoco/jacoco.xml
+            sonar.junit.reportPaths=target/surefire-reports/
+            sonar.verbose=true
+    
 
-  - task: SonarCloudPrepare@3
-    displayName: 'Prepare SonarCloud analysis configuration'
-    inputs:
-      SonarCloud: '$(SONARCLOUD_SERVICE_CONN)'
-      organization: '$(SONARCLOUD_ORG)'
-      scannerMode: Other
-      extraProperties: |
-        sonar.projectKey=$(SONARCLOUD_PROJECT_KEY)
-        sonar.projectName=$(SONARCLOUD_PROJECT_NAME)
-        sonar.coverage.exclusions=**/config/*,**/*Mock*,**/model/**,**/entity/*
-        sonar.coverage.jacoco.xmlReportPaths=./target/site/jacoco/jacoco.xml
-        sonar.junit.reportPaths=target/surefire-reports/
-        sonar.verbose=true
+      - task: Cache@2
+        inputs:
+          key: 'maven | "$(Agent.OS)" | pom.xml'
+          restoreKeys: |
+            maven | "$(Agent.OS)"
+            maven
+          path: $(MAVEN_CACHE_FOLDER)
+        displayName: Cache Maven local repo
+      - bash: |
+          docker run -p 10000:10000 -p 10001:10001 -p 10002:10002 mcr.microsoft.com/azure-storage/azurite &
+        displayName: Run azurite to test Service - Storage integration
 
-  - bash: |
-      docker run -p 10000:10000 -p 10001:10001 -p 10002:10002 mcr.microsoft.com/azure-storage/azurite &
-    displayName: Run azurite to test Service - Storage integration
+      # necessary step to make the authentication work
+      # removing it will cause the pipeline to fail when cache gets emptied
+      - task: Bash@3
+        displayName: 'Create Maven settings.xml'
+        inputs:
+          targetType: 'inline'
+          script: |
+            mkdir -p $(Pipeline.Workspace)/.m2
+            cat > $(Pipeline.Workspace)/.m2/settings.xml << EOF
+            <?xml version="1.0" encoding="UTF-8"?>
+            <settings>
+              <servers>
+                <server>
+                  <id>github</id>
+                  <username>token</username>
+                  <password>${GITHUB_TOKEN}</password>
+                </server>
+              </servers>
+            </settings>
+            EOF
+        env:
+          GITHUB_TOKEN: $(GITHUB_RO_TOKEN)
 
-  # necessary step to make the authentication work
-  # removing it will cause the pipeline to fail when cache gets emptied
-  - task: Bash@3
-    displayName: 'Create Maven settings.xml'
-    inputs:
-      targetType: 'inline'
-      script: |
-        mkdir -p $(Pipeline.Workspace)/.m2
-        cat > $(Pipeline.Workspace)/.m2/settings.xml << EOF
-        <?xml version="1.0" encoding="UTF-8"?>
-        <settings>
-          <servers>
-            <server>
-              <id>github</id>
-              <username>token</username>
-              <password>${GITHUB_TOKEN}</password>
-            </server>
-          </servers>
-        </settings>
-        EOF
-    env:
-      GITHUB_TOKEN: $(GITHUB_RO_TOKEN)
+      - task: Maven@4
+        displayName: 'Run Junit Tests'
+        inputs:
+          mavenPomFile: 'pom.xml'
+          mavenOptions: '-Xmx3072m $(MAVEN_OPTS)'
+          options: "-s $(Pipeline.Workspace)/.m2/settings.xml"
+          javaHomeOption: 'JDKVersion'
+          jdkVersionOption: '21'
+          jdkArchitectureOption: 'x64'
+          publishJUnitResults: false
+          testResultsFiles: '**/surefire-reports/TEST-*.xml'
+          goals: 'clean verify'
+          sonarQubeRunAnalysis: true
+        env:
+          GITHUB_TOKEN: $(GITHUB_RO_TOKEN)
 
-  - task: Maven@4
-    displayName: 'Run Junit Tests'
-    inputs:
-      mavenPomFile: 'pom.xml'
-      mavenOptions: '-Xmx3072m $(MAVEN_OPTS)'
-      options: "-s $(Pipeline.Workspace)/.m2/settings.xml"
-      javaHomeOption: 'JDKVersion'
-      jdkVersionOption: '21'
-      jdkArchitectureOption: 'x64'
-      publishJUnitResults: false
-      testResultsFiles: '**/surefire-reports/TEST-*.xml'
-      goals: 'clean verify'
-      sonarQubeRunAnalysis: true
-    env:
-      GITHUB_TOKEN: $(GITHUB_RO_TOKEN)
+      - task: SonarCloudPublish@3
+        displayName: 'Publish SonarCloud results on build summary'
+        inputs:
+          pollingTimeoutSec: '300'
 
-  - task: SonarCloudPublish@3
-    displayName: 'Publish SonarCloud results on build summary'
-    inputs:
-      pollingTimeoutSec: '300'
+      - task: PublishCodeCoverageResults@2
+        inputs:
+          codeCoverageTool: 'JaCoCo'
+          summaryFileLocation: 'target/site/jacoco/jacoco.xml'
+          reportDirectory: 'target/site/jacoco'
+        displayName: 'Publish Code Coverage on Azure Devops'
 
-  - task: PublishCodeCoverageResults@2
-    inputs:
-      codeCoverageTool: 'JaCoCo'
-      summaryFileLocation: 'target/site/jacoco/jacoco.xml'
-      reportDirectory: 'target/site/jacoco'
-    displayName: 'Publish Code Coverage on Azure Devops'
+  - stage: IntegrationTest
+    dependsOn: [ ]
+    jobs:
+      - job: make_integration_test
+        steps:
+          - checkout: pagopaEcommerceLocal
+          - script: |
+              echo "##[debug] Change placeholder for ecommerce-transaction-scheduler-service set branch: $(BRANCH_NAME)"
+              sed -i "s|^ECOMMERCE_TRANSACTIONS_COMMIT_SHA=.*$|ECOMMERCE_TRANSACTIONS_COMMIT_SHA=$(BRANCH_NAME)|" .env
+              sed -i "s|^MIGRATION_TRANSACTION_BATCH_EVENTSTORE_CRON_EXPRESSION=.*$|MIGRATION_TRANSACTION_BATCH_EVENTSTORE_CRON_EXPRESSION=\"*/5 * * * * *\"|" pagopa-ecommerce-transactions-scheduler-service/transactions-scheduler-service.env
+            displayName: 'Change transaction branch name ecommerce-local .env'
+          - script: docker compose up mongo redis storage azurite-init pagopa-jwt-issuer-mock pagopa-ecommerce-transactions-scheduler-service -d
+            displayName: 'Run app with docker-compose'
+            env:
+              GITHUB_TOKEN: $(GITHUB_RO_TOKEN)
+          - script: |
+              timeout 180 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost:8080/actuator/health/liveness)" != "200" ]]; do sleep 5; done' || exit 1
+            displayName: 'Health check'
+          - script: |
+              echo "Starting integration testing of the migration process..."
+              
+              docker cp integration-test/migration-integration-test.js mongodb:/tmp/migration-integration-test.js
+              
+              # Executing the script and check the result
+              docker exec mongodb mongosh -u admin -p password --authenticationDatabase admin --quiet /tmp/migration-integration-test.js
+              
+              # Check of the exit code of the script
+              if [ $? -ne 0 ]; then
+                echo "Integration test of migration process failed! Check the logs for more details ..."
+                exit 1
+              fi
+            displayName: 'Integration test of the migration process.'
+          - script: |
+              echo "Printing logs for all running containers:"
+              for container in $(docker ps -q); do
+                name=$(docker inspect --format='{{.Name}}' $container | sed 's/^\/\(.*\)/\1/')
+                echo "===== Logs for $name ====="
+                docker logs $container
+                echo "===== End of logs for $name ====="
+              done
+            condition: always()
+            displayName: 'Print Docker container logs'
