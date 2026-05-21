@@ -133,10 +133,10 @@ stages:
               
               echo "Starting integration testing of the migration process..."
               
-              docker cp integration-test/migration-integration-test.js mongodb:/tmp/migration-integration-test.js
+              docker cp integration-test/migration-integration-test.js pagopa-ecommerce-mongo:/tmp/migration-integration-test.js
               
               # Executing the script and check the result
-              docker exec mongodb mongosh -u admin -p password --authenticationDatabase admin --quiet /tmp/migration-integration-test.js
+              docker exec pagopa-ecommerce-mongo mongosh -u admin -p password --authenticationDatabase admin --quiet /tmp/migration-integration-test.js
               
               # Check of the exit code of the script
               if [ $? -ne 0 ]; then
