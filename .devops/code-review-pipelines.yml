@@ -21,31 +21,32 @@ variables:
 stages:
   - stage: BuildAndUnitTest
     jobs:
-      -job: make_buildAndUnitTest
-      steps:
-      - task: SonarCloudPrepare@3
-        displayName: 'Prepare SonarCloud analysis configuration'
-        inputs:
-          SonarCloud: '$(SONARCLOUD_SERVICE_CONN)'
-          organization: '$(SONARCLOUD_ORG)'
-          scannerMode: Other
-          extraProperties: |
-            sonar.projectKey=$(SONARCLOUD_PROJECT_KEY)
-            sonar.projectName=$(SONARCLOUD_PROJECT_NAME)
-            sonar.coverage.exclusions=**/config/*,**/*Mock*,**/model/**,**/entity/*
-            sonar.coverage.jacoco.xmlReportPaths=./target/site/jacoco/jacoco.xml
-            sonar.junit.reportPaths=target/surefire-reports/
-            sonar.verbose=true
-    
+      - job: make_buildAndUnitTest
+        steps:
+        - task: Cache@2
+          inputs:
+            key: 'maven | "$(Agent.OS)" | pom.xml'
+            restoreKeys: |
+              maven | "$(Agent.OS)"
+              maven
+            path: $(MAVEN_CACHE_FOLDER)
+          displayName: Cache Maven local repo
 
-      - task: Cache@2
-        inputs:
-          key: 'maven | "$(Agent.OS)" | pom.xml'
-          restoreKeys: |
-            maven | "$(Agent.OS)"
-            maven
-          path: $(MAVEN_CACHE_FOLDER)
-        displayName: Cache Maven local repo
+        - task: SonarCloudPrepare@3
+          displayName: 'Prepare SonarCloud analysis configuration'
+          inputs:
+            SonarCloud: '$(SONARCLOUD_SERVICE_CONN)'
+            organization: '$(SONARCLOUD_ORG)'
+            scannerMode: Other
+            extraProperties: |
+              sonar.projectKey=$(SONARCLOUD_PROJECT_KEY)
+              sonar.projectName=$(SONARCLOUD_PROJECT_NAME)
+              sonar.coverage.exclusions=**/config/*,**/*Mock*,**/model/**,**/entity/*
+              sonar.coverage.jacoco.xmlReportPaths=./target/site/jacoco/jacoco.xml
+              sonar.junit.reportPaths=target/surefire-reports/
+              sonar.verbose=true
+
+
       - bash: |
           docker run -p 10000:10000 -p 10001:10001 -p 10002:10002 mcr.microsoft.com/azure-storage/azurite &
         displayName: Run azurite to test Service - Storage integration
