@@ -116,12 +116,12 @@ stages:
       - job: make_integration_test
         steps:
           - checkout: pagopaEcommerceLocal
+          - checkout: self
           - script: |
+              cd $(Build.SourcesDirectory)/pagopa-ecommerce-local
               echo "##[debug] Change placeholder for ecommerce-transaction-scheduler-service set branch: $(BRANCH_NAME)"
               sed -i "s|^ECOMMERCE_TRANSACTIONS_SCHEDULER_COMMIT_SHA=.*$|ECOMMERCE_TRANSACTIONS_SCHEDULER_COMMIT_SHA=$(BRANCH_NAME)|" .env
               sed -i "s|^MIGRATION_TRANSACTION_BATCH_EVENTSTORE_CRON_EXPRESSION=.*$|MIGRATION_TRANSACTION_BATCH_EVENTSTORE_CRON_EXPRESSION=\"*/5 * * * * *\"|" pagopa-ecommerce-transactions-scheduler-service/transactions-scheduler-service.env
-              ls
-              ls ..
             displayName: 'Change transaction branch name ecommerce-local .env'
           - script: docker compose up mongo redis storage azurite-init pagopa-ecommerce-transactions-scheduler-service -d
             displayName: 'Run app with docker-compose'
@@ -132,7 +132,7 @@ stages:
 #            displayName: 'Health check'
           - script: |
               timeout 180
-              
+              cd $(Build.SourcesDirectory)/pagopa-ecommerce-transaction-scheduler-service
               echo "Starting integration testing of the migration process..."
               
               docker cp integration-test/migration-integration-test.js pagopa-ecommerce-mongo:/tmp/migration-integration-test.js
