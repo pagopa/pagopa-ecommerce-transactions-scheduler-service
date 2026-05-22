@@ -30,10 +30,9 @@ class EventStoreHistoryBulkOperations(
         if (events.isEmpty()) return Mono.empty()
 
         val bulkOps =
-            reactiveMongoTemplate.bulkOps(
-                BulkOperations.BulkMode.UNORDERED,
-                BaseTransactionEvent::class.java
-            ).insert(events)
+            reactiveMongoTemplate
+                .bulkOps(BulkOperations.BulkMode.UNORDERED, BaseTransactionEvent::class.java)
+                .insert(events)
 
         return executeBestEffortBulkPipeline(bulkOps, events, "Bulk upsert")
     }

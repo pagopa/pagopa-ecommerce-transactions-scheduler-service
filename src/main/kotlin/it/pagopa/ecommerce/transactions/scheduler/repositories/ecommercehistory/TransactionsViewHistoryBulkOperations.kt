@@ -30,12 +30,9 @@ class TransactionsViewHistoryBulkOperations(
         if (views.isEmpty()) return Mono.empty()
 
         val bulkOps =
-            reactiveMongoTemplate.bulkOps(
-                BulkOperations.BulkMode.UNORDERED,
-                BaseTransactionView::class.java
-            ).insert(views)
-
-
+            reactiveMongoTemplate
+                .bulkOps(BulkOperations.BulkMode.UNORDERED, BaseTransactionView::class.java)
+                .insert(views)
 
         return executeBestEffortBulkPipeline(bulkOps, views, "Bulk upsert")
     }
