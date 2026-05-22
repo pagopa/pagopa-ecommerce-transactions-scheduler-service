@@ -18,6 +18,12 @@
  *     fi
  */
 
+ // TO DO !!! : SPLIT THE SCRIPT 2:
+ - one for the data insertion
+ - one for the integration test
+ - move the integration test in ecommerce local project to avoid the double checkout
+
+
 
 console.log("Starting integration test...")
 
