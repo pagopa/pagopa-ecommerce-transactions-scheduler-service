@@ -18,7 +18,7 @@ resources:
     - repository: pagopaEcommerceLocal
       type: github
       name: pagopa/pagopa-ecommerce-local
-      ref: main
+      ref: CHK-4839-add-integration-test-transaction-scheduler
       endpoint: 'io-azure-devops-github-ro'
 
 variables:
@@ -115,13 +115,11 @@ stages:
     jobs:
       - job: make_integration_test
         steps:
-          - checkout: self
           - checkout: pagopaEcommerceLocal
           - script: |
-              ls $(Build.SourcesDirectory)/
-              cd $(Build.SourcesDirectory)/pagopa-ecommerce-local
               echo "##[debug] Change placeholder for ecommerce-transaction-scheduler-service set branch: $(BRANCH_NAME)"
               sed -i "s|^ECOMMERCE_TRANSACTIONS_SCHEDULER_COMMIT_SHA=.*$|ECOMMERCE_TRANSACTIONS_SCHEDULER_COMMIT_SHA=$(BRANCH_NAME)|" .env
+              echo "##[debug] Set the value of the MIGRATION_TRANSACTION_BATCH_EVENTSTORE_CRON_EXPRESSION to activate the migration job"
               sed -i "s|^MIGRATION_TRANSACTION_BATCH_EVENTSTORE_CRON_EXPRESSION=.*$|MIGRATION_TRANSACTION_BATCH_EVENTSTORE_CRON_EXPRESSION=\"*/5 * * * * *\"|" pagopa-ecommerce-transactions-scheduler-service/transactions-scheduler-service.env
             displayName: 'Change transaction branch name ecommerce-local .env'
           - script: |
@@ -134,19 +132,22 @@ stages:
               timeout 180 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost:8091/actuator/health)" != "200" ]]; do sleep 5; done' || exit 1
             displayName: 'Health check'
           - script: |
-              cd $(Build.SourcesDirectory)
               echo "Starting integration testing of the migration process..."
               
-              docker cp integration-test/migration-integration-test.js pagopa-ecommerce-mongo:/tmp/migration-integration-test.js
+              docker cp api-tests/transaction-scheduler-service/insert-new-events-mongo.js pagopa-ecommerce-mongo:/tmp/insert-new-events-mongo.js
+              docker cp api-tests/transaction-scheduler-service/migration-integration-test.js pagopa-ecommerce-mongo:/tmp/migration-integration-test.js
+              ORIGINAL_EVENT_LIST = "$(cat api-test/transaction-scheduler-service/testing-data.json)" 
               
-              # Executing the script and check the result
-              docker exec pagopa-ecommerce-mongo mongosh -u admin -p password --authenticationDatabase admin --quiet /tmp/migration-integration-test.js
+              # Execute the script for insert testing data in mongo passing the json file as string and generate a variable with the testing data
+              FINAL_EVENT_LIST = $(docker exec -i pagopa-ecommerce-mongo mongosh -u admin -p password --authenticationDatabase admin 
+                --quiet /tmp/insert-new-events-mongo.js \
+                --args "$ORIGINAL_EVENT_LIST")
               
-              # Check of the exit code of the script
-              if [ $? -ne 0 ]; then
-                echo "Integration test of migration process failed! Check the logs for more details ..."
-                exit 1
-              fi
+              # Executing the script passing the testing data and check the result 
+              timeout 20 docker exec pagopa-ecommerce-mongo mongosh -u admin -p password --authenticationDatabase admin \
+              --quiet /tmp/migration-integration-test.js \
+              --args "$FINAL_EVENT_LIST"
+
             displayName: 'Integration test of the migration process.'
           - script: |
               echo "Printing logs for all running containers:"
