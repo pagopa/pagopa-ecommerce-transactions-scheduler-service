@@ -18,7 +18,7 @@ resources:
     - repository: pagopaEcommerceLocal
       type: github
       name: pagopa/pagopa-ecommerce-local
-      ref: CHK-4839-add-integration-test-transaction-scheduler #TO_CHANGE
+      ref: main
       endpoint: 'io-azure-devops-github-ro'
 
 variables:
