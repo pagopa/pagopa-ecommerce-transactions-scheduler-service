@@ -40,11 +40,13 @@ class TransactionInfoService(
 
     fun getTransactionInfoByTransactionId(transactionId: String): Mono<DeadLetterTransactionInfo> {
         val events =
-            Mono.just(transactionId).flatMapMany {
-                transactionsEventStoreRepository.findByTransactionIdOrderByCreationDateAsc(
-                    transactionId
-                )
-            }
+            Mono.just(transactionId)
+                .flatMapMany {
+                    transactionsEventStoreRepository.findByTransactionIdOrderByCreationDateAsc(
+                        transactionId
+                    )
+                }
+                .cache()
 
         return events
             .reduce(
