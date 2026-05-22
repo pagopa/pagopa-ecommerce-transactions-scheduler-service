@@ -133,19 +133,8 @@ stages:
             displayName: 'Health check'
           - script: |
               echo "Starting integration testing of the migration process..."
-              
-              docker cp api-tests/transaction-scheduler-service/insert-new-events-mongo.js pagopa-ecommerce-mongo:/tmp/insert-new-events-mongo.js
-              docker cp api-tests/transaction-scheduler-service/migration-integration-test.js pagopa-ecommerce-mongo:/tmp/migration-integration-test.js
-              EVENT_LIST="$(cat api-tests/transaction-scheduler-service/testing-data.json)" 
-              
-              echo "Insert testing data..."
-              # Execute the script for insert testing data in mongo passing the json file as string and generate a variable with the testing data
-              EVENT_LIST=$(docker exec -i pagopa-ecommerce-mongo mongosh -u admin -p password --authenticationDatabase admin \
-                --quiet /tmp/insert-new-events-mongo.js)
-              
-              echo "Check if the migration is done..."
-              # Executing the script passing the testing data and check the result 
-              sleep 20 
+
+              docker cp migration-integration-test.js pagopa-ecommerce-mongo:/tmp/migration-integration-test.js
               docker exec pagopa-ecommerce-mongo mongosh -u admin -p password --authenticationDatabase admin \
               --quiet /tmp/migration-integration-test.js
 
