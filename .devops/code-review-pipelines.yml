@@ -136,10 +136,10 @@ stages:
               
               docker cp api-tests/transaction-scheduler-service/insert-new-events-mongo.js pagopa-ecommerce-mongo:/tmp/insert-new-events-mongo.js
               docker cp api-tests/transaction-scheduler-service/migration-integration-test.js pagopa-ecommerce-mongo:/tmp/migration-integration-test.js
-              ORIGINAL_EVENT_LIST = "$(cat api-test/transaction-scheduler-service/testing-data.json)" 
+              ORIGINAL_EVENT_LIST="$(cat api-tests/transaction-scheduler-service/testing-data.json)" 
               
               # Execute the script for insert testing data in mongo passing the json file as string and generate a variable with the testing data
-              FINAL_EVENT_LIST = $(docker exec -i pagopa-ecommerce-mongo mongosh -u admin -p password --authenticationDatabase admin 
+              FINAL_EVENT_LIST=$(docker exec -i pagopa-ecommerce-mongo mongosh -u admin -p password --authenticationDatabase admin 
                 --quiet /tmp/insert-new-events-mongo.js \
                 --args "$ORIGINAL_EVENT_LIST")
               
