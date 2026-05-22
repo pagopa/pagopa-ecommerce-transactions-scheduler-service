@@ -62,7 +62,7 @@ class TransactionMigrationWriteService(
      */
     fun writeBulkEvents(events: Flux<BaseTransactionEvent<*>>): Flux<BaseTransactionEvent<*>> {
         return eventStoreHistoryBulkOperations
-            .bulkUpsert(events)
+            .bulkInsert(events)
             .doOnNext { logger.debug("Event with id ${it.id}") }
             .onErrorResume { error ->
                 logger.warn("Skipping failed events migration", error)
@@ -148,7 +148,7 @@ class TransactionMigrationWriteService(
      */
     fun writeBulkTransactionViews(views: Flux<BaseTransactionView>): Flux<BaseTransactionView> {
         return transactionsViewHistoryBulkOperations
-            .bulkUpsert(views)
+            .bulkInsert(views)
             .doOnNext { logger.debug("View with id ${it.transactionId}") }
             .onErrorResume { error ->
                 logger.warn("Skipping failed views migration", error)
