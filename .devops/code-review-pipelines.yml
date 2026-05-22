@@ -135,9 +135,10 @@ stages:
               echo "Starting integration testing of the migration process..."
 
               docker cp api-tests/transaction-scheduler-service/migration-integration-test.js pagopa-ecommerce-mongo:/tmp/migration-integration-test.js
-              docker exec pagopa-ecommerce-mongo mongosh -u admin -p password --authenticationDatabase admin \
+              
+              TIMEOUT=20000
+              docker exec -e TIMEOUT="$TIMEOUT" pagopa-ecommerce-mongo mongosh -u admin -p password --authenticationDatabase admin \
               --quiet /tmp/migration-integration-test.js
-
             displayName: 'Integration test of the migration process.'
           - script: |
               echo "Printing logs for all running containers:"
