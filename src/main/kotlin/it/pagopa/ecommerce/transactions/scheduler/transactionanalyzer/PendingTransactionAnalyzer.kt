@@ -191,7 +191,8 @@ class PendingTransactionAnalyzer(
 
     private fun analyzeTransactionV1(transactionId: String): Mono<BaseTransactionV1> {
         logger.info("Analyze Transaction v1 $transactionId")
-        val events = eventStoreRepository.findByTransactionIdOrderByCreationDateAsc(transactionId)
+        val events =
+            eventStoreRepository.findByTransactionIdOrderByCreationDateAsc(transactionId).cache()
         return events
             .reduce(
                 EmptyTransactionV1(),
@@ -210,7 +211,8 @@ class PendingTransactionAnalyzer(
 
     private fun analyzeTransactionV2(transactionId: String): Mono<BaseTransactionV2> {
         logger.info("Analyze Transaction v2 $transactionId")
-        val events = eventStoreRepository.findByTransactionIdOrderByCreationDateAsc(transactionId)
+        val events =
+            eventStoreRepository.findByTransactionIdOrderByCreationDateAsc(transactionId).cache()
         return events
             .reduce(
                 EmptyTransactionV2(),
