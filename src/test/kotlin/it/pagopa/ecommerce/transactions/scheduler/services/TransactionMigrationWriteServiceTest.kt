@@ -755,7 +755,7 @@ class TransactionMigrationWriteServiceTest {
         val inputFlux = Flux.just(item1, item2)
         val outputFlux = Flux.just(item1, item2)
 
-        given(transactionsViewHistoryBulkOperations.bulkUpsert(any())).willReturn(outputFlux)
+        given(transactionsViewHistoryBulkOperations.bulkInsert(any())).willReturn(outputFlux)
 
         // WHEN
         val result = transactionMigrationWriteService.writeBulkTransactionViews(inputFlux)
@@ -764,7 +764,7 @@ class TransactionMigrationWriteServiceTest {
         StepVerifier.create(result).expectNext(item1).expectNext(item2).verifyComplete()
 
         // Verify
-        verify(transactionsViewHistoryBulkOperations).bulkUpsert(any())
+        verify(transactionsViewHistoryBulkOperations).bulkInsert(any())
     }
 
     @Test
@@ -773,7 +773,7 @@ class TransactionMigrationWriteServiceTest {
         val inputFlux = Flux.just(mock<BaseTransactionView>())
 
         // Simulate a failure in the dependent service
-        given(transactionsViewHistoryBulkOperations.bulkUpsert(any()))
+        given(transactionsViewHistoryBulkOperations.bulkInsert(any()))
             .willReturn(Flux.error(RuntimeException("No bueno")))
 
         // WHEN
@@ -815,7 +815,7 @@ class TransactionMigrationWriteServiceTest {
         val inputFlux = Flux.just(item1, item2)
         val outputFlux = Flux.just(item1, item2)
 
-        given(eventStoreHistoryBulkOperations.bulkUpsert(any())).willReturn(outputFlux)
+        given(eventStoreHistoryBulkOperations.bulkInsert(any())).willReturn(outputFlux)
 
         // WHEN
         val result = transactionMigrationWriteService.writeBulkEvents(inputFlux)
@@ -824,7 +824,7 @@ class TransactionMigrationWriteServiceTest {
         StepVerifier.create(result).expectNext(item1).expectNext(item2).verifyComplete()
 
         // Verify
-        verify(eventStoreHistoryBulkOperations).bulkUpsert(any())
+        verify(eventStoreHistoryBulkOperations).bulkInsert(any())
     }
 
     @Test
@@ -833,7 +833,7 @@ class TransactionMigrationWriteServiceTest {
         val inputFlux = Flux.just(mock<BaseTransactionEvent<*>>())
 
         // Simulate a failure in the dependent service
-        given(eventStoreHistoryBulkOperations.bulkUpsert(any()))
+        given(eventStoreHistoryBulkOperations.bulkInsert(any()))
             .willReturn(Flux.error(RuntimeException("No bueno")))
 
         // WHEN
