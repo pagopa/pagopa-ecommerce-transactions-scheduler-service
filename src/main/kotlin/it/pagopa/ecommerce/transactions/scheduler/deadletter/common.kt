@@ -65,7 +65,7 @@ fun writeEventToDeadLetterCollection(
                 )
             }
         )
-        .flatMap { deadLetterEventRepository.save(it) }
+        .flatMap { deadLetterEventRepository.insert(it) }
         .then()
         .onErrorResume {
             CommonLogger.logger.error(

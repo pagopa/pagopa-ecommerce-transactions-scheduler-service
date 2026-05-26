@@ -56,18 +56,18 @@ class EventStoreHistoryBulkOperationsTest {
             )
             .willReturn(bulkOps)
 
-        given(bulkOps.replaceOne(anyOrNull(), anyOrNull(), anyOrNull())).willReturn(bulkOps)
+        given(bulkOps.insert(anyOrNull())).willReturn(bulkOps)
 
         given(bulkOps.execute()).willReturn(Mono.just(bulkResult))
 
         // WHEN
-        val resultFlux = service.bulkUpsert(items)
+        val resultFlux = service.bulkInsert(items)
 
         // THEN
         StepVerifier.create(resultFlux).expectNext(item1).expectNext(item2).verifyComplete()
 
         // Verify calls
-        Mockito.verify(bulkOps, Mockito.times(2)).replaceOne(anyOrNull(), anyOrNull(), anyOrNull())
+        Mockito.verify(bulkOps, Mockito.times(1)).insert(anyOrNull())
     }
 
     @Test
@@ -96,12 +96,12 @@ class EventStoreHistoryBulkOperationsTest {
             )
             .willReturn(bulkOps)
 
-        given(bulkOps.replaceOne(anyOrNull(), anyOrNull(), anyOrNull())).willReturn(bulkOps)
+        given(bulkOps.insert(anyOrNull())).willReturn(bulkOps)
 
         given(bulkOps.execute()).willReturn(Mono.error(mongoEx))
 
         // WHEN
-        val resultFlux = service.bulkUpsert(items)
+        val resultFlux = service.bulkInsert(items)
 
         // THEN
         StepVerifier.create(resultFlux).expectNext(item1).verifyComplete()
@@ -123,12 +123,12 @@ class EventStoreHistoryBulkOperationsTest {
             )
             .willReturn(bulkOps)
 
-        given(bulkOps.replaceOne(anyOrNull(), anyOrNull(), anyOrNull())).willReturn(bulkOps)
+        given(bulkOps.insert(anyOrNull())).willReturn(bulkOps)
 
         given(bulkOps.execute()).willReturn(Mono.error(unexpectedEx))
 
         // WHEN
-        val resultFlux = service.bulkUpsert(items)
+        val resultFlux = service.bulkInsert(items)
 
         // THEN
         StepVerifier.create(resultFlux).verifyComplete()
@@ -137,7 +137,7 @@ class EventStoreHistoryBulkOperationsTest {
     @Test
     fun `bulkUpsert should handle empty input flux`() {
         // WHEN
-        val resultFlux = service.bulkUpsert(Flux.empty())
+        val resultFlux = service.bulkInsert(Flux.empty())
 
         // THEN
         StepVerifier.create(resultFlux).verifyComplete()

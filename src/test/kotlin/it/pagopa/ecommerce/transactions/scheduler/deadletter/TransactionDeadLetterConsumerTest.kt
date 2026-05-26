@@ -36,7 +36,7 @@ class TransactionDeadLetterConsumerTest {
         val event = TransactionSchedulerTestUtil.getEventJsonString()
         val payload = event.toByteArray(StandardCharsets.UTF_8)
         given(checkPointer.success()).willReturn(Mono.empty())
-        given(deadLetterEventRepository.save(deadLetterArgumentCaptor.capture())).willAnswer {
+        given(deadLetterEventRepository.insert(deadLetterArgumentCaptor.capture())).willAnswer {
             mono { it.arguments[0] }
         }
         given(transactionInfoService.getTransactionInfoByTransactionId(any())).willAnswer {
@@ -54,7 +54,7 @@ class TransactionDeadLetterConsumerTest {
         assertEquals(event, capturedDeadLetterEvent.data)
         assertEquals(queueName, capturedDeadLetterEvent.queueName)
         verify(checkPointer, times(1)).success()
-        verify(deadLetterEventRepository, times(1)).save(any())
+        verify(deadLetterEventRepository, times(1)).insert(any<DeadLetterEvent>())
         verify(checkPointer, times(0)).failure()
     }
 
@@ -64,7 +64,7 @@ class TransactionDeadLetterConsumerTest {
         val payload = event.toByteArray(StandardCharsets.UTF_8)
         given(checkPointer.success()).willReturn(Mono.empty())
         given(checkPointer.failure()).willReturn(Mono.empty())
-        given(deadLetterEventRepository.save(deadLetterArgumentCaptor.capture())).willReturn {
+        given(deadLetterEventRepository.insert(deadLetterArgumentCaptor.capture())).willReturn {
             Mono.error(RuntimeException("Error saving event to queue"))
         }
         given(transactionInfoService.getTransactionInfoByTransactionId(any())).willAnswer {
@@ -80,7 +80,7 @@ class TransactionDeadLetterConsumerTest {
             .expectNext(Unit)
             .verifyComplete()
         verify(checkPointer, times(1)).success()
-        verify(deadLetterEventRepository, times(1)).save(any())
+        verify(deadLetterEventRepository, times(1)).insert(any<DeadLetterEvent>())
         verify(checkPointer, times(1)).failure()
     }
 
@@ -91,7 +91,7 @@ class TransactionDeadLetterConsumerTest {
         given(checkPointer.success())
             .willReturn(Mono.error(RuntimeException("Error performing checkpoint")))
         given(checkPointer.failure()).willReturn(Mono.empty())
-        given(deadLetterEventRepository.save(deadLetterArgumentCaptor.capture())).willAnswer {
+        given(deadLetterEventRepository.insert(deadLetterArgumentCaptor.capture())).willAnswer {
             mono { it.arguments[0] }
         }
         given(transactionInfoService.getTransactionInfoByTransactionId(any())).willAnswer {
@@ -106,7 +106,7 @@ class TransactionDeadLetterConsumerTest {
             .expectNext(Unit)
             .verifyComplete()
         verify(checkPointer, times(1)).success()
-        verify(deadLetterEventRepository, times(0)).save(any())
+        verify(deadLetterEventRepository, times(0)).insert(any<DeadLetterEvent>())
         verify(checkPointer, times(1)).failure()
     }
 
@@ -118,7 +118,7 @@ class TransactionDeadLetterConsumerTest {
             .willReturn(Mono.error(RuntimeException("Error performing checkpoint success")))
         given(checkPointer.failure())
             .willReturn(Mono.error(RuntimeException("Error performing checkpoint failure")))
-        given(deadLetterEventRepository.save(deadLetterArgumentCaptor.capture())).willAnswer {
+        given(deadLetterEventRepository.insert(deadLetterArgumentCaptor.capture())).willAnswer {
             mono { it.arguments[0] }
         }
         given(transactionInfoService.getTransactionInfoByTransactionId(any())).willAnswer {
@@ -133,7 +133,7 @@ class TransactionDeadLetterConsumerTest {
             .expectError(RuntimeException::class.java)
             .verify()
         verify(checkPointer, times(1)).success()
-        verify(deadLetterEventRepository, times(0)).save(any())
+        verify(deadLetterEventRepository, times(0)).insert(any<DeadLetterEvent>())
         verify(checkPointer, times(1)).failure()
     }
 }
