@@ -122,8 +122,6 @@ stages:
               echo "##[debug] Set the value of the MIGRATION_TRANSACTION_BATCH_EVENTSTORE_CRON_EXPRESSION and MIGRATION_TRANSACTION_BATCH_TRANSACTIONS_VIEW_CRON_EXPRESSION to activate the migration jobs"
               sed -i "s|^MIGRATION_TRANSACTION_BATCH_EVENTSTORE_CRON_EXPRESSION=.*$|MIGRATION_TRANSACTION_BATCH_EVENTSTORE_CRON_EXPRESSION=\"*/5 * * * * *\"|" pagopa-ecommerce-transactions-scheduler-service/transactions-scheduler-service.env
               sed -i "s|^MIGRATION_TRANSACTION_BATCH_TRANSACTIONS_VIEW_CRON_EXPRESSION=.*$|MIGRATION_TRANSACTION_BATCH_TRANSACTIONS_VIEW_CRON_EXPRESSION=\"*/5 * * * * *\"|" pagopa-ecommerce-transactions-scheduler-service/transactions-scheduler-service.env
-              sed -i "s|^MIGRATION_TRANSACTION_QUERY_EVENT_STORE_LOW_RATE=.*$|MIGRATION_TRANSACTION_QUERY_EVENT_STORE_LOW_RATE=50|" pagopa-ecommerce-transactions-scheduler-service/transactions-scheduler-service.env
-              sed -i "s|^MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_LOW_RATE=.*$|MIGRATION_TRANSACTION_QUERY_TRANSACTIONS_VIEW_LOW_RATE=50|" pagopa-ecommerce-transactions-scheduler-service/transactions-scheduler-service.env
             displayName: 'Change transaction branch name ecommerce-local .env'
           - script: |
               cd $(Build.SourcesDirectory)/pagopa-ecommerce-local
