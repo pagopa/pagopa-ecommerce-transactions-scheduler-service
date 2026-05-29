@@ -35,7 +35,15 @@ class MigrationUtils {
 
             return if (mongoEx != null) {
                 // Failed items
-                val failedIndexes = mongoEx.writeErrors.map { it.index }.toSet()
+                val failedIndexes =
+                    mongoEx.writeErrors
+                        .filter {
+                            it.code !=
+                                11000 // Duplicate key exceptions are expected in this context and
+                            // should not be treated as errors
+                        }
+                        .map { it.index }
+                        .toSet()
 
                 // Filter out failed items
                 val survivors = items.filterIndexed { index, _ -> !failedIndexes.contains(index) }
@@ -45,12 +53,12 @@ class MigrationUtils {
                 Mono.just(survivors)
             } else {
                 // CASE C: Total System Failure (Network down, DB down, etc)
-                logger.error("$operationName failed completely", mongoEx)
                 Mono.empty()
             }
         }
 
         private fun extractMongoException(ex: Throwable): MongoBulkWriteException? {
+            logger.error("Error", ex)
             return when {
                 ex is MongoBulkWriteException -> ex
                 ex.cause is MongoBulkWriteException -> ex.cause as MongoBulkWriteException

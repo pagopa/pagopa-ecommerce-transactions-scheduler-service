@@ -74,14 +74,16 @@ class TransactionsViewHistoryBulkOperationsTest {
         // GIVEN
         val item1 = mock<BaseTransactionView>()
         val item2 = mock<BaseTransactionView>()
-        val items = Flux.just(item1, item2)
+        val item3 = mock<BaseTransactionView>()
+        val items = Flux.just(item1, item2, item3)
 
-        val writeError = BulkWriteError(11000, "Duplicate Key", BsonDocument(), 1)
+        val writeErrorItem2 = BulkWriteError(11000, "Duplicate Key", BsonDocument(), 1)
+        val writeErrorItem3 = BulkWriteError(1, "Generic error", BsonDocument(), 2)
 
         val mongoEx =
             MongoBulkWriteException(
                 BulkWriteResult.unacknowledged(),
-                listOf(writeError),
+                listOf(writeErrorItem2, writeErrorItem3),
                 null,
                 ServerAddress("localhost"),
                 emptySet()
@@ -103,7 +105,7 @@ class TransactionsViewHistoryBulkOperationsTest {
         val resultFlux = service.bulkInsert(items)
 
         // THEN
-        StepVerifier.create(resultFlux).expectNext(item1).verifyComplete()
+        StepVerifier.create(resultFlux).expectNext(item1).expectNext(item2).verifyComplete()
     }
 
     @Test
