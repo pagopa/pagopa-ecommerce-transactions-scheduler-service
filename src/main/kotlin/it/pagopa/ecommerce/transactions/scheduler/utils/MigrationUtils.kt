@@ -37,7 +37,7 @@ class MigrationUtils {
                 // Failed items
                 val failedIndexes = mongoEx.writeErrors.filter {
                     logger.info("THIS IS THE CODE {}",it.code)
-                    it.code == 11000 }.map { it.index }.toSet()
+                    it.code != 11000 }.map { it.index }.toSet()
 
                 // Filter out failed items
                 val survivors = items.filterIndexed { index, _ -> !failedIndexes.contains(index) }
