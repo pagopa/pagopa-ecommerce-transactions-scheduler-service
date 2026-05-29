@@ -38,8 +38,9 @@ class MigrationUtils {
                 val failedIndexes =
                     mongoEx.writeErrors
                         .filter {
-                            logger.info("THIS IS THE CODE {}", it.code)
-                            it.code != 11000
+                            it.code !=
+                                11000 // Duplicate key exceptions are expected in this context and
+                            // should not be treated as errors
                         }
                         .map { it.index }
                         .toSet()
@@ -47,7 +48,7 @@ class MigrationUtils {
                 // Filter out failed items
                 val survivors = items.filterIndexed { index, _ -> !failedIndexes.contains(index) }
                 logger.warn(
-                    "$operationName partial failure. ${failedIndexes.size} failed, ${survivors.size} succeeded. TEST"
+                    "$operationName partial failure. ${failedIndexes.size} failed, ${survivors.size} succeeded."
                 )
                 Mono.just(survivors)
             } else {
