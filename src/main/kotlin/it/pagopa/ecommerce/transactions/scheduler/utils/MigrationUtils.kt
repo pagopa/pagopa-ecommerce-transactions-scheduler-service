@@ -42,7 +42,7 @@ class MigrationUtils {
                 // Filter out failed items
                 val survivors = items.filterIndexed { index, _ -> !failedIndexes.contains(index) }
                 logger.warn(
-                    "$operationName partial failure. ${failedIndexes.size} failed, ${survivors.size} succeeded."
+                    "$operationName partial failure. ${failedIndexes.size} failed, ${survivors.size} succeeded. TEST"
                 )
                 Mono.just(survivors)
             } else {
