@@ -80,7 +80,7 @@ class TransactionsViewBulkOperationsTest {
         val item2 = mock<BaseTransactionView>()
         val items = Flux.just(item1, item2)
 
-        val writeError = BulkWriteError(11000, "Duplicate Key", BsonDocument(), 1)
+        val writeError = BulkWriteError(1, "Generic error", BsonDocument(), 1)
         val mongoEx =
             MongoBulkWriteException(
                 BulkWriteResult.unacknowledged(),
