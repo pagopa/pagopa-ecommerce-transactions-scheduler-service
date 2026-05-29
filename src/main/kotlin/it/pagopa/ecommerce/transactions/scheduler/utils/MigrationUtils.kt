@@ -53,7 +53,6 @@ class MigrationUtils {
                 Mono.just(survivors)
             } else {
                 // CASE C: Total System Failure (Network down, DB down, etc)
-                logger.error("$operationName failed completely", mongoEx)
                 Mono.empty()
             }
         }
