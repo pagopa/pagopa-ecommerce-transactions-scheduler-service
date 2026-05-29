@@ -63,7 +63,7 @@ class TransactionMigrationWriteService(
     fun writeBulkEvents(events: Flux<BaseTransactionEvent<*>>): Flux<BaseTransactionEvent<*>> {
         return eventStoreHistoryBulkOperations
             .bulkInsert(events)
-            .doOnNext { logger.debug("Event with id ${it.id}") }
+            .doOnNext { logger.info("Event with id ${it.id}") }
             .onErrorResume { error ->
                 logger.warn("Skipping failed events migration", error)
                 Mono.empty()

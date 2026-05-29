@@ -51,6 +51,7 @@ class MigrationUtils {
         }
 
         private fun extractMongoException(ex: Throwable): MongoBulkWriteException? {
+            logger.error("Error", ex)
             return when {
                 ex is MongoBulkWriteException -> ex
                 ex.cause is MongoBulkWriteException -> ex.cause as MongoBulkWriteException
