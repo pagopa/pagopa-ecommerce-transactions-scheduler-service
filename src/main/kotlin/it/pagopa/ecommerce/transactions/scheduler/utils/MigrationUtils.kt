@@ -35,7 +35,7 @@ class MigrationUtils {
 
             return if (mongoEx != null) {
                 // Failed items
-                val failedIndexes = mongoEx.writeErrors.map { it.index }.toSet()
+                val failedIndexes = mongoEx.writeErrors.filter { it.code != 11000 }.map { it.index }.toSet()
 
                 // Filter out failed items
                 val survivors = items.filterIndexed { index, _ -> !failedIndexes.contains(index) }
