@@ -175,8 +175,8 @@ class TransactionInfoService(
                         pspId = transactionAuthorizationRequestData.pspId,
                         correlationId = correlationId!!,
                         paymentMethod =
-                            PaymentMethod.valueOf(
-                                transactionAuthorizationRequestData.paymentMethodName
+                            PaymentMethod.fromMethodTypeCode(
+                                transactionAuthorizationRequestData.paymentTypeCode
                             )
                     )
                     .doOnNext { order ->
