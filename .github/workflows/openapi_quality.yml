@@ -18,7 +18,7 @@ permissions:
 jobs:
   openapi_quality:
     runs-on: ubuntu-latest
-    name: OpenAPI lint
+    name: OpenAPI lint ${{ matrix.spec.version }}
     strategy:
       # one failing spec must not cancel the others
       fail-fast: false
@@ -33,7 +33,7 @@ jobs:
       # Report-only: the spec declares no securitySchemes, so write-restricted fires at
       # error on POST /event-receivers/commands. Real finding, left visible rather than
       # silenced. Switch to fail_severity: error once the scheme is declared.
-      - name: OpenAPI lint - ${{ matrix.spec.version }}
+      - name: Lint ${{ matrix.spec.path }}
         uses: ./.github/actions/openapi-lint
         with:
           spec_path: ${{ matrix.spec.path }}
