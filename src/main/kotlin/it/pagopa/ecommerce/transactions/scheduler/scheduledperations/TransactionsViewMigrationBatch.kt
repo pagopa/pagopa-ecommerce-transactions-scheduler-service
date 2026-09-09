@@ -2,13 +2,14 @@ package it.pagopa.ecommerce.transactions.scheduler.scheduledperations
 
 import it.pagopa.ecommerce.transactions.scheduler.services.SchedulerLockService
 import it.pagopa.ecommerce.transactions.scheduler.services.TransactionsViewMigrationOrchestrator
-import java.time.Duration
+import kotlinx.coroutines.reactor.awaitSingle
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Mono
+import java.time.Duration
 
 @Component
 class TransactionsViewMigrationBatch(
@@ -24,7 +25,7 @@ class TransactionsViewMigrationBatch(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     @Scheduled(cron = "\${migration.transaction.batch.transactionsView.cronExpression}")
-    fun execute() {
+    suspend fun execute() {
         val lockTtl = Duration.ofSeconds(lockTtlSeconds.toLong())
         schedulerLockService
             // acquire lock
@@ -44,10 +45,10 @@ class TransactionsViewMigrationBatch(
                     .doOnError { logger.error("Failed to release lock", it) }
                     .onErrorResume { Mono.empty() }
             }
+            //abort execution if execution take longer than job task lock duration
             .onErrorResume { error ->
                 logger.error("Job execution failed for transactions-view-migration-batch", error)
                 Mono.empty()
-            }
-            .subscribe()
+            }.awaitSingle()
     }
 }
