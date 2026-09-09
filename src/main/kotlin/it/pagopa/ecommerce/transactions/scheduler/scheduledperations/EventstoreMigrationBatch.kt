@@ -2,6 +2,7 @@ package it.pagopa.ecommerce.transactions.scheduler.scheduledperations
 
 import it.pagopa.ecommerce.transactions.scheduler.services.EventStoreMigrationOrchestrator
 import it.pagopa.ecommerce.transactions.scheduler.services.SchedulerLockService
+import java.time.Duration
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -9,7 +10,6 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Mono
-import java.time.Duration
 
 @Component
 class EventstoreMigrationBatch(
