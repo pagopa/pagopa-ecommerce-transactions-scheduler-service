@@ -29,7 +29,7 @@ jobs:
       # pipeline, internal ingress, never fronted by APIM), so .spectral.yaml scopes the OWASP
       # api2 auth rules off on those two paths only; every other endpoint is still checked.
       - name: Lint ${{ matrix.spec.path }}
-        uses: pagopa/github-actions-template/openapi-lint@bfb849a1e43acbc9347afae2428a799e0d2efe88
+        uses: pagopa/github-actions-template/openapi-lint@c63455f7c3ab0b20d8bd224f063913aecda29b56 # TEMP: PIDM-2392 branch commit, TODO revert to a main SHA before merge
         with:
           spec_path: ${{ matrix.spec.path }}
           ruleset: .spectral.yaml
