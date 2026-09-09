@@ -46,6 +46,7 @@ class TransactionsViewMigrationBatch(
                     .onErrorResume { Mono.empty() }
             }
             // abort execution if execution take longer than job task lock duration
+            .timeout(lockTtl)
             .onErrorResume { error ->
                 logger.error("Job execution failed for transactions-view-migration-batch", error)
                 Mono.empty()
