@@ -2,14 +2,14 @@ package it.pagopa.ecommerce.transactions.scheduler.scheduledperations
 
 import it.pagopa.ecommerce.transactions.scheduler.services.SchedulerLockService
 import it.pagopa.ecommerce.transactions.scheduler.services.TransactionsViewMigrationOrchestrator
-import kotlinx.coroutines.reactor.awaitSingle
+import java.time.Duration
+import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Mono
-import java.time.Duration
 
 @Component
 class TransactionsViewMigrationBatch(
@@ -45,10 +45,11 @@ class TransactionsViewMigrationBatch(
                     .doOnError { logger.error("Failed to release lock", it) }
                     .onErrorResume { Mono.empty() }
             }
-            //abort execution if execution take longer than job task lock duration
+            // abort execution if execution take longer than job task lock duration
             .onErrorResume { error ->
                 logger.error("Job execution failed for transactions-view-migration-batch", error)
                 Mono.empty()
-            }.awaitSingle()
+            }
+            .awaitSingleOrNull()
     }
 }

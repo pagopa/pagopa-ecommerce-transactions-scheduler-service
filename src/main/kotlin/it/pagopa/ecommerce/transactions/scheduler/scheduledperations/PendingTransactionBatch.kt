@@ -3,7 +3,9 @@ package it.pagopa.ecommerce.transactions.scheduler.scheduledperations
 import it.pagopa.ecommerce.transactions.scheduler.services.SchedulerLockService
 import it.pagopa.ecommerce.transactions.scheduler.transactionanalyzer.PendingTransactionAnalyzer
 import it.pagopa.ecommerce.transactions.scheduler.utils.SchedulerUtils
-import kotlinx.coroutines.reactor.awaitSingle
+import java.time.Duration
+import java.util.stream.IntStream
+import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -14,8 +16,6 @@ import org.springframework.stereotype.Component
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.util.function.Tuple2
-import java.time.Duration
-import java.util.stream.IntStream
 
 @Component
 class PendingTransactionBatch(
@@ -71,11 +71,12 @@ class PendingTransactionBatch(
             .onErrorResume { error ->
                 logger.error("Job execution failed for pending-transactions-batch", error)
                 Mono.empty()
-            }.awaitSingle()
+            }
+            .awaitSingleOrNull()
     }
 
     fun pendingTransactionAnalyzerPaginatedPipeline():
-            Mono<MutableList<Tuple2<Long, Pair<Boolean, Int>>>> {
+        Mono<MutableList<Tuple2<Long, Pair<Boolean, Int>>>> {
         val executionInterleaveMillis =
             SchedulerUtils.getExecutionsInterleaveTimeMillis(chronExpression)
         val (lowerThreshold, upperThreshold) =
