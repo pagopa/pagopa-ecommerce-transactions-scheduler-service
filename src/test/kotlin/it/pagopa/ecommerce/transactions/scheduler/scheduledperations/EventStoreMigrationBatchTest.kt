@@ -4,6 +4,7 @@ import it.pagopa.ecommerce.commons.repositories.ExclusiveLockDocument
 import it.pagopa.ecommerce.transactions.scheduler.services.EventStoreMigrationOrchestrator
 import it.pagopa.ecommerce.transactions.scheduler.services.SchedulerLockService
 import java.time.Duration
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.*
 import reactor.core.publisher.Mono
@@ -21,7 +22,7 @@ class EventstoreMigrationBatchTest {
         )
 
     @Test
-    fun `should acquire lock, run migration, and release lock on success`() {
+    fun `should acquire lock, run migration, and release lock on success`() = runTest {
         // Arrange
         val jobName = "eventstore-migration-batch"
         val lockDocument = ExclusiveLockDocument(jobName, "test-owner")
@@ -45,7 +46,7 @@ class EventstoreMigrationBatchTest {
     }
 
     @Test
-    fun `should release lock even if migration fails`() {
+    fun `should release lock even if migration fails`() = runTest {
         // Arrange
         val jobName = "eventstore-migration-batch"
         val lockDocument = ExclusiveLockDocument(jobName, "test-owner")
@@ -71,7 +72,7 @@ class EventstoreMigrationBatchTest {
     }
 
     @Test
-    fun `should not run migration or release lock if lock is not acquired`() {
+    fun `should not run migration or release lock if lock is not acquired`() = runTest {
         // Arrange
         val jobName = "eventstore-migration-batch"
         whenever(schedulerLockService.acquireJobLock(any(), any())).thenReturn(Mono.empty())
@@ -87,7 +88,7 @@ class EventstoreMigrationBatchTest {
     }
 
     @Test
-    fun `should not run migration if lock acquisition fails with an error`() {
+    fun `should not run migration if lock acquisition fails with an error`() = runTest {
         // Arrange
         val jobName = "eventstore-migration-batch"
         val acquisitionException = RuntimeException("Failed to acquire lock")
@@ -105,7 +106,7 @@ class EventstoreMigrationBatchTest {
     }
 
     @Test
-    fun `should run migration even if releasing the lock fails`() {
+    fun `should run migration even if releasing the lock fails`() = runTest {
         // Arrange
         val jobName = "eventstore-migration-batch"
         val lockDocument = ExclusiveLockDocument(jobName, "test-owner")
