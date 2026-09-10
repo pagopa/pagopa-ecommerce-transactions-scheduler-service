@@ -25,12 +25,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
-      # Report-only: the spec declares no securitySchemes, so write-restricted fires at
-      # error on POST /event-receivers/commands. Real finding, left visible rather than
-      # silenced. Switch to fail_severity: error once the scheme is declared.
+      # Blocks on errors. The event-receivers endpoints are unauthenticated by design (deploy
+      # pipeline, internal ingress, never fronted by APIM), so .spectral.yaml scopes the OWASP
+      # api2 auth rules off on those two paths only; every other endpoint is still checked.
       - name: Lint ${{ matrix.spec.path }}
-        # note: ruleset bundled with the shared action, can be overridden if needed
-        uses: pagopa/github-actions-template/openapi-lint@bfb849a1e43acbc9347afae2428a799e0d2efe88
+        uses: pagopa/github-actions-template/openapi-lint@705d571bb13b279776fd20e9eb20232dc25679e4
         with:
           spec_path: ${{ matrix.spec.path }}
-          fail_on_violation: false
+          ruleset: .spectral.yaml
+          fail_severity: error
