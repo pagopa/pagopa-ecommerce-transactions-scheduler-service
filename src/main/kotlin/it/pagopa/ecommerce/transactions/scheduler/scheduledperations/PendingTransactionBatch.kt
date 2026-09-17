@@ -5,6 +5,7 @@ import it.pagopa.ecommerce.transactions.scheduler.transactionanalyzer.PendingTra
 import it.pagopa.ecommerce.transactions.scheduler.utils.SchedulerUtils
 import java.time.Duration
 import java.util.stream.IntStream
+import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -32,7 +33,7 @@ class PendingTransactionBatch(
 ) {
 
     @Scheduled(cron = "\${pendingTransactions.batch.scheduledChron}")
-    fun execute() {
+    suspend fun execute() {
         val startTime = System.currentTimeMillis()
         val lockTtl = Duration.ofSeconds(lockTtlSeconds.toLong())
         schedulerLockService
@@ -71,7 +72,7 @@ class PendingTransactionBatch(
                 logger.error("Job execution failed for pending-transactions-batch", error)
                 Mono.empty()
             }
-            .subscribe()
+            .awaitSingleOrNull()
     }
 
     fun pendingTransactionAnalyzerPaginatedPipeline():

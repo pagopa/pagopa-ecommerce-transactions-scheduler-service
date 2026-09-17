@@ -12,9 +12,13 @@ import java.util.stream.Stream
 import kotlin.time.ExperimentalTime
 import kotlin.time.measureTime
 import kotlin.time.toJavaDuration
-import org.junit.jupiter.api.*
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertDoesNotThrow
+import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
@@ -71,7 +75,7 @@ class PendingTransactionBatchTests {
     }
 
     @Test
-    fun `Should execute successfully`() {
+    fun `Should execute successfully`() = runTest {
         // assertions
         given(pendingTransactionAnalyzer.getTotalTransactionCount(any(), any()))
             .willReturn(Mono.just(1L))
@@ -131,7 +135,7 @@ class PendingTransactionBatchTests {
     }
 
     @Test
-    fun `Should handle batch execution error without throwing exception`() {
+    fun `Should handle batch execution error without throwing exception`() = runTest {
         // assertions
         given(pendingTransactionAnalyzer.getTotalTransactionCount(any(), any()))
             .willReturn(Mono.just(1L))
@@ -202,7 +206,7 @@ class PendingTransactionBatchTests {
 
     @ParameterizedTest
     @MethodSource("paginationTestArguments")
-    fun `Should handle pagination correctly`(transactionsCount: Int, expectedPages: Int) {
+    fun `Should handle pagination correctly`(transactionsCount: Int, expectedPages: Int) = runTest {
         // assertions
         given(pendingTransactionAnalyzer.getTotalTransactionCount(any(), any()))
             .willReturn(Mono.just(transactionsCount.toLong()))
@@ -222,7 +226,7 @@ class PendingTransactionBatchTests {
     }
 
     @Test
-    fun `Should not perform any computation for no transaction found`() {
+    fun `Should not perform any computation for no transaction found`() = runTest {
         // assertions
         given(pendingTransactionAnalyzer.getTotalTransactionCount(any(), any()))
             .willReturn(Mono.just(0L))
