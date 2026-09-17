@@ -6,6 +6,7 @@ on:
     paths:
       - 'api-spec/**/*.yaml'
       - 'api-spec/**/*.yml'
+      - '.spectral.yaml'
       - '.github/workflows/openapi_quality.yml'
 
 permissions:
@@ -25,9 +26,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
-      # Blocks on errors. The event-receivers endpoints are unauthenticated by design (deploy
-      # pipeline, internal ingress, never fronted by APIM), so .spectral.yaml scopes the OWASP
-      # api2 auth rules off on those two paths only; every other endpoint is still checked.
+      # blocks on errors
       - name: Lint ${{ matrix.spec.path }}
         uses: pagopa/github-actions-template/openapi-lint@705d571bb13b279776fd20e9eb20232dc25679e4
         with:
