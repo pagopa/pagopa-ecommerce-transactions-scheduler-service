@@ -2,6 +2,7 @@ package it.pagopa.ecommerce.transactions.scheduler.services
 
 import it.pagopa.ecommerce.commons.documents.BaseTransactionEvent
 import it.pagopa.ecommerce.commons.documents.BaseTransactionView
+import it.pagopa.ecommerce.commons.mdcutilities.LogTracingUtils
 import it.pagopa.ecommerce.transactions.scheduler.configurations.TransactionMigrationQueryServiceConfig
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.TransactionsEventStoreRepository
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.TransactionsViewRepository
@@ -32,11 +33,15 @@ class TransactionMigrationQueryService(
                     transactionMigrationQueryServiceConfig.eventstore.cutoffMonthOffset.toLong()
                 )
         val pageRequest: Pageable = PageRequest.of(0, timeBasedRate.calculateRate())
-        logger.info("Calculated paged request for finding eligible events: $pageRequest")
-        return transactionsEventStoreRepository.findByTtlIsNullAndCreationDateLessThan(
-            cutoffDate.toString(),
-            pageRequest
-        )
+        return transactionsEventStoreRepository
+            .findByTtlIsNullAndCreationDateLessThan(cutoffDate.toString(), pageRequest)
+            .doOnNext {
+                LogTracingUtils.loggerTracingUtils()
+                    .success()
+                    .details(mapOf("page_request" to pageRequest.toString()))
+                    .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                    .logInfo(logger, "Calculated paged request for finding eligible events")
+            }
     }
 
     fun findEligibleTransactions(): Flux<BaseTransactionView> {
@@ -48,10 +53,14 @@ class TransactionMigrationQueryService(
                         .toLong()
                 )
         val pageRequest: Pageable = PageRequest.of(0, timeBasedRate.calculateRate())
-        logger.info("Calculated paged request for finding eligible views: $pageRequest")
-        return transactionViewRepository.findByTtlIsNullAndCreationDateLessThan(
-            cutoffDate.toString(),
-            pageRequest
-        )
+        return transactionViewRepository
+            .findByTtlIsNullAndCreationDateLessThan(cutoffDate.toString(), pageRequest)
+            .doOnNext {
+                LogTracingUtils.loggerTracingUtils()
+                    .success()
+                    .details(mapOf("page_request" to pageRequest.toString()))
+                    .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                    .logInfo(logger, "Calculated paged request for finding eligible views")
+            }
     }
 }

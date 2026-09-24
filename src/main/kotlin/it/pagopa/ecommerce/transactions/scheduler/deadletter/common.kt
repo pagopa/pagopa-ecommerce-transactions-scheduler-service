@@ -6,6 +6,7 @@ import com.azure.spring.messaging.checkpoint.Checkpointer
 import it.pagopa.ecommerce.commons.documents.DeadLetterEvent
 import it.pagopa.ecommerce.commons.documents.v2.TransactionEvent
 import it.pagopa.ecommerce.commons.documents.v2.deadletter.DeadLetterTransactionInfo
+import it.pagopa.ecommerce.commons.mdcutilities.LogTracingUtils
 import it.pagopa.ecommerce.commons.queues.QueueEvent
 import it.pagopa.ecommerce.commons.queues.StrictJsonSerializerProvider
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.DeadLetterEventRepository
@@ -32,7 +33,12 @@ fun writeEventToDeadLetterCollection(
 ): Mono<Unit> {
 
     val eventData = payload.toString(StandardCharsets.UTF_8)
-    CommonLogger.logger.debug("Read event from queue: {}", eventData)
+    if (CommonLogger.logger.isDebugEnabled) {
+        LogTracingUtils.loggerTracingUtils()
+            .success()
+            .details(mapOf("event" to eventData))
+            .logDebug(CommonLogger.logger, "Read event from queue")
+    }
 
     val transactionInfo =
         BinaryData.fromBytes(payload)
@@ -44,15 +50,31 @@ fun writeEventToDeadLetterCollection(
                 transactionInfoService.getTransactionInfoByTransactionId(it.event.transactionId)
             }
             .onErrorResume { exception ->
-                CommonLogger.logger.error("Error processing event info", exception)
+                LogTracingUtils.loggerTracingUtils()
+                    .failure()
+                    .logErrorWithStackTrace(
+                        CommonLogger.logger,
+                        exception,
+                        "Exception processing event info"
+                    )
                 Mono.just(DeadLetterTransactionInfo())
             }
 
     return checkPointer
         .success()
-        .doOnSuccess { CommonLogger.logger.info("Event checkpoint performed successfully") }
+        .doOnSuccess {
+            LogTracingUtils.loggerTracingUtils()
+                .success()
+                .logInfo(CommonLogger.logger, "Event checkpoint performed successfully")
+        }
         .doOnError { exception ->
-            CommonLogger.logger.error("Error performing checkpoint for read event", exception)
+            LogTracingUtils.loggerTracingUtils()
+                .failure()
+                .logErrorWithStackTrace(
+                    CommonLogger.logger,
+                    exception,
+                    "Error performing checkpoint for read event"
+                )
         }
         .then(
             transactionInfo.map { info ->
@@ -66,19 +88,40 @@ fun writeEventToDeadLetterCollection(
             }
         )
         .flatMap { deadLetterEventRepository.insert(it) }
+        .doOnNext {
+            LogTracingUtils.loggerTracingUtils()
+                .success()
+                .details(mapOf("inserted_event" to it.id))
+                .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                .logInfo(CommonLogger.logger, "Event inserted successfully")
+        }
         .then()
         .onErrorResume {
-            CommonLogger.logger.error(
-                "Exception processing dead letter event, performing checkpoint failure",
-                it
-            )
+            LogTracingUtils.loggerTracingUtils()
+                .failure()
+                .logErrorWithStackTrace(
+                    CommonLogger.logger,
+                    it,
+                    "Exception processing dead letter event, performing checkpoint failure"
+                )
             checkPointer
                 .failure()
                 .doOnSuccess {
-                    CommonLogger.logger.info("Event checkpoint failure performed successfully")
+                    LogTracingUtils.loggerTracingUtils()
+                        .success()
+                        .logInfo(
+                            CommonLogger.logger,
+                            "Event checkpoint failure performed successfully"
+                        )
                 }
                 .doOnError { exception ->
-                    CommonLogger.logger.error("Error performing checkpoint failure", exception)
+                    LogTracingUtils.loggerTracingUtils()
+                        .failure()
+                        .logErrorWithStackTrace(
+                            CommonLogger.logger,
+                            exception,
+                            "Error performing checkpoint failure"
+                        )
                 }
         }
         .then(mono {})

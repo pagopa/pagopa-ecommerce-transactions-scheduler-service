@@ -1,6 +1,7 @@
 package it.pagopa.ecommerce.transactions.scheduler.services
 
 import it.pagopa.ecommerce.commons.documents.BaseTransactionView
+import it.pagopa.ecommerce.commons.mdcutilities.LogTracingUtils
 import it.pagopa.ecommerce.commons.utils.OpenTelemetryUtils
 import it.pagopa.ecommerce.transactions.scheduler.utils.MigrationTracingUtils
 import it.pagopa.ecommerce.transactions.scheduler.utils.MigrationTracingUtils.Companion.ECOMMERCE_MIGRATION_SPAN_NAME
@@ -23,10 +24,8 @@ class TransactionsViewMigrationOrchestrator(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     fun createMigrationPipeline(): Mono<Tuple2<Long, MigrationTracingUtils.MigrationStats>> {
-        logger.info("transactions-view migration process started")
         return transactionMigrationQueryService
             .findEligibleTransactions()
-            .doOnNext { tx -> logger.debug("Processing transaction: ${tx.transactionId}") }
             .transform { tx -> transactionMigrationWriteService.writeBulkTransactionViews(tx) }
             .transform { tx -> transactionMigrationWriteService.updateBulkViewsTtl(tx) }
             .reduce(MigrationTracingUtils.MigrationStats.empty()) { acc, tx ->
@@ -46,12 +45,25 @@ class TransactionsViewMigrationOrchestrator(
                 Tuples.of(elapsedMs, migrationStats)
             }
             .doOnSuccess { (elapsedMs, migrationStats) ->
-                logger.info(
-                    "transactions-view migration process completed. Processed ${migrationStats.count} items in $elapsedMs ms. Last creation date ${migrationStats.lastCreationDate}"
-                )
+                LogTracingUtils.loggerTracingUtils()
+                    .success()
+                    .details(
+                        mapOf(
+                            "processed_items" to migrationStats.count.toString(),
+                            "elapsed_millis" to elapsedMs.toString(),
+                            "last_creation_date" to migrationStats.lastCreationDate
+                        )
+                    )
+                    .logInfo(logger, "Transactions-view migration process completed")
             }
             .onErrorResume { error ->
-                logger.error("transactions-view migration process failed", error)
+                LogTracingUtils.loggerTracingUtils()
+                    .failure()
+                    .logErrorWithStackTrace(
+                        logger,
+                        error,
+                        "Transactions-view migration process failed"
+                    )
                 Mono.empty()
             }
     }

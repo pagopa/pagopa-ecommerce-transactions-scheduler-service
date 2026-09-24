@@ -2,6 +2,7 @@ package it.pagopa.ecommerce.transactions.scheduler.services
 
 import it.pagopa.ecommerce.commons.documents.BaseTransactionEvent
 import it.pagopa.ecommerce.commons.documents.BaseTransactionView
+import it.pagopa.ecommerce.commons.mdcutilities.LogTracingUtils
 import it.pagopa.ecommerce.transactions.scheduler.configurations.TransactionMigrationWriteServiceConfig
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.EventStoreBulkOperations
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.TransactionsViewBulkOperations
@@ -47,9 +48,21 @@ class TransactionMigrationWriteService(
             .flatMap { event ->
                 eventHistoryRepository
                     .insert(event)
-                    .doOnSuccess { logger.debug("Successfully copied event to history: ${it.id}") }
+                    .doOnSuccess {
+                        LogTracingUtils.loggerTracingUtils()
+                            .success()
+                            .details(mapOf("event_id" to it.id))
+                            .logDebug(logger, "Successfully copied event to history")
+                    }
                     .onErrorResume { error ->
-                        logger.warn("Skipping failed event migration for id: ${event.id}", error)
+                        LogTracingUtils.loggerTracingUtils()
+                            .failure()
+                            .details(mapOf("event_id" to event.id))
+                            .logErrorWithStackTrace(
+                                logger,
+                                error,
+                                "Skipping failed event migration"
+                            )
                         Mono.empty()
                     }
             }
@@ -63,9 +76,16 @@ class TransactionMigrationWriteService(
     fun writeBulkEvents(events: Flux<BaseTransactionEvent<*>>): Flux<BaseTransactionEvent<*>> {
         return eventStoreHistoryBulkOperations
             .bulkInsert(events)
-            .doOnNext { logger.debug("Event with id ${it.id}") }
+            .doOnNext {
+                LogTracingUtils.loggerTracingUtils()
+                    .success()
+                    .details(mapOf("event_id" to it.id))
+                    .logDebug(logger, "Event migrated to history")
+            }
             .onErrorResume { error ->
-                logger.warn("Skipping failed events migration", error)
+                LogTracingUtils.loggerTracingUtils()
+                    .failure()
+                    .logErrorWithStackTrace(logger, error, "Skipping failed events migration")
                 Mono.empty()
             }
     }
@@ -76,10 +96,24 @@ class TransactionMigrationWriteService(
      */
     fun updateEventsTtl(events: Flux<BaseTransactionEvent<*>>): Flux<BaseTransactionEvent<*>> {
         return events.filterWhen { event ->
-            updateSingleEventTtl(event).onErrorResume { error ->
-                logger.error("Failed to update TTL for event: ${event.id}", error)
-                Mono.just(false)
-            }
+            updateSingleEventTtl(event)
+                .onErrorResume { error ->
+                    LogTracingUtils.loggerTracingUtils()
+                        .failure()
+                        .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                        .logErrorWithStackTrace(logger, error, "Failed to update TTL for event")
+                    Mono.just(false)
+                }
+                .contextWrite { context ->
+                    LogTracingUtils.enrichContextForEvent(
+                        mapOf(
+                            LogTracingUtils.AttributeKeys.CTX_TRANSACTION_ID to event.transactionId,
+                            LogTracingUtils.AttributeKeys.CTX_EVENT_ID to event.id,
+                            LogTracingUtils.AttributeKeys.CTX_EVENT_CODE to event.eventCode
+                        ),
+                        context
+                    )
+                }
         }
     }
 
@@ -108,14 +142,23 @@ class TransactionMigrationWriteService(
             .map { result ->
                 val updated = result.modifiedCount > 0
                 if (updated) {
-                    logger.debug("Updated TTL for event: ${event.id}")
+                    LogTracingUtils.loggerTracingUtils()
+                        .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                        .success()
+                        .logInfo(logger, "Updated TTL for event")
                 } else {
-                    logger.warn("Event not modified: ${event.id}")
+                    LogTracingUtils.loggerTracingUtils()
+                        .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                        .failure()
+                        .logWarn(logger, "Event not modified")
                 }
                 updated
             }
             .doOnError { error ->
-                logger.error("Failed to update TTL for event: ${event.id}", error)
+                LogTracingUtils.loggerTracingUtils()
+                    .failure()
+                    .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                    .logErrorWithStackTrace(logger, error, "Failed to update TTL for event")
             }
     }
 
@@ -130,13 +173,18 @@ class TransactionMigrationWriteService(
                 viewHistoryRepository
                     .save(view)
                     .doOnSuccess {
-                        logger.debug("Successfully copied view to history: ${it.transactionId}")
+                        LogTracingUtils.loggerTracingUtils()
+                            .success()
+                            .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                            .details(mapOf("transaction_id" to it.transactionId))
+                            .logInfo(logger, "Successfully copied view to history")
                     }
                     .onErrorResume { error ->
-                        logger.warn(
-                            "Skipping failed view migration for id: ${view.transactionId}",
-                            error
-                        )
+                        LogTracingUtils.loggerTracingUtils()
+                            .failure()
+                            .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                            .details(mapOf("transaction_id" to view.transactionId))
+                            .logError(logger, error, "Skipping failed view migration")
                         Mono.empty()
                     }
             }
@@ -147,13 +195,13 @@ class TransactionMigrationWriteService(
      * @return Flux of successfully migrated views
      */
     fun writeBulkTransactionViews(views: Flux<BaseTransactionView>): Flux<BaseTransactionView> {
-        return transactionsViewHistoryBulkOperations
-            .bulkInsert(views)
-            .doOnNext { logger.debug("View with id ${it.transactionId}") }
-            .onErrorResume { error ->
-                logger.warn("Skipping failed views migration", error)
-                Mono.empty()
-            }
+        return transactionsViewHistoryBulkOperations.bulkInsert(views).onErrorResume { error ->
+            LogTracingUtils.loggerTracingUtils()
+                .failure()
+                .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                .logErrorWithStackTrace(logger, error, "Skipping failed views migration")
+            Mono.empty()
+        }
     }
 
     /**
@@ -162,10 +210,22 @@ class TransactionMigrationWriteService(
      */
     fun updateViewsTtl(views: Flux<BaseTransactionView>): Flux<BaseTransactionView> {
         return views.filterWhen { view ->
-            updateSingleViewTtl(view).onErrorResume { error ->
-                logger.error("Failed to update TTL for view: ${view.transactionId}", error)
-                Mono.just(false)
-            }
+            updateSingleViewTtl(view)
+                .onErrorResume { error ->
+                    LogTracingUtils.loggerTracingUtils()
+                        .failure()
+                        .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                        .logErrorWithStackTrace(logger, error, "Failed to update TTL")
+                    Mono.just(false)
+                }
+                .contextWrite { context ->
+                    LogTracingUtils.enrichContextForEvent(
+                        mapOf(
+                            LogTracingUtils.AttributeKeys.CTX_TRANSACTION_ID to view.transactionId
+                        ),
+                        context
+                    )
+                }
         }
     }
 
@@ -194,14 +254,23 @@ class TransactionMigrationWriteService(
             .map { result ->
                 val updated = result.modifiedCount > 0
                 if (updated) {
-                    logger.debug("Updated TTL for view: ${view.transactionId}")
+                    LogTracingUtils.loggerTracingUtils()
+                        .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                        .success()
+                        .logInfo(logger, "Updated TTL for view")
                 } else {
-                    logger.warn("View not modified: ${view.transactionId}")
+                    LogTracingUtils.loggerTracingUtils()
+                        .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                        .failure()
+                        .logWarn(logger, "View not modified")
                 }
                 updated
             }
             .doOnError { error ->
-                logger.error("Failed to update TTL for view: ${view.transactionId}", error)
+                LogTracingUtils.loggerTracingUtils()
+                    .failure()
+                    .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                    .logErrorWithStackTrace(logger, error, "Failed to update TTL for view")
             }
     }
 }
