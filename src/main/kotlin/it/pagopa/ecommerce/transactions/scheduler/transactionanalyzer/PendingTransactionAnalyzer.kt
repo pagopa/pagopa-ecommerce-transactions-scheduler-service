@@ -280,9 +280,7 @@ class PendingTransactionAnalyzer(
                         "transaction_id" to transactionId,
                         "status" to status.value,
                         "expired_transaction_statuses" to
-                            transactionStatusesForSendExpiryEvent.joinToString { status ->
-                                status.value
-                            },
+                            transactionStatusesForSendExpiryEvent.toString(),
                         "send_event" to sendExpiryEvent.toString(),
                         "skip_transaction" to it.toString()
                     )

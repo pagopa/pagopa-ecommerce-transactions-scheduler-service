@@ -209,7 +209,9 @@ class TransactionInfoService(
                                     "operations" to
                                         order.operations
                                             ?.joinToString {
-                                                "${it.operationType}-${it.operationResult}"
+                                                it.operationType.toString() +
+                                                    "-" +
+                                                    it.operationResult.toString()
                                             }
                                             .toString()
                                 )
