@@ -45,23 +45,23 @@ class TransactionsViewMigrationBatch(
                     .doOnSuccess {
                         LogTracingUtils.loggerTracingUtils()
                             .success()
-                            .logDebug(logger, "Lock released successfully")
+                            .logDebug(logger, "Successfully released lock")
                     }
-                    .doOnError {
+                    .doOnError { exception ->
                         LogTracingUtils.loggerTracingUtils()
                             .failure()
-                            .logErrorWithStackTrace(logger, it, "Failed to release lock")
+                            .logErrorWithStackTrace(logger, exception, "Failed to release lock")
                     }
                     .onErrorResume { Mono.empty() }
             }
             // abort execution if execution take longer than job task lock duration
             .timeout(lockTtl)
-            .onErrorResume { error ->
+            .onErrorResume { exception ->
                 LogTracingUtils.loggerTracingUtils()
                     .failure()
                     .logErrorWithStackTrace(
                         logger,
-                        error,
+                        exception,
                         "Job execution failed for transactions-view-migration-batch"
                     )
                 Mono.empty()

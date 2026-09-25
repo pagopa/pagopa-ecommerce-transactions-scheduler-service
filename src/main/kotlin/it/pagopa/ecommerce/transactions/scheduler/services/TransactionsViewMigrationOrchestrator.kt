@@ -32,36 +32,36 @@ class TransactionsViewMigrationOrchestrator(
                 MigrationTracingUtils.MigrationStats(acc.count + 1, getLastCreationDate(tx))
             }
             .elapsed()
-            .map { (elapsedMs, migrationStats) ->
+            .map { (transactionsViewElapsedMs, transactionsViewMigrationStats) ->
                 openTelemetryUtils.addSpanWithAttributes(
                     ECOMMERCE_MIGRATION_SPAN_NAME,
                     getIterationSpanAttributes(
-                        elapsedMs,
-                        migrationStats.count,
+                        transactionsViewElapsedMs,
+                        transactionsViewMigrationStats.count,
                         "transactions-view",
-                        migrationStats.lastCreationDate
+                        transactionsViewMigrationStats.lastCreationDate
                     )
                 )
-                Tuples.of(elapsedMs, migrationStats)
+                Tuples.of(transactionsViewElapsedMs, transactionsViewMigrationStats)
             }
-            .doOnSuccess { (elapsedMs, migrationStats) ->
+            .doOnSuccess { (transactionsViewElapsedMs, transactionsViewMigrationStats) ->
                 LogTracingUtils.loggerTracingUtils()
                     .success()
                     .details(
                         mapOf(
-                            "processed_items" to migrationStats.count.toString(),
-                            "elapsed_millis" to elapsedMs.toString(),
-                            "last_creation_date" to migrationStats.lastCreationDate
+                            "processed_items" to transactionsViewMigrationStats.count.toString(),
+                            "elapsed_millis" to transactionsViewElapsedMs.toString(),
+                            "last_creation_date" to transactionsViewMigrationStats.lastCreationDate
                         )
                     )
                     .logInfo(logger, "Transactions-view migration process completed")
             }
-            .onErrorResume { error ->
+            .onErrorResume { exception ->
                 LogTracingUtils.loggerTracingUtils()
                     .failure()
                     .logErrorWithStackTrace(
                         logger,
-                        error,
+                        exception,
                         "Transactions-view migration process failed"
                     )
                 Mono.empty()

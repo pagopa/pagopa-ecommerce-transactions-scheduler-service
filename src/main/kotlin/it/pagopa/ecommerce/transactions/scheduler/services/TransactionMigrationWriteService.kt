@@ -143,22 +143,22 @@ class TransactionMigrationWriteService(
                 val updated = result.modifiedCount > 0
                 if (updated) {
                     LogTracingUtils.loggerTracingUtils()
-                        .dependency(LogTracingUtils.MONGO_DEPENDENCY)
                         .success()
-                        .logInfo(logger, "Updated TTL for event")
+                        .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                        .logInfo(logger, "Successfully updated TTL for event")
                 } else {
                     LogTracingUtils.loggerTracingUtils()
-                        .dependency(LogTracingUtils.MONGO_DEPENDENCY)
                         .failure()
+                        .dependency(LogTracingUtils.MONGO_DEPENDENCY)
                         .logWarn(logger, "Event not modified")
                 }
                 updated
             }
-            .doOnError { error ->
+            .doOnError { exception ->
                 LogTracingUtils.loggerTracingUtils()
                     .failure()
                     .dependency(LogTracingUtils.MONGO_DEPENDENCY)
-                    .logErrorWithStackTrace(logger, error, "Failed to update TTL for event")
+                    .logErrorWithStackTrace(logger, exception, "Failed to update TTL for event")
             }
     }
 
@@ -268,8 +268,8 @@ class TransactionMigrationWriteService(
             }
             .doOnError { error ->
                 LogTracingUtils.loggerTracingUtils()
-                    .failure()
                     .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                    .failure()
                     .logErrorWithStackTrace(logger, error, "Failed to update TTL for view")
             }
     }
