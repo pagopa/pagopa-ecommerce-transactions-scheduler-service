@@ -1,5 +1,6 @@
 package it.pagopa.ecommerce.transactions.scheduler.controller.exceptionhandler
 
+import it.pagopa.ecommerce.commons.mdcutilities.LogTracingUtils
 import it.pagopa.ecommerce.transactions.scheduler.exceptions.NoEventReceiverStatusFound
 import it.pagopa.generated.scheduler.server.model.ProblemJsonDto
 import jakarta.validation.ConstraintViolationException
@@ -32,7 +33,9 @@ class ExceptionHandler {
     fun handleNoEventReceiverDataFound(
         e: NoEventReceiverStatusFound
     ): ResponseEntity<ProblemJsonDto> {
-        logger.error("Exception processing request", e)
+        LogTracingUtils.loggerTracingUtils()
+            .failure()
+            .logError(logger, e, "Exception processing request")
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
             .body(
                 ProblemJsonDto(
@@ -48,7 +51,9 @@ class ExceptionHandler {
      */
     @ExceptionHandler(RuntimeException::class)
     fun handleGenericException(e: RuntimeException): ResponseEntity<ProblemJsonDto> {
-        logger.error("Exception processing request", e)
+        LogTracingUtils.loggerTracingUtils()
+            .failure()
+            .logError(logger, e, "Exception processing request")
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
             .body(
                 ProblemJsonDto(
@@ -72,7 +77,9 @@ class ExceptionHandler {
         ConstraintViolationException::class
     )
     fun handleRequestValidationException(exception: Exception): ResponseEntity<ProblemJsonDto> {
-        logger.error(invalidRequestDefaultMessage, exception)
+        LogTracingUtils.loggerTracingUtils()
+            .failure()
+            .logErrorWithStackTrace(logger, exception, invalidRequestDefaultMessage)
         return ResponseEntity.badRequest()
             .body(
                 ProblemJsonDto(

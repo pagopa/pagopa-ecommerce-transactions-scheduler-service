@@ -2,6 +2,7 @@ package it.pagopa.ecommerce.transactions.scheduler.utils
 
 import com.mongodb.MongoBulkWriteException
 import com.mongodb.bulk.BulkWriteResult
+import it.pagopa.ecommerce.commons.mdcutilities.LogTracingUtils
 import org.slf4j.LoggerFactory
 import org.springframework.data.mongodb.core.ReactiveBulkOperations
 import reactor.core.publisher.Mono
@@ -47,9 +48,16 @@ class MigrationUtils {
 
                 // Filter out failed items
                 val survivors = items.filterIndexed { index, _ -> !failedIndexes.contains(index) }
-                logger.warn(
-                    "$operationName partial failure. ${failedIndexes.size} failed, ${survivors.size} succeeded."
-                )
+                LogTracingUtils.loggerTracingUtils()
+                    .failure()
+                    .details(
+                        mapOf(
+                            "operation_name" to operationName,
+                            "failed_count" to failedIndexes.size.toString(),
+                            "succeeded_count" to survivors.size.toString()
+                        )
+                    )
+                    .logWarn(logger, "Partial failure in bulk operation")
                 Mono.just(survivors)
             } else {
                 // CASE C: Total System Failure (Network down, DB down, etc)
@@ -58,7 +66,10 @@ class MigrationUtils {
         }
 
         private fun extractMongoException(ex: Throwable): MongoBulkWriteException? {
-            logger.error("Error", ex)
+            LogTracingUtils.loggerTracingUtils()
+                .failure()
+                .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                .logErrorWithStackTrace(logger, ex, "Error extracting mongo exception")
             return when {
                 ex is MongoBulkWriteException -> ex
                 ex.cause is MongoBulkWriteException -> ex.cause as MongoBulkWriteException

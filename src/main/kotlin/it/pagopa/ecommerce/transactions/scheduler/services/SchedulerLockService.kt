@@ -1,5 +1,6 @@
 package it.pagopa.ecommerce.transactions.scheduler.services
 
+import it.pagopa.ecommerce.commons.mdcutilities.LogTracingUtils
 import it.pagopa.ecommerce.commons.redis.reactivetemplatewrappers.ReactiveExclusiveLockDocumentWrapper
 import it.pagopa.ecommerce.commons.repositories.ExclusiveLockDocument
 import it.pagopa.ecommerce.transactions.scheduler.exceptions.LockNotAcquiredException
@@ -28,14 +29,21 @@ class SchedulerLockService(
      */
     fun acquireJobLock(jobName: String, ttl: Duration): Mono<ExclusiveLockDocument> {
         val lockDocument = ExclusiveLockDocument(jobName, OWNER)
-        logger.info("Trying to acquire lock for job: {} with TTL: {}", jobName, ttl)
         return reactiveExclusiveLockDocumentWrapper.saveIfAbsent(lockDocument, ttl).flatMap {
             lockAcquired ->
             if (lockAcquired) {
-                logger.info("Lock acquired for job: {}", jobName)
+                LogTracingUtils.loggerTracingUtils()
+                    .success()
+                    .dependency(LogTracingUtils.REDIS_DEPENDENCY)
+                    .details(mapOf("job_name" to jobName))
+                    .logInfo(logger, "Lock acquired for job")
                 Mono.just(lockDocument)
             } else {
-                logger.warn("Lock not acquired for job: {}, another instance is running", jobName)
+                LogTracingUtils.loggerTracingUtils()
+                    .failure()
+                    .dependency(LogTracingUtils.REDIS_DEPENDENCY)
+                    .details(mapOf("job_name" to jobName))
+                    .logWarn(logger, "Lock not acquired for job, another instance is running")
                 Mono.error(LockNotAcquiredException(jobName, lockDocument))
             }
         }
@@ -48,14 +56,21 @@ class SchedulerLockService(
      * @return Mono<Boolean> indicating if the lock was released successfully
      */
     fun releaseJobLock(lockDocument: ExclusiveLockDocument): Mono<Boolean> {
-        logger.info("Releasing lock for job: {}", lockDocument.id())
         return reactiveExclusiveLockDocumentWrapper
             .deleteById(lockDocument.id())
             .doOnNext { deleted ->
-                logger.info("Lock with id: [{}], deleted: [{}]", lockDocument.id(), deleted)
+                LogTracingUtils.loggerTracingUtils()
+                    .success()
+                    .dependency(LogTracingUtils.REDIS_DEPENDENCY)
+                    .details(mapOf("lock_id" to lockDocument.id(), "deleted" to deleted.toString()))
+                    .logInfo(logger, "Lock released")
             }
             .doOnError { error ->
-                logger.error("Error releasing lock with id: [{}]", lockDocument.id(), error)
+                LogTracingUtils.loggerTracingUtils()
+                    .failure()
+                    .dependency(LogTracingUtils.REDIS_DEPENDENCY)
+                    .details(mapOf("lock_id" to lockDocument.id()))
+                    .logErrorWithStackTrace(logger, error, "Error releasing lock")
             }
     }
 }

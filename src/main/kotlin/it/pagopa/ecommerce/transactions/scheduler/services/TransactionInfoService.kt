@@ -18,6 +18,7 @@ import it.pagopa.ecommerce.commons.generated.npg.v1.dto.OperationResultDto
 import it.pagopa.ecommerce.commons.generated.npg.v1.dto.OperationTypeDto
 import it.pagopa.ecommerce.commons.generated.npg.v1.dto.OrderResponseDto
 import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
+import it.pagopa.ecommerce.commons.mdcutilities.LogTracingUtils
 import it.pagopa.ecommerce.commons.utils.NpgApiKeyConfiguration
 import it.pagopa.ecommerce.commons.utils.NpgClientUtils
 import it.pagopa.ecommerce.commons.utils.v2.TransactionUtils.getTransactionFee
@@ -46,6 +47,12 @@ class TransactionInfoService(
                         transactionId
                     )
                 }
+                .doOnNext {
+                    LogTracingUtils.loggerTracingUtils()
+                        .success()
+                        .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                        .logInfo(CommonLogger.logger, "Transaction info retrieved successfully")
+                }
                 .cache()
 
         return events
@@ -61,10 +68,13 @@ class TransactionInfoService(
                         Mono.just(baseTransactionToTransactionInfoDto(baseTransaction, details))
                     }
                     .doOnError { exception ->
-                        CommonLogger.logger.error(
-                            "Error performing get transactionInfoDetails",
-                            exception
-                        )
+                        LogTracingUtils.loggerTracingUtils()
+                            .failure()
+                            .logErrorWithStackTrace(
+                                CommonLogger.logger,
+                                exception,
+                                "Error performing get transactionInfoDetails"
+                            )
                     }
                     .onErrorResume {
                         Mono.just(
@@ -72,6 +82,14 @@ class TransactionInfoService(
                                 baseTransaction,
                                 DeadLetterNpgTransactionInfoDetailsData()
                             )
+                        )
+                    }
+                    .contextWrite { context ->
+                        LogTracingUtils.enrichContextForEvent(
+                            mapOf(
+                                LogTracingUtils.AttributeKeys.CTX_TRANSACTION_ID to transactionId
+                            ),
+                            context
                         )
                     }
             }
@@ -162,11 +180,12 @@ class TransactionInfoService(
                 null
             }
         // based on the type of payment I retrieve the gateway information
-        CommonLogger.logger.info(
-            "Retrive gateway info for transactionId: [{}],  gateway: [{}]",
-            baseTransaction.transactionId,
-            transactionAuthorizationRequestData?.paymentGateway
-        )
+        LogTracingUtils.loggerTracingUtils()
+            .success()
+            .details(
+                mapOf("gateway" to transactionAuthorizationRequestData?.paymentGateway.toString())
+            )
+            .logInfo(CommonLogger.logger, "Retrieve gateway info")
         return when (transactionAuthorizationRequestData?.paymentGateway) {
             TransactionAuthorizationRequestData.PaymentGateway.NPG ->
                 performGetOrderNPG(
@@ -180,14 +199,24 @@ class TransactionInfoService(
                             )
                     )
                     .doOnNext { order ->
-                        CommonLogger.logger.info(
-                            "Performed get order for transaction with id: [{}], last operation result: [{}], operations: [{}]",
-                            baseTransaction.transactionId,
-                            order.orderStatus?.lastOperationType,
-                            order.operations?.joinToString {
-                                "${it.operationType}-${it.operationResult}"
-                            },
-                        )
+                        LogTracingUtils.loggerTracingUtils()
+                            .success()
+                            .dependency(LogTracingUtils.NPG_DEPENDENCY)
+                            .details(
+                                mapOf(
+                                    "last_operation_result" to
+                                        order.orderStatus?.lastOperationType.toString(),
+                                    "operations" to
+                                        order.operations
+                                            ?.joinToString {
+                                                it.operationType.toString() +
+                                                    "-" +
+                                                    it.operationResult.toString()
+                                            }
+                                            .toString()
+                                )
+                            )
+                            .logInfo(CommonLogger.logger, "Performed get order successfully")
                     }
                     .flatMap { orderResponse ->
                         orderResponse.operations
@@ -258,14 +287,17 @@ class TransactionInfoService(
         correlationId: String,
         paymentMethod: PaymentMethod
     ): Mono<OrderResponseDto> {
-        CommonLogger.logger.info(
-            "Performing get order for transaction with id: [{}], orderId [{}], pspId: [{}], correlationId: [{}], paymentMethod: [{}]",
-            transactionId.value(),
-            orderId,
-            pspId,
-            correlationId,
-            paymentMethod.serviceName,
-        )
+        LogTracingUtils.loggerTracingUtils()
+            .success()
+            .details(
+                mapOf(
+                    "order_id" to orderId,
+                    "psp_id" to pspId,
+                    "correlation_id" to correlationId,
+                    "payment_method" to paymentMethod.serviceName
+                )
+            )
+            .logInfo(CommonLogger.logger, "Performing get order")
         return npgApiKeyConfiguration[paymentMethod, pspId].fold(
             { ex -> Mono.error(ex) },
             { apiKey ->
