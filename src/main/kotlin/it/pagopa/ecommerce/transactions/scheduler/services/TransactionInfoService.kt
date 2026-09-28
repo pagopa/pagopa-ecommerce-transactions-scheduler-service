@@ -48,10 +48,15 @@ class TransactionInfoService(
                     )
                 }
                 .doOnNext {
-                    LogTracingUtils.loggerTracingUtils()
-                        .success()
-                        .dependency(LogTracingUtils.MONGO_DEPENDENCY)
-                        .logInfo(CommonLogger.logger, "Transaction info retrieved successfully")
+                    if (CommonLogger.logger.isDebugEnabled) {
+                        LogTracingUtils.loggerTracingUtils()
+                            .success()
+                            .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                            .logDebug(
+                                CommonLogger.logger,
+                                "Transaction info retrieved successfully"
+                            )
+                    }
                 }
                 .cache()
 

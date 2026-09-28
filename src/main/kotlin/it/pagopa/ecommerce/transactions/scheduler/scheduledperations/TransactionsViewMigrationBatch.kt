@@ -66,6 +66,15 @@ class TransactionsViewMigrationBatch(
                     )
                 Mono.empty()
             }
+            .contextWrite { context ->
+                LogTracingUtils.enrichContextForEvent(
+                    mapOf(
+                        LogTracingUtils.AttributeKeys.EVENT_ACTION to
+                            "TRANSACTION_VIEW_MIGRATION_BATCH"
+                    ),
+                    context
+                )
+            }
             .awaitSingleOrNull()
     }
 }

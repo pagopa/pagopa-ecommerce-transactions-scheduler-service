@@ -63,6 +63,14 @@ class EventstoreMigrationBatch(
                     )
                 Mono.empty()
             }
+            .contextWrite { context ->
+                LogTracingUtils.enrichContextForEvent(
+                    mapOf(
+                        LogTracingUtils.AttributeKeys.EVENT_ACTION to "EVENTSTORE_MIGRATION_BATCH"
+                    ),
+                    context
+                )
+            }
             .awaitSingleOrNull()
     }
 }

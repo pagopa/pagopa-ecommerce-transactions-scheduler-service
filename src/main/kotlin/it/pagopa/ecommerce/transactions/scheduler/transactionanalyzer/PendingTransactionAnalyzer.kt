@@ -18,6 +18,7 @@ import it.pagopa.ecommerce.commons.domain.v2.TransactionEventCode as Transaction
 import it.pagopa.ecommerce.commons.domain.v2.pojos.BaseTransaction as BaseTransactionV2
 import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
 import it.pagopa.ecommerce.commons.mdcutilities.LogTracingUtils
+import it.pagopa.ecommerce.transactions.scheduler.deadletter.CommonLogger
 import it.pagopa.ecommerce.transactions.scheduler.publishers.v1.TransactionExpiredEventPublisher as TransactionExpiredEventPublisherV1
 import it.pagopa.ecommerce.transactions.scheduler.publishers.v2.TransactionExpiredEventPublisher as TransactionExpiredEventPublisherV2
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.TransactionsEventStoreRepository
@@ -101,14 +102,16 @@ class PendingTransactionAnalyzer(
                     pageRequest,
                 )
                 .doOnNext {
-                    LogTracingUtils.loggerTracingUtils()
-                        .success()
-                        .details(mapOf("page_request" to pageRequest.toString()))
-                        .dependency(LogTracingUtils.MONGO_DEPENDENCY)
-                        .logInfo(
-                            logger,
-                            "Transaction info with page request retrieved successfully"
-                        )
+                    if (CommonLogger.logger.isDebugEnabled) {
+                        LogTracingUtils.loggerTracingUtils()
+                            .success()
+                            .details(mapOf("page_request" to pageRequest.toString()))
+                            .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                            .logDebug(
+                                logger,
+                                "Transaction info with page request retrieved successfully"
+                            )
+                    }
                 }
         return searchPendingTransactions(
             baseTransactionViewFlux,
@@ -211,10 +214,12 @@ class PendingTransactionAnalyzer(
             eventStoreRepository
                 .findByTransactionIdOrderByCreationDateAsc(transactionId)
                 .doOnNext {
-                    LogTracingUtils.loggerTracingUtils()
-                        .success()
-                        .dependency(LogTracingUtils.MONGO_DEPENDENCY)
-                        .logInfo(logger, "Transaction info retrieved successfully")
+                    if (CommonLogger.logger.isDebugEnabled) {
+                        LogTracingUtils.loggerTracingUtils()
+                            .success()
+                            .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                            .logDebug(logger, "Transaction info retrieved successfully")
+                    }
                 }
                 .cache()
         return events
@@ -238,10 +243,12 @@ class PendingTransactionAnalyzer(
             eventStoreRepository
                 .findByTransactionIdOrderByCreationDateAsc(transactionId)
                 .doOnNext {
-                    LogTracingUtils.loggerTracingUtils()
-                        .success()
-                        .dependency(LogTracingUtils.MONGO_DEPENDENCY)
-                        .logInfo(logger, "Transaction info retrieved successfully")
+                    if (CommonLogger.logger.isDebugEnabled) {
+                        LogTracingUtils.loggerTracingUtils()
+                            .success()
+                            .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                            .logDebug(logger, "Transaction info retrieved successfully")
+                    }
                 }
                 .cache()
         return events

@@ -35,7 +35,7 @@ class ExceptionHandler {
     ): ResponseEntity<ProblemJsonDto> {
         LogTracingUtils.loggerTracingUtils()
             .failure()
-            .logError(logger, e, "Exception processing request")
+            .logErrorWithStackTrace(logger, e, "Exception processing request")
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
             .body(
                 ProblemJsonDto(
@@ -53,7 +53,7 @@ class ExceptionHandler {
     fun handleGenericException(e: RuntimeException): ResponseEntity<ProblemJsonDto> {
         LogTracingUtils.loggerTracingUtils()
             .failure()
-            .logError(logger, e, "Exception processing request")
+            .logErrorWithStackTrace(logger, e, "Exception processing request")
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
             .body(
                 ProblemJsonDto(

@@ -106,6 +106,14 @@ class PendingTransactionBatch(
                     )
                 Mono.empty()
             }
+            .contextWrite { context ->
+                LogTracingUtils.enrichContextForEvent(
+                    mapOf(
+                        LogTracingUtils.AttributeKeys.EVENT_ACTION to "PENDING_TRANSACTIONS_BATCH"
+                    ),
+                    context
+                )
+            }
             .awaitSingleOrNull()
     }
 

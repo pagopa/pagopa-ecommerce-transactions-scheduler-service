@@ -36,7 +36,6 @@ fun writeEventToDeadLetterCollection(
     if (CommonLogger.logger.isDebugEnabled) {
         LogTracingUtils.loggerTracingUtils()
             .success()
-            .details(mapOf("event" to eventData))
             .logDebug(CommonLogger.logger, "Read event from queue")
     }
 

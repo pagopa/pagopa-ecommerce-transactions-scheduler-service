@@ -56,6 +56,15 @@ class EventReceiverStatusPoller(
                     .dependency(LogTracingUtils.REDIS_DEPENDENCY)
                     .logInfo(CommonLogger.logger, "Event receiver statuses saved successfully")
             }
+            .contextWrite { context ->
+                LogTracingUtils.enrichContextForEvent(
+                    mapOf(
+                        LogTracingUtils.AttributeKeys.EVENT_ACTION to
+                            "EVENT_RECEIVER_STATUS_POLLING"
+                    ),
+                    context
+                )
+            }
             .awaitSingle()
     }
 }

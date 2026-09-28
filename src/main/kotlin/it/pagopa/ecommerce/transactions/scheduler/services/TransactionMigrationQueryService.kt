@@ -4,6 +4,7 @@ import it.pagopa.ecommerce.commons.documents.BaseTransactionEvent
 import it.pagopa.ecommerce.commons.documents.BaseTransactionView
 import it.pagopa.ecommerce.commons.mdcutilities.LogTracingUtils
 import it.pagopa.ecommerce.transactions.scheduler.configurations.TransactionMigrationQueryServiceConfig
+import it.pagopa.ecommerce.transactions.scheduler.deadletter.CommonLogger
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.TransactionsEventStoreRepository
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.TransactionsViewRepository
 import java.time.LocalDate
@@ -36,11 +37,13 @@ class TransactionMigrationQueryService(
         return transactionsEventStoreRepository
             .findByTtlIsNullAndCreationDateLessThan(cutoffDate.toString(), pageRequest)
             .doOnNext {
-                LogTracingUtils.loggerTracingUtils()
-                    .success()
-                    .details(mapOf("page_request" to pageRequest.toString()))
-                    .dependency(LogTracingUtils.MONGO_DEPENDENCY)
-                    .logInfo(logger, "Calculated paged request for finding eligible events")
+                if (CommonLogger.logger.isDebugEnabled) {
+                    LogTracingUtils.loggerTracingUtils()
+                        .success()
+                        .details(mapOf("page_request" to pageRequest.toString()))
+                        .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                        .logDebug(logger, "Calculated paged request for finding eligible events")
+                }
             }
     }
 
@@ -56,11 +59,13 @@ class TransactionMigrationQueryService(
         return transactionViewRepository
             .findByTtlIsNullAndCreationDateLessThan(cutoffDate.toString(), pageRequest)
             .doOnNext {
-                LogTracingUtils.loggerTracingUtils()
-                    .success()
-                    .details(mapOf("page_request" to pageRequest.toString()))
-                    .dependency(LogTracingUtils.MONGO_DEPENDENCY)
-                    .logInfo(logger, "Calculated paged request for finding eligible views")
+                if (CommonLogger.logger.isDebugEnabled) {
+                    LogTracingUtils.loggerTracingUtils()
+                        .success()
+                        .details(mapOf("page_request" to pageRequest.toString()))
+                        .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                        .logDebug(logger, "Calculated paged request for finding eligible views")
+                }
             }
     }
 }
