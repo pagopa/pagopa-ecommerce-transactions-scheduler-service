@@ -75,6 +75,7 @@ class TransactionInfoService(
                     .doOnError { exception ->
                         LogTracingUtils.loggerTracingUtils()
                             .failure()
+                            .dependency(LogTracingUtils.MONGO_DEPENDENCY)
                             .logErrorWithStackTrace(
                                 CommonLogger.logger,
                                 exception,
@@ -87,14 +88,6 @@ class TransactionInfoService(
                                 baseTransaction,
                                 DeadLetterNpgTransactionInfoDetailsData()
                             )
-                        )
-                    }
-                    .contextWrite { context ->
-                        LogTracingUtils.enrichContextForEvent(
-                            mapOf(
-                                LogTracingUtils.AttributeKeys.CTX_TRANSACTION_ID to transactionId
-                            ),
-                            context
                         )
                     }
             }
