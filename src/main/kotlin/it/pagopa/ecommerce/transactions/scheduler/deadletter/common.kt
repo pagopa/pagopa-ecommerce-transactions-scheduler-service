@@ -116,9 +116,12 @@ fun writeEventToDeadLetterCollection(
             .doOnNext {
                 LogTracingUtils.loggerTracingUtils()
                     .success()
-                    .details(mapOf("inserted_event" to it.id))
+                    .details(mapOf(
+                    "event_id" to it.id
+                    "transactionInfo to it.transactionInfo
+                    ))
                     .dependency(LogTracingUtils.MONGO_DEPENDENCY)
-                    .logInfo(CommonLogger.logger, "Event inserted successfully")
+                    .logInfo(CommonLogger.logger, "Event saved to dead letter collection")
             }
             .then()
             .onErrorResume {
