@@ -136,6 +136,11 @@ class PendingTransactionAnalyzer(
                         Mono.error(
                             RuntimeException("Not a known event version for transaction found")
                         )
+                }.contextWrite { context ->
+                    LogTracingUtils.enrichContextForEvent(
+                        mapOf(LogTracingUtils.AttributeKeys.CTX_TRANSACTION_ID to it.transactionId),
+                        context
+                    )
                 }
             }
             .collectList()
@@ -191,7 +196,7 @@ class PendingTransactionAnalyzer(
                                             "v2_outcome" to v2Outcome.toString()
                                         )
                                     )
-                                    .logInfo(logger, "Overall processing outcome")
+                                    .logInfo(logger, "Overall processing completed")
                                 v1Outcome.and(v2Outcome)
                             }
                     }

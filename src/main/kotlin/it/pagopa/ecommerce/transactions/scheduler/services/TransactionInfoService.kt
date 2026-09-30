@@ -177,13 +177,7 @@ class TransactionInfoService(
             } else {
                 null
             }
-        // based on the type of payment I retrieve the gateway information
-        LogTracingUtils.loggerTracingUtils()
-            .success()
-            .details(
-                mapOf("gateway" to transactionAuthorizationRequestData?.paymentGateway.toString())
-            )
-            .logInfo(CommonLogger.logger, "Retrieve gateway info")
+
         return when (transactionAuthorizationRequestData?.paymentGateway) {
             TransactionAuthorizationRequestData.PaymentGateway.NPG ->
                 performGetOrderNPG(
@@ -285,34 +279,38 @@ class TransactionInfoService(
         correlationId: String,
         paymentMethod: PaymentMethod
     ): Mono<OrderResponseDto> {
-        LogTracingUtils.loggerTracingUtils()
-            .success()
-            .details(
-                mapOf(
-                    "order_id" to orderId,
-                    "psp_id" to pspId,
-                    "correlation_id" to correlationId,
-                    "payment_method" to paymentMethod.serviceName
-                )
-            )
-            .logInfo(CommonLogger.logger, "Performing get order")
+
         return npgApiKeyConfiguration[paymentMethod, pspId].fold(
             { ex -> Mono.error(ex) },
             { apiKey ->
-                npgClient.getOrder(UUID.fromString(correlationId), apiKey, orderId).onErrorMap(
-                    NpgResponseException::class.java
-                ) { exception: NpgResponseException ->
-                    val responseStatusCode = exception.statusCode
-                    responseStatusCode
-                        .map {
-                            if (it.is5xxServerError) {
-                                NpgBadGatewayException("$it")
-                            } else {
-                                NpgBadRequestException(transactionId.value(), "$it")
+                npgClient
+                    .getOrder(UUID.fromString(correlationId), apiKey, orderId)
+                    .doOnSuccess {
+                        LogTracingUtils.loggerTracingUtils()
+                            .success()
+                            .details(
+                                mapOf(
+                                    "order_id" to orderId,
+                                    "psp_id" to pspId,
+                                    "correlation_id" to correlationId,
+                                    "payment_method" to paymentMethod.serviceName
+                                )
+                            )
+                            .logInfo(CommonLogger.logger, "Performed get order")
+                    }
+                    .onErrorMap(NpgResponseException::class.java) { exception: NpgResponseException
+                        ->
+                        val responseStatusCode = exception.statusCode
+                        responseStatusCode
+                            .map {
+                                if (it.is5xxServerError) {
+                                    NpgBadGatewayException("$it")
+                                } else {
+                                    NpgBadRequestException(transactionId.value(), "$it")
+                                }
                             }
-                        }
-                        .orElse(exception)
-                }
+                            .orElse(exception)
+                    }
             }
         )
     }
