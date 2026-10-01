@@ -1,6 +1,7 @@
 package it.pagopa.ecommerce.transactions.scheduler.scheduledperations
 
 import it.pagopa.ecommerce.commons.mdcutilities.LogTracingUtils
+import it.pagopa.ecommerce.transactions.scheduler.deadletter.CommonLogger
 import it.pagopa.ecommerce.transactions.scheduler.services.SchedulerLockService
 import it.pagopa.ecommerce.transactions.scheduler.transactionanalyzer.PendingTransactionAnalyzer
 import it.pagopa.ecommerce.transactions.scheduler.utils.SchedulerUtils
@@ -85,9 +86,17 @@ class PendingTransactionBatch(
                     // release lock (always runs)
                     .releaseJobLock(lockDocument)
                     .doOnSuccess {
-                        LogTracingUtils.loggerTracingUtils()
-                            .success()
-                            .logDebug(logger, "Lock released successfully")
+                        if (CommonLogger.logger.isDebugEnabled) {
+                            LogTracingUtils.loggerTracingUtils()
+                                .success()
+                                .details(
+                                    mapOf(
+                                        "lock_document_id" to lockDocument.id,
+                                        "lock_document_ttl_seconds" to lockTtlSeconds.toString()
+                                    )
+                                )
+                                .logDebug(logger, "Lock released successfully")
+                        }
                     }
                     .doOnError {
                         LogTracingUtils.loggerTracingUtils()

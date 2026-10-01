@@ -35,7 +35,13 @@ class SchedulerLockService(
                 LogTracingUtils.loggerTracingUtils()
                     .success()
                     .dependency(LogTracingUtils.REDIS_DEPENDENCY)
-                    .details(mapOf("job_name" to jobName))
+                    .details(
+                        mapOf(
+                            "job_name" to jobName,
+                            "lock_document_id" to lockDocument.id(),
+                            "lock_document_ttl_seconds" to ttl.seconds.toString()
+                        )
+                    )
                     .logInfo(logger, "Lock acquired for job")
                 Mono.just(lockDocument)
             } else {

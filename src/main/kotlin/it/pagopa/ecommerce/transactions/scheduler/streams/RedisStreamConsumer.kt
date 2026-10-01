@@ -49,10 +49,6 @@ class RedisStreamConsumer(
 
     override fun onApplicationEvent(applicationReadyEvent: ApplicationReadyEvent) {
         // register stream receiver
-        LogTracingUtils.loggerTracingUtils()
-            .success()
-            .dependency(LogTracingUtils.REDIS_DEPENDENCY)
-            .logInfo(logger, "Started Redis stream receiver")
         eventStreamPipelineWithRetry().subscribeOn(Schedulers.parallel()).subscribe {
             runCatching {
                     val event =
@@ -61,6 +57,10 @@ class RedisStreamConsumer(
                             EventDispatcherGenericCommand::class.java
                         )
                     processStreamEvent(event = event)
+                    LogTracingUtils.loggerTracingUtils()
+                        .success()
+                        .dependency(LogTracingUtils.REDIS_DEPENDENCY)
+                        .logInfo(logger, "Redis stream receiver registered successfully")
                 }
                 .onFailure { exception ->
                     LogTracingUtils.loggerTracingUtils()
@@ -90,7 +90,11 @@ class RedisStreamConsumer(
                     LogTracingUtils.loggerTracingUtils()
                         .failure()
                         .dependency(LogTracingUtils.REDIS_DEPENDENCY)
-                        .logWarn(logger, "Detected error in redis stream connection, reconnecting")
+                        .logErrorWithStackTrace(
+                            logger,
+                            it.failure(),
+                            "Detected error in redis stream connection, reconnecting"
+                        )
                 }
             )
 

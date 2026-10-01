@@ -40,47 +40,20 @@ fun writeEventToDeadLetterCollection(
             .logDebug(CommonLogger.logger, "Read event from queue")
     }
 
-    val decodedEvent: Mono<Optional<TransactionEvent<Void>>> =
+    val decodedEvent: Mono<TransactionEvent<Void>> =
         BinaryData.fromBytes(payload)
             .toObjectAsync(
                 object : TypeReference<QueueEvent<TransactionEvent<Void>>>() {},
                 strictSerializerProviderV2.createInstance()
             )
-            .map { Optional.ofNullable(it.event) }
-            .onErrorResume { exception ->
-                LogTracingUtils.loggerTracingUtils()
-                    .failure()
-                    .dependency(LogTracingUtils.STORAGE_QUEUE_DEPENDENCY)
-                    .logErrorWithStackTrace(
-                        CommonLogger.logger,
-                        exception,
-                        "Exception processing event info"
-                    )
-                Mono.just(Optional.empty())
-            }
-            .defaultIfEmpty(Optional.empty())
+            .map { it.event }
+            .onErrorResume { Mono.empty() }
             .cache()
 
     val transactionInfo =
         decodedEvent
-            .flatMap { event ->
-                event
-                    .map {
-                        transactionInfoService.getTransactionInfoByTransactionId(it.transactionId)
-                    }
-                    .orElseGet { Mono.just(DeadLetterTransactionInfo()) }
-            }
-            .onErrorResume { exception ->
-                LogTracingUtils.loggerTracingUtils()
-                    .failure()
-                    .dependency(LogTracingUtils.STORAGE_QUEUE_DEPENDENCY)
-                    .logErrorWithStackTrace(
-                        CommonLogger.logger,
-                        exception,
-                        "Exception processing event info"
-                    )
-                Mono.just(DeadLetterTransactionInfo())
-            }
+            .flatMap { transactionInfoService.getTransactionInfoByTransactionId(it.transactionId) }
+            .defaultIfEmpty(DeadLetterTransactionInfo())
 
     val deadLetterProcessing =
         checkPointer
@@ -116,12 +89,14 @@ fun writeEventToDeadLetterCollection(
             .doOnNext {
                 LogTracingUtils.loggerTracingUtils()
                     .success()
-                    .details(mapOf(
-                    "event_id" to it.id
-                    "transactionInfo to it.transactionInfo
-                    ))
+                    .details(
+                        mapOf(
+                            "event_id" to it.id,
+                            "transaction_info" to it.transactionInfo.toString()
+                        )
+                    )
                     .dependency(LogTracingUtils.MONGO_DEPENDENCY)
-                    .logInfo(CommonLogger.logger, "Event saved to dead letter collection")
+                    .logInfo(CommonLogger.logger, "Event inserted successfully")
             }
             .then()
             .onErrorResume {
@@ -131,7 +106,7 @@ fun writeEventToDeadLetterCollection(
                     .logErrorWithStackTrace(
                         CommonLogger.logger,
                         it,
-                        "Exception processing dead letter event, performing checkpoint failure"
+                        "Exception processing dead letter event"
                     )
                 checkPointer
                     .failure()
@@ -155,22 +130,19 @@ fun writeEventToDeadLetterCollection(
             }
             .then(mono {})
 
-    return decodedEvent.flatMap { decoded ->
-        deadLetterProcessing.contextWrite { context ->
-            decoded
-                .map { event ->
-                    LogTracingUtils.enrichContextForEvent(
-                        mapOf(
-                            LogTracingUtils.AttributeKeys.CTX_TRANSACTION_ID to event.transactionId,
-                            LogTracingUtils.AttributeKeys.CTX_EVENT_CODE to event.eventCode,
-                            LogTracingUtils.AttributeKeys.CTX_EVENT_ID to event.id,
-                            LogTracingUtils.AttributeKeys.EVENT_ACTION to
-                                "DEAD_LETTER_EVENT_PROCESSING"
-                        ),
-                        context
-                    )
-                }
-                .orElse(context)
+    return decodedEvent
+        .flatMap { event ->
+            deadLetterProcessing.contextWrite { context ->
+                LogTracingUtils.enrichContextForEvent(
+                    mapOf(
+                        LogTracingUtils.AttributeKeys.CTX_TRANSACTION_ID to event.transactionId,
+                        LogTracingUtils.AttributeKeys.CTX_EVENT_CODE to event.eventCode,
+                        LogTracingUtils.AttributeKeys.CTX_EVENT_ID to event.id,
+                        LogTracingUtils.AttributeKeys.EVENT_ACTION to "DEAD_LETTER_EVENT_PROCESSING"
+                    ),
+                    context
+                )
+            }
         }
-    }
+        .switchIfEmpty(deadLetterProcessing)
 }

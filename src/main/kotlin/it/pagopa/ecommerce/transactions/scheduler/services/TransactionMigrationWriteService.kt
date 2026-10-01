@@ -4,6 +4,7 @@ import it.pagopa.ecommerce.commons.documents.BaseTransactionEvent
 import it.pagopa.ecommerce.commons.documents.BaseTransactionView
 import it.pagopa.ecommerce.commons.mdcutilities.LogTracingUtils
 import it.pagopa.ecommerce.transactions.scheduler.configurations.TransactionMigrationWriteServiceConfig
+import it.pagopa.ecommerce.transactions.scheduler.deadletter.CommonLogger
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.EventStoreBulkOperations
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.TransactionsViewBulkOperations
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommercehistory.EventStoreHistoryBulkOperations
@@ -49,10 +50,12 @@ class TransactionMigrationWriteService(
                 eventHistoryRepository
                     .insert(event)
                     .doOnSuccess {
-                        LogTracingUtils.loggerTracingUtils()
-                            .success()
-                            .details(mapOf("event_id" to it.id))
-                            .logDebug(logger, "Successfully copied event to history")
+                        if (CommonLogger.logger.isDebugEnabled) {
+                            LogTracingUtils.loggerTracingUtils()
+                                .success()
+                                .details(mapOf("event_id" to it.id))
+                                .logDebug(logger, "Successfully copied event to history")
+                        }
                     }
                     .onErrorResume { error ->
                         LogTracingUtils.loggerTracingUtils()
@@ -77,10 +80,12 @@ class TransactionMigrationWriteService(
         return eventStoreHistoryBulkOperations
             .bulkInsert(events)
             .doOnNext {
-                LogTracingUtils.loggerTracingUtils()
-                    .success()
-                    .details(mapOf("event_id" to it.id))
-                    .logDebug(logger, "Event migrated to history")
+                if (CommonLogger.logger.isDebugEnabled) {
+                    LogTracingUtils.loggerTracingUtils()
+                        .success()
+                        .details(mapOf("event_id" to it.id))
+                        .logDebug(logger, "Event migrated to history")
+                }
             }
             .onErrorResume { error ->
                 LogTracingUtils.loggerTracingUtils()
