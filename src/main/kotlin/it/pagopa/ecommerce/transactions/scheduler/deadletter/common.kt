@@ -47,7 +47,6 @@ fun writeEventToDeadLetterCollection(
                 strictSerializerProviderV2.createInstance()
             )
             .map { it.event }
-            .onErrorResume { Mono.empty() }
             .cache()
 
     val transactionInfo =
