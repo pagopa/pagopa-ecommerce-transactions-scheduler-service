@@ -69,7 +69,7 @@ class MigrationUtils {
             LogTracingUtils.loggerTracingUtils()
                 .failure()
                 .dependency(LogTracingUtils.MONGO_DEPENDENCY)
-                .logErrorWithStackTrace(logger, ex, "Error extracting mongo exception")
+                .logErrorWithStackTrace(logger, ex, "Exception in bulk operation")
             return when {
                 ex is MongoBulkWriteException -> ex
                 ex.cause is MongoBulkWriteException -> ex.cause as MongoBulkWriteException
