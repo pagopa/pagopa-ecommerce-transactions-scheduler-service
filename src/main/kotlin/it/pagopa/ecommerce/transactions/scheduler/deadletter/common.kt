@@ -137,11 +137,16 @@ fun writeEventToDeadLetterCollection(
                         LogTracingUtils.AttributeKeys.CTX_TRANSACTION_ID to event.transactionId,
                         LogTracingUtils.AttributeKeys.CTX_EVENT_CODE to event.eventCode,
                         LogTracingUtils.AttributeKeys.CTX_EVENT_ID to event.id,
-                        LogTracingUtils.AttributeKeys.EVENT_ACTION to "DEAD_LETTER_EVENT_PROCESSING"
                     ),
                     context
                 )
             }
         }
         .switchIfEmpty(deadLetterProcessing)
+        .contextWrite { context ->
+            LogTracingUtils.enrichContextForEvent(
+                mapOf(LogTracingUtils.AttributeKeys.EVENT_ACTION to "DEAD_LETTER_EVENT_PROCESSING"),
+                context
+            )
+        }
 }

@@ -47,16 +47,11 @@ class TransactionInfoService(
                         transactionId
                     )
                 }
-                .doOnNext {
-                    if (CommonLogger.logger.isDebugEnabled) {
-                        LogTracingUtils.loggerTracingUtils()
-                            .success()
-                            .dependency(LogTracingUtils.MONGO_DEPENDENCY)
-                            .logDebug(
-                                CommonLogger.logger,
-                                "Transaction info retrieved successfully"
-                            )
-                    }
+                .doOnComplete {
+                    LogTracingUtils.loggerTracingUtils()
+                        .success()
+                        .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                        .logInfo(CommonLogger.logger, "Transaction info retrieved successfully")
                 }
                 .cache()
 
@@ -190,26 +185,6 @@ class TransactionInfoService(
                                 transactionAuthorizationRequestData.paymentTypeCode
                             )
                     )
-                    .doOnNext { order ->
-                        LogTracingUtils.loggerTracingUtils()
-                            .success()
-                            .dependency(LogTracingUtils.NPG_DEPENDENCY)
-                            .details(
-                                mapOf(
-                                    "last_operation_result" to
-                                        order.orderStatus?.lastOperationType.toString(),
-                                    "operations" to
-                                        order.operations
-                                            ?.joinToString {
-                                                it.operationType.toString() +
-                                                    "-" +
-                                                    it.operationResult.toString()
-                                            }
-                                            .toString()
-                                )
-                            )
-                            .logInfo(CommonLogger.logger, "Performed get order successfully")
-                    }
                     .flatMap { orderResponse ->
                         orderResponse.operations
                             ?.fold(
@@ -288,6 +263,7 @@ class TransactionInfoService(
                     .doOnSuccess {
                         LogTracingUtils.loggerTracingUtils()
                             .success()
+                            .dependency(LogTracingUtils.NPG_DEPENDENCY)
                             .details(
                                 mapOf(
                                     "order_id" to orderId,
@@ -296,7 +272,7 @@ class TransactionInfoService(
                                     "payment_method" to paymentMethod.serviceName
                                 )
                             )
-                            .logInfo(CommonLogger.logger, "Performed get order")
+                            .logInfo(CommonLogger.logger, "Performed get order successfully")
                     }
                     .onErrorMap(NpgResponseException::class.java) { exception: NpgResponseException
                         ->

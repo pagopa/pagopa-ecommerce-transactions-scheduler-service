@@ -6,6 +6,7 @@ import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
 import it.pagopa.ecommerce.commons.mdcutilities.LogTracingUtils
 import it.pagopa.ecommerce.commons.queues.QueueEvent
 import it.pagopa.ecommerce.commons.queues.TracingUtils
+import it.pagopa.ecommerce.transactions.scheduler.deadletter.CommonLogger
 import java.time.Duration
 import java.util.concurrent.atomic.AtomicLong
 import org.slf4j.Logger
@@ -106,18 +107,21 @@ abstract class EventPublisher<E, F>(
                         Pair(it, TransactionStatusDto.EXPIRED_NOT_AUTHORIZED)
                     }
                 )
-        LogTracingUtils.loggerTracingUtils()
-            .success()
-            .details(
-                mapOf(
-                    "total_expired_transactions" to mergedTransactions.size.toString(),
-                    "requested_authorization_transactions" to
-                        baseTransactionsWithRequestedAuthorization.size.toString(),
-                    "activated_only_transactions" to baseTransactionActivatedOnly.size.toString(),
-                    "user_canceled_transactions" to baseTransactionUserCanceled.size.toString()
+        if (CommonLogger.logger.isDebugEnabled) {
+            LogTracingUtils.loggerTracingUtils()
+                .success()
+                .details(
+                    mapOf(
+                        "total_expired_transactions" to mergedTransactions.size.toString(),
+                        "requested_authorization_transactions" to
+                            baseTransactionsWithRequestedAuthorization.size.toString(),
+                        "activated_only_transactions" to
+                            baseTransactionActivatedOnly.size.toString(),
+                        "user_canceled_transactions" to baseTransactionUserCanceled.size.toString()
+                    )
                 )
-            )
-            .logInfo(logger, "Expired transactions merged successfully")
+                .logDebug(logger, "Expired transactions merged successfully")
+        }
         return mergedTransactions
     }
 

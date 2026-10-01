@@ -339,15 +339,6 @@ class PendingTransactionAnalyzer(
                 val closePaymentDate = ZonedDateTime.parse(it.creationDate)
                 val now = ZonedDateTime.now()
                 val timeLeft = Duration.between(now, closePaymentDate.plus(timeout))
-                LogTracingUtils.loggerTracingUtils()
-                    .success()
-                    .details(
-                        mapOf(
-                            "close_payment_date" to closePaymentDate.toString(),
-                            "time_left" to timeLeft.toString()
-                        )
-                    )
-                    .logInfo(logger, "Transaction close payment evaluated")
                 return@map timeLeft >= Duration.ZERO
             }
             .switchIfEmpty(Mono.just(false))

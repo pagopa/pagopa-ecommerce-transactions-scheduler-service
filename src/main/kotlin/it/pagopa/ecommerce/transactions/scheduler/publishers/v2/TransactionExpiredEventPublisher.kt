@@ -147,17 +147,6 @@ class TransactionExpiredEventPublisher(
                     .dependency(LogTracingUtils.MONGO_DEPENDENCY)
                     .logInfo(logger, "Transaction info saved successfully")
             }
-            .contextWrite { context ->
-                LogTracingUtils.enrichContextForEvent(
-                    mapOf(
-                        LogTracingUtils.AttributeKeys.CTX_TRANSACTION_ID to
-                            createdEvent.transactionId,
-                        LogTracingUtils.AttributeKeys.CTX_EVENT_CODE to createdEvent.eventCode,
-                        LogTracingUtils.AttributeKeys.CTX_EVENT_ID to createdEvent.id
-                    ),
-                    context
-                )
-            }
 
     override fun toEvent(baseTransaction: BaseTransactionV2): Mono<TransactionExpiredEventV2> =
         Mono.just(

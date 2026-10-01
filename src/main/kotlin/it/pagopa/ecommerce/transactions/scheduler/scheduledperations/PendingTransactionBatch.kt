@@ -59,15 +59,17 @@ class PendingTransactionBatch(
                                 )
                                 .logInfo(logger, "Process page completed")
                         }
-                        LogTracingUtils.loggerTracingUtils()
-                            .success()
-                            .details(
-                                mapOf(
-                                    "total_elapsed_time_millis" to
-                                        (System.currentTimeMillis() - startTime).toString()
+                        if (CommonLogger.logger.isDebugEnabled) {
+                            LogTracingUtils.loggerTracingUtils()
+                                .success()
+                                .details(
+                                    mapOf(
+                                        "total_elapsed_time_millis" to
+                                            (System.currentTimeMillis() - startTime).toString()
+                                    )
                                 )
-                            )
-                            .logInfo(logger, "Overall processing completed")
+                                .logDebug(logger, "Overall processing completed")
+                        }
                     }
                     .doOnError {
                         LogTracingUtils.loggerTracingUtils()
@@ -138,16 +140,18 @@ class PendingTransactionBatch(
 
         val maxBatchExecutionTime =
             SchedulerUtils.getMaxDuration(executionInterleaveMillis, batchMaxDurationSeconds)
-        LogTracingUtils.loggerTracingUtils()
-            .success()
-            .details(
-                mapOf(
-                    "cron_expression" to chronExpression,
-                    "execution_interleave_millis" to executionInterleaveMillis.toString(),
-                    "max_execution_duration_seconds" to maxBatchExecutionTime.seconds.toString()
+        if (CommonLogger.logger.isDebugEnabled) {
+            LogTracingUtils.loggerTracingUtils()
+                .success()
+                .details(
+                    mapOf(
+                        "cron_expression" to chronExpression,
+                        "execution_interleave_millis" to executionInterleaveMillis.toString(),
+                        "max_execution_duration_seconds" to maxBatchExecutionTime.seconds.toString()
+                    )
                 )
-            )
-            .logInfo(logger, "Pipeline execution configuration initialized")
+                .logDebug(logger, "Pipeline execution configuration initialized")
+        }
         return pendingTransactionAnalyzer
             .getTotalTransactionCount(lowerThreshold, upperThreshold)
             .map { totalCount ->
@@ -157,20 +161,22 @@ class PendingTransactionBatch(
                     } else {
                         (totalCount / maxTransactionPerPage) + 1
                     }
-                LogTracingUtils.loggerTracingUtils()
-                    .success()
-                    .details(
-                        mapOf(
-                            "time_offset_lower" to lowerThreshold.toString(),
-                            "time_offset_upper" to upperThreshold.toString(),
-                            "total_transactions" to totalCount.toString(),
-                            "max_transaction_per_page" to maxTransactionPerPage.toString(),
-                            "total_pages" to pages.toString(),
-                            "page_analysis_delay_seconds" to
-                                transactionPageAnalysisDelaySeconds.toString()
+                if (CommonLogger.logger.isDebugEnabled) {
+                    LogTracingUtils.loggerTracingUtils()
+                        .success()
+                        .details(
+                            mapOf(
+                                "time_offset_lower" to lowerThreshold.toString(),
+                                "time_offset_upper" to upperThreshold.toString(),
+                                "total_transactions" to totalCount.toString(),
+                                "max_transaction_per_page" to maxTransactionPerPage.toString(),
+                                "total_pages" to pages.toString(),
+                                "page_analysis_delay_seconds" to
+                                    transactionPageAnalysisDelaySeconds.toString()
+                            )
                         )
-                    )
-                    .logInfo(logger, "Transaction analysis parameters calculated")
+                        .logDebug(logger, "Transaction analysis parameters calculated")
+                }
                 Pair(pages.toInt(), totalCount)
             }
             .flatMapMany { (pages, totalCount) ->
