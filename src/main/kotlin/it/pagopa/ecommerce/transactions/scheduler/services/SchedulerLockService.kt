@@ -68,7 +68,7 @@ class SchedulerLockService(
                 LogTracingUtils.loggerTracingUtils()
                     .success()
                     .dependency(LogTracingUtils.REDIS_DEPENDENCY)
-                    .details(mapOf("lock_id" to lockDocument.id(), "deleted" to deleted.toString()))
+                    .details(mapOf("lock_document_id" to lockDocument.id(), "deleted" to deleted.toString()))
                     .logInfo(logger, "Lock released")
             }
             .doOnError { error ->
