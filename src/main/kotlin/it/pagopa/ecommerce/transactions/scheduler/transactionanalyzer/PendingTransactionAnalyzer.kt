@@ -93,6 +93,7 @@ class PendingTransactionAnalyzer(
         // take here always the first page since every interaction update records in DB changing
         // transaction statuses
         val pageRequest = PageRequest.of(0, page.pageSize, Sort.by("creationDate").ascending())
+        val transactionIds = mutableListOf<String>()
         val baseTransactionViewFlux =
             viewRepository
                 .findTransactionInTimeRangeWithExcludedStatusesPaginated(
@@ -101,17 +102,21 @@ class PendingTransactionAnalyzer(
                     transactionStatusesToExcludeFromView,
                     pageRequest,
                 )
-                .doOnNext {
-                    if (CommonLogger.logger.isDebugEnabled) {
-                        LogTracingUtils.loggerTracingUtils()
-                            .success()
-                            .details(mapOf("page_request" to pageRequest.toString()))
-                            .dependency(LogTracingUtils.MONGO_DEPENDENCY)
-                            .logDebug(
-                                logger,
-                                "Transaction info with page request retrieved successfully"
+                .doOnNext { transactionIds.add(it.transactionId) }
+                .doOnComplete {
+                    LogTracingUtils.loggerTracingUtils()
+                        .success()
+                        .details(
+                            mapOf(
+                                "page_request" to pageRequest.toString(),
+                                "transaction_ids" to transactionIds.joinToString(",")
                             )
-                    }
+                        )
+                        .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                        .logInfo(
+                            logger,
+                            "Transaction info with page request retrieved successfully"
+                        )
                 }
         return searchPendingTransactions(
             baseTransactionViewFlux,
