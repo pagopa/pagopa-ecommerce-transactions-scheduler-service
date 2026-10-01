@@ -75,7 +75,7 @@ class SchedulerLockService(
                 LogTracingUtils.loggerTracingUtils()
                     .failure()
                     .dependency(LogTracingUtils.REDIS_DEPENDENCY)
-                    .details(mapOf("lock_id" to lockDocument.id()))
+                    .details(mapOf("lock_document_id" to lockDocument.id()))
                     .logErrorWithStackTrace(logger, error, "Error releasing lock")
             }
     }
