@@ -2,6 +2,7 @@ package it.pagopa.ecommerce.transactions.scheduler.streams
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import it.pagopa.ecommerce.commons.mdcutilities.LogTracingUtils
 import it.pagopa.ecommerce.transactions.scheduler.configurations.RedisStreamEventControllerConfigs
 import it.pagopa.ecommerce.transactions.scheduler.services.InboundChannelAdapterLifecycleHandlerService
 import it.pagopa.ecommerce.transactions.scheduler.streams.commands.EventDispatcherGenericCommand
@@ -48,7 +49,6 @@ class RedisStreamConsumer(
 
     override fun onApplicationEvent(applicationReadyEvent: ApplicationReadyEvent) {
         // register stream receiver
-        logger.info("Starting Redis stream receiver")
         eventStreamPipelineWithRetry().subscribeOn(Schedulers.parallel()).subscribe {
             runCatching {
                     val event =
@@ -57,8 +57,21 @@ class RedisStreamConsumer(
                             EventDispatcherGenericCommand::class.java
                         )
                     processStreamEvent(event = event)
+                    LogTracingUtils.loggerTracingUtils()
+                        .success()
+                        .dependency(LogTracingUtils.REDIS_DEPENDENCY)
+                        .logInfo(logger, "Redis stream receiver registered successfully")
                 }
-                .onFailure { logger.error("Error processing redis stream event", it) }
+                .onFailure { exception ->
+                    LogTracingUtils.loggerTracingUtils()
+                        .failure()
+                        .dependency(LogTracingUtils.REDIS_DEPENDENCY)
+                        .logErrorWithStackTrace(
+                            logger,
+                            exception,
+                            "Error processing redis stream event"
+                        )
+                }
         }
     }
 
@@ -74,15 +87,18 @@ class RedisStreamConsumer(
             }
             .retryWhen(
                 Retry.fixedDelay(Long.MAX_VALUE, Duration.ofSeconds(1)).doBeforeRetry {
-                    logger.warn(
-                        "Detected error in redis stream connection, reconnecting",
-                        it.failure()
-                    )
+                    LogTracingUtils.loggerTracingUtils()
+                        .failure()
+                        .dependency(LogTracingUtils.REDIS_DEPENDENCY)
+                        .logErrorWithStackTrace(
+                            logger,
+                            it.failure(),
+                            "Detected error in redis stream connection, reconnecting"
+                        )
                 }
             )
 
     fun processStreamEvent(event: EventDispatcherGenericCommand) {
-        logger.info("Received event: {}", event)
         when (event) {
             is EventDispatcherReceiverCommand -> handleEventReceiverCommand(event)
         }
@@ -96,12 +112,17 @@ class RedisStreamConsumer(
         val commandTargetVersion = command.version
         val isTargetedByCommand =
             commandTargetVersion == null || currentDeploymentVersion == commandTargetVersion
-        logger.info(
-            "Event dispatcher receiver command event received. Current deployment version: [{}], command deployment version: [{}] -> is this version targeted: [{}]",
-            currentDeploymentVersion,
-            commandTargetVersion ?: "ALL",
-            isTargetedByCommand
-        )
+        LogTracingUtils.loggerTracingUtils()
+            .success()
+            .dependency(LogTracingUtils.REDIS_DEPENDENCY)
+            .details(
+                mapOf(
+                    "current_deployment_version" to currentDeploymentVersion.toString(),
+                    "command_deployment_version" to (commandTargetVersion?.toString() ?: "ALL"),
+                    "is_targeted" to isTargetedByCommand.toString()
+                )
+            )
+            .logInfo(logger, "Event dispatcher receiver command received")
         if (isTargetedByCommand) {
             val commandToSend =
                 when (command.receiverCommand) {
@@ -110,9 +131,10 @@ class RedisStreamConsumer(
                 }
             inboundChannelAdapterLifecycleHandlerService.invokeCommandForAllEndpoints(commandToSend)
         } else {
-            logger.info(
-                "Current deployment version not targeted by command, command will not be processed"
-            )
+            LogTracingUtils.loggerTracingUtils()
+                .success()
+                .dependency(LogTracingUtils.REDIS_DEPENDENCY)
+                .logInfo(logger, "Current deployment version not targeted by command")
         }
     }
 }

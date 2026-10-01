@@ -1,6 +1,7 @@
 package it.pagopa.ecommerce.transactions.scheduler.services
 
 import it.pagopa.ecommerce.commons.documents.BaseTransactionView
+import it.pagopa.ecommerce.commons.mdcutilities.LogTracingUtils
 import it.pagopa.ecommerce.commons.utils.OpenTelemetryUtils
 import it.pagopa.ecommerce.transactions.scheduler.utils.MigrationTracingUtils
 import it.pagopa.ecommerce.transactions.scheduler.utils.MigrationTracingUtils.Companion.ECOMMERCE_MIGRATION_SPAN_NAME
@@ -23,35 +24,46 @@ class TransactionsViewMigrationOrchestrator(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     fun createMigrationPipeline(): Mono<Tuple2<Long, MigrationTracingUtils.MigrationStats>> {
-        logger.info("transactions-view migration process started")
         return transactionMigrationQueryService
             .findEligibleTransactions()
-            .doOnNext { tx -> logger.debug("Processing transaction: ${tx.transactionId}") }
             .transform { tx -> transactionMigrationWriteService.writeBulkTransactionViews(tx) }
             .transform { tx -> transactionMigrationWriteService.updateBulkViewsTtl(tx) }
             .reduce(MigrationTracingUtils.MigrationStats.empty()) { acc, tx ->
                 MigrationTracingUtils.MigrationStats(acc.count + 1, getLastCreationDate(tx))
             }
             .elapsed()
-            .map { (elapsedMs, migrationStats) ->
+            .map { (transactionsViewElapsedMs, transactionsViewMigrationStats) ->
                 openTelemetryUtils.addSpanWithAttributes(
                     ECOMMERCE_MIGRATION_SPAN_NAME,
                     getIterationSpanAttributes(
-                        elapsedMs,
-                        migrationStats.count,
+                        transactionsViewElapsedMs,
+                        transactionsViewMigrationStats.count,
                         "transactions-view",
-                        migrationStats.lastCreationDate
+                        transactionsViewMigrationStats.lastCreationDate
                     )
                 )
-                Tuples.of(elapsedMs, migrationStats)
+                Tuples.of(transactionsViewElapsedMs, transactionsViewMigrationStats)
             }
-            .doOnSuccess { (elapsedMs, migrationStats) ->
-                logger.info(
-                    "transactions-view migration process completed. Processed ${migrationStats.count} items in $elapsedMs ms. Last creation date ${migrationStats.lastCreationDate}"
-                )
+            .doOnSuccess { (transactionsViewElapsedMs, transactionsViewMigrationStats) ->
+                LogTracingUtils.loggerTracingUtils()
+                    .success()
+                    .details(
+                        mapOf(
+                            "processed_items" to transactionsViewMigrationStats.count.toString(),
+                            "elapsed_millis" to transactionsViewElapsedMs.toString(),
+                            "last_creation_date" to transactionsViewMigrationStats.lastCreationDate
+                        )
+                    )
+                    .logInfo(logger, "Transactions-view migration process completed")
             }
-            .onErrorResume { error ->
-                logger.error("transactions-view migration process failed", error)
+            .onErrorResume { exception ->
+                LogTracingUtils.loggerTracingUtils()
+                    .failure()
+                    .logErrorWithStackTrace(
+                        logger,
+                        exception,
+                        "Transactions-view migration process failed"
+                    )
                 Mono.empty()
             }
     }

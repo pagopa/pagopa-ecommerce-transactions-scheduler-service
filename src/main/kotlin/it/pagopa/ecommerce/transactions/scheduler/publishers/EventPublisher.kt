@@ -3,8 +3,10 @@ package it.pagopa.ecommerce.transactions.scheduler.publishers
 import it.pagopa.ecommerce.commons.client.QueueAsyncClient
 import it.pagopa.ecommerce.commons.documents.BaseTransactionEvent
 import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
+import it.pagopa.ecommerce.commons.mdcutilities.LogTracingUtils
 import it.pagopa.ecommerce.commons.queues.QueueEvent
 import it.pagopa.ecommerce.commons.queues.TracingUtils
+import it.pagopa.ecommerce.transactions.scheduler.deadletter.CommonLogger
 import java.time.Duration
 import java.util.concurrent.atomic.AtomicLong
 import org.slf4j.Logger
@@ -28,29 +30,55 @@ abstract class EventPublisher<E, F>(
         return Mono.just(baseTransaction)
             .flatMap { storeEventAndUpdateView(it, newStatus) }
             .flatMap { event ->
-                tracingUtils.traceMono(this.javaClass.simpleName) { tracingInfo ->
-                    queueAsyncClient
-                        .sendMessageWithResponse(
-                            QueueEvent(event, tracingInfo),
-                            Duration.ofMillis(visibilityTimeoutMillis),
-                            Duration.ofSeconds(transientQueueTTLSeconds.toLong())
-                        )
-                        .flatMap {
-                            logger.info(
-                                "Event: [$event] successfully sent with visibility timeout: [${it.value.timeNextVisible}] ms to queue: [${queueAsyncClient.queueName}]"
+                tracingUtils
+                    .traceMono(this.javaClass.simpleName) { tracingInfo ->
+                        queueAsyncClient
+                            .sendMessageWithResponse(
+                                QueueEvent(event, tracingInfo),
+                                Duration.ofMillis(visibilityTimeoutMillis),
+                                Duration.ofSeconds(transientQueueTTLSeconds.toLong())
                             )
-                            Mono.just(true)
-                        }
-                        .doOnError { exception ->
-                            logger.error("Error sending event: [${event}].", exception)
-                        }
-                }
+                            .flatMap {
+                                LogTracingUtils.loggerTracingUtils()
+                                    .success()
+                                    .dependency(LogTracingUtils.STORAGE_QUEUE_DEPENDENCY)
+                                    .details(
+                                        mapOf(
+                                            "visibility_timeout_millis" to
+                                                it.value.timeNextVisible.toString(),
+                                            "queue_name" to queueAsyncClient.queueName
+                                        )
+                                    )
+                                    .logInfo(logger, "Event successfully sent")
+                                Mono.just(true)
+                            }
+                            .doOnError { exception ->
+                                LogTracingUtils.loggerTracingUtils()
+                                    .failure()
+                                    .dependency(LogTracingUtils.STORAGE_QUEUE_DEPENDENCY)
+                                    .logErrorWithStackTrace(
+                                        logger,
+                                        exception,
+                                        "Error sending event"
+                                    )
+                            }
+                    }
+                    .contextWrite { context ->
+                        LogTracingUtils.enrichContextForEvent(
+                            mapOf(
+                                LogTracingUtils.AttributeKeys.CTX_TRANSACTION_ID to
+                                    event.transactionId,
+                                LogTracingUtils.AttributeKeys.CTX_EVENT_CODE to event.eventCode,
+                                LogTracingUtils.AttributeKeys.CTX_EVENT_ID to event.id
+                            ),
+                            context
+                        )
+                    }
             }
             .onErrorResume {
-                logger.error(
-                    "Error processing transaction with id: [${getTransactionId(baseTransaction)}]",
-                    it
-                )
+                LogTracingUtils.loggerTracingUtils()
+                    .failure()
+                    .logErrorWithStackTrace(logger, it, "Error processing transaction")
                 Mono.just(false)
             }
     }
@@ -79,9 +107,21 @@ abstract class EventPublisher<E, F>(
                         Pair(it, TransactionStatusDto.EXPIRED_NOT_AUTHORIZED)
                     }
                 )
-        logger.info(
-            "Total expired transactions: [${mergedTransactions.size}], of which [${baseTransactionsWithRequestedAuthorization.size}] with requested authorization, [${baseTransactionActivatedOnly.size}] activated only and [${baseTransactionUserCanceled.size}] canceled by user"
-        )
+        if (CommonLogger.logger.isDebugEnabled) {
+            LogTracingUtils.loggerTracingUtils()
+                .success()
+                .details(
+                    mapOf(
+                        "total_expired_transactions" to mergedTransactions.size.toString(),
+                        "requested_authorization_transactions" to
+                            baseTransactionsWithRequestedAuthorization.size.toString(),
+                        "activated_only_transactions" to
+                            baseTransactionActivatedOnly.size.toString(),
+                        "user_canceled_transactions" to baseTransactionUserCanceled.size.toString()
+                    )
+                )
+                .logDebug(logger, "Expired transactions merged successfully")
+        }
         return mergedTransactions
     }
 

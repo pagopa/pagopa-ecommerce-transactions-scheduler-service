@@ -1,5 +1,6 @@
 package it.pagopa.ecommerce.transactions.scheduler.services
 
+import it.pagopa.ecommerce.commons.mdcutilities.LogTracingUtils
 import it.pagopa.ecommerce.commons.utils.OpenTelemetryUtils
 import it.pagopa.ecommerce.transactions.scheduler.utils.MigrationTracingUtils
 import it.pagopa.ecommerce.transactions.scheduler.utils.MigrationTracingUtils.Companion.ECOMMERCE_MIGRATION_SPAN_NAME
@@ -22,11 +23,9 @@ class EventStoreMigrationOrchestrator(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     fun createMigrationPipeline(): Mono<Tuple2<Long, MigrationTracingUtils.MigrationStats>> {
-        logger.info("eventstore migration process started")
 
         return transactionMigrationQueryService
             .findEligibleEvents()
-            .doOnNext { tx -> logger.debug("Processing event: ${tx.id}") }
             .transform { tx -> transactionMigrationWriteService.writeBulkEvents(tx) }
             .transform { tx -> transactionMigrationWriteService.updateBulkEventsTtl(tx) }
             .reduce(MigrationTracingUtils.MigrationStats.empty()) { acc, tx ->
@@ -46,12 +45,21 @@ class EventStoreMigrationOrchestrator(
                 Tuples.of(elapsedMs, migrationStats)
             }
             .doOnSuccess { (elapsedMs, migrationStats) ->
-                logger.info(
-                    "eventstore migration process completed. Processed ${migrationStats.count} items in $elapsedMs ms. Last creation date ${migrationStats.lastCreationDate}"
-                )
+                LogTracingUtils.loggerTracingUtils()
+                    .success()
+                    .details(
+                        mapOf(
+                            "processed_items" to migrationStats.count.toString(),
+                            "elapsed_millis" to elapsedMs.toString(),
+                            "last_creation_date" to migrationStats.lastCreationDate
+                        )
+                    )
+                    .logInfo(logger, "Eventstore migration process completed")
             }
             .onErrorResume { error ->
-                logger.error("eventstore migration process failed", error)
+                LogTracingUtils.loggerTracingUtils()
+                    .failure()
+                    .logErrorWithStackTrace(logger, error, "Eventstore migration process failed")
                 Mono.empty()
             }
     }
