@@ -1,0 +1,16 @@
+# extends the shared ruleset from github-actions-template/openapi-lint
+# The action copies default.spectral.yaml next to this file so the relative extends resolves
+extends: ./default.spectral.yaml
+overrides:
+  # for two event-receivers paths only, not disabled everywhere: a write
+  # endpoint added later still gets checked. The files glob matches on the spec filename.
+  - files:
+      - "**/scheduler-service-api.yaml#/paths/~1event-receivers~1commands"
+      - "**/scheduler-service-api.yaml#/paths/~1event-receivers~1status"
+    rules:
+      # APIs to start and stop the receivers, invoked by the deploy pipeline internally
+      # and never exposed by APIM: the absence of auth is by design
+      owasp:api2:2023-write-restricted: off
+      owasp:api2:2023-read-restricted: off
+      # no auth so no 401 to return, requiring one documented would be wrong.
+      owasp:api8:2023-define-error-responses-401: off

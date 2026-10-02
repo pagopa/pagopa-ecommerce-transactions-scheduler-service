@@ -52,12 +52,6 @@ paths:
                 title: Bad request
                 status: 400
                 detail: Invalid input request
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProblemJson'
         '500':
           description: Internal Server Error handling command
           content:
@@ -89,12 +83,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/EventReceiverStatusResponse'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProblemJson'
         '404':
           description: No receiver status information found
           content:
