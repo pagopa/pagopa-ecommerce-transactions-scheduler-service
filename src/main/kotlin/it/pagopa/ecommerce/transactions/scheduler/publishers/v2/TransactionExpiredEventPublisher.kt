@@ -131,21 +131,23 @@ class TransactionExpiredEventPublisher(
     ): Mono<TransactionV2> =
         Mono.just(transactionsViewUpdateEnabled)
             .filter { it }
-            .map { viewRepository.findByTransactionId(transaction.transactionId.value()) }
-            .doOnNext {
-                LogTracingUtils.loggerTracingUtils()
-                    .success()
-                    .dependency(LogTracingUtils.MONGO_DEPENDENCY)
-                    .logInfo(logger, "Transaction info retrieved successfully")
+            .flatMap {
+                viewRepository.findByTransactionId(transaction.transactionId.value()).doOnNext {
+                    LogTracingUtils.loggerTracingUtils()
+                        .success()
+                        .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                        .logInfo(logger, "Transaction info retrieved successfully")
+                }
             }
-            .flatMap { it.cast(TransactionV2::class.java) }
+            .cast(TransactionV2::class.java)
             .flatMap {
                 it.status = newStatus
                 it.lastProcessedEventAt =
                     ZonedDateTime.parse(createdEvent.creationDate).toInstant().toEpochMilli()
                 viewRepository.save(it)
             }
-            .doOnSuccess {
+            // doOnNext so no log when the view update is disabled
+            .doOnNext {
                 LogTracingUtils.loggerTracingUtils()
                     .success()
                     .details(mapOf("new_status" to newStatus.value))
