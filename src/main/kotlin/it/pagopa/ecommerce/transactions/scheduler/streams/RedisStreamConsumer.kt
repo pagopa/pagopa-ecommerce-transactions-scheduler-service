@@ -57,10 +57,6 @@ class RedisStreamConsumer(
                             EventDispatcherGenericCommand::class.java
                         )
                     processStreamEvent(event = event)
-                    LogTracingUtils.loggerTracingUtils()
-                        .success()
-                        .dependency(LogTracingUtils.REDIS_DEPENDENCY)
-                        .logInfo(logger, "Redis stream receiver registered successfully")
                 }
                 .onFailure { exception ->
                     LogTracingUtils.loggerTracingUtils()
@@ -112,6 +108,14 @@ class RedisStreamConsumer(
         val commandTargetVersion = command.version
         val isTargetedByCommand =
             commandTargetVersion == null || currentDeploymentVersion == commandTargetVersion
+        if (isTargetedByCommand) {
+            val commandToSend =
+                when (command.receiverCommand) {
+                    EventDispatcherReceiverCommand.ReceiverCommand.START -> "start"
+                    EventDispatcherReceiverCommand.ReceiverCommand.STOP -> "stop"
+                }
+            inboundChannelAdapterLifecycleHandlerService.invokeCommandForAllEndpoints(commandToSend)
+        }
         LogTracingUtils.loggerTracingUtils()
             .success()
             .dependency(LogTracingUtils.REDIS_DEPENDENCY)
@@ -122,19 +126,6 @@ class RedisStreamConsumer(
                     "is_targeted" to isTargetedByCommand.toString()
                 )
             )
-            .logInfo(logger, "Event dispatcher receiver command received")
-        if (isTargetedByCommand) {
-            val commandToSend =
-                when (command.receiverCommand) {
-                    EventDispatcherReceiverCommand.ReceiverCommand.START -> "start"
-                    EventDispatcherReceiverCommand.ReceiverCommand.STOP -> "stop"
-                }
-            inboundChannelAdapterLifecycleHandlerService.invokeCommandForAllEndpoints(commandToSend)
-        } else {
-            LogTracingUtils.loggerTracingUtils()
-                .success()
-                .dependency(LogTracingUtils.REDIS_DEPENDENCY)
-                .logInfo(logger, "Current deployment version not targeted by command")
-        }
+            .logInfo(logger, "Receivers command processed")
     }
 }
