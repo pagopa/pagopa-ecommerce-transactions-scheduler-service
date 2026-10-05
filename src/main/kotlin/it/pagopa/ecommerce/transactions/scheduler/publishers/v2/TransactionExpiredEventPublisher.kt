@@ -113,7 +113,7 @@ class TransactionExpiredEventPublisher(
                         )
                     )
                     .dependency(LogTracingUtils.MONGO_DEPENDENCY)
-                    .logInfo(logger, "Event saved successfully")
+                    .logInfo(logger, "Saved domain event")
             }
             .flatMap { event ->
                 conditionallySaveTransactionView(transaction, newStatus, event)
