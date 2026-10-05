@@ -106,7 +106,12 @@ class TransactionExpiredEventPublisher(
             .doOnSuccess {
                 LogTracingUtils.loggerTracingUtils()
                     .success()
-                    .details(mapOf("event_code" to it.eventCode))
+                    .attributes(
+                        mapOf(
+                            LogTracingUtils.AttributeKeys.CTX_EVENT_CODE to it.eventCode,
+                            LogTracingUtils.AttributeKeys.CTX_EVENT_ID to it.id
+                        )
+                    )
                     .dependency(LogTracingUtils.MONGO_DEPENDENCY)
                     .logInfo(logger, "Event saved successfully")
             }
