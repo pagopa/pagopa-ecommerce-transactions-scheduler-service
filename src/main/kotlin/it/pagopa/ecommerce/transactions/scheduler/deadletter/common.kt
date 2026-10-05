@@ -49,9 +49,20 @@ fun writeEventToDeadLetterCollection(
             .map { it.event }
             .cache()
 
+    // decode or lookup failures must not prevent the event from being archived
     val transactionInfo =
         decodedEvent
             .flatMap { transactionInfoService.getTransactionInfoByTransactionId(it.transactionId) }
+            .onErrorResume { exception ->
+                LogTracingUtils.loggerTracingUtils()
+                    .failure()
+                    .logErrorWithStackTrace(
+                        CommonLogger.logger,
+                        exception,
+                        "Error retrieving transaction info for dead letter event"
+                    )
+                Mono.empty()
+            }
             .defaultIfEmpty(DeadLetterTransactionInfo())
 
     val deadLetterProcessing =
@@ -130,6 +141,8 @@ fun writeEventToDeadLetterCollection(
             .then(mono {})
 
     return decodedEvent
+        // already logged by transactionInfo: fall back to processing without event context
+        .onErrorResume { Mono.empty() }
         .flatMap { event ->
             deadLetterProcessing.contextWrite { context ->
                 LogTracingUtils.enrichContextForEvent(

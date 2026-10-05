@@ -2,6 +2,7 @@ package it.pagopa.ecommerce.transactions.scheduler.deadletter
 
 import com.azure.spring.messaging.checkpoint.Checkpointer
 import it.pagopa.ecommerce.commons.documents.DeadLetterEvent
+import it.pagopa.ecommerce.commons.documents.v2.deadletter.DeadLetterTransactionInfo
 import it.pagopa.ecommerce.transactions.scheduler.TransactionSchedulerTestUtil
 import it.pagopa.ecommerce.transactions.scheduler.configurations.QueuesConsumerConfig
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.DeadLetterEventRepository
@@ -139,5 +140,56 @@ class NotificationDeadLetterConsumerTest {
         verify(checkPointer, times(1)).success()
         verify(deadLetterEventRepository, times(0)).insert(any<DeadLetterEvent>())
         verify(checkPointer, times(1)).failure()
+    }
+
+    @Test
+    fun `Should save event with empty transaction info when event cannot be decoded`() {
+        val event = "not a valid event"
+        val payload = event.toByteArray(StandardCharsets.UTF_8)
+        given(checkPointer.success()).willReturn(Mono.empty())
+        given(deadLetterEventRepository.insert(deadLetterArgumentCaptor.capture())).willAnswer {
+            mono { it.arguments[0] }
+        }
+        StepVerifier.create(
+                notificationDeadLetterConsumer.messageReceiver(
+                    payload = payload,
+                    checkPointer = checkPointer
+                )
+            )
+            .expectNext(Unit)
+            .verifyComplete()
+        val capturedDeadLetterEvent = deadLetterArgumentCaptor.firstValue
+        assertEquals(event, capturedDeadLetterEvent.data)
+        assertEquals(DeadLetterTransactionInfo(), capturedDeadLetterEvent.transactionInfo)
+        verify(transactionInfoService, times(0)).getTransactionInfoByTransactionId(any())
+        verify(checkPointer, times(1)).success()
+        verify(deadLetterEventRepository, times(1)).insert(any<DeadLetterEvent>())
+        verify(checkPointer, times(0)).failure()
+    }
+
+    @Test
+    fun `Should save event with empty transaction info when transaction info retrieval fails`() {
+        val event = TransactionSchedulerTestUtil.getEventJsonString()
+        val payload = event.toByteArray(StandardCharsets.UTF_8)
+        given(checkPointer.success()).willReturn(Mono.empty())
+        given(deadLetterEventRepository.insert(deadLetterArgumentCaptor.capture())).willAnswer {
+            mono { it.arguments[0] }
+        }
+        given(transactionInfoService.getTransactionInfoByTransactionId(any()))
+            .willReturn(Mono.error(RuntimeException("Error retrieving transaction info")))
+        StepVerifier.create(
+                notificationDeadLetterConsumer.messageReceiver(
+                    payload = payload,
+                    checkPointer = checkPointer
+                )
+            )
+            .expectNext(Unit)
+            .verifyComplete()
+        val capturedDeadLetterEvent = deadLetterArgumentCaptor.firstValue
+        assertEquals(event, capturedDeadLetterEvent.data)
+        assertEquals(DeadLetterTransactionInfo(), capturedDeadLetterEvent.transactionInfo)
+        verify(checkPointer, times(1)).success()
+        verify(deadLetterEventRepository, times(1)).insert(any<DeadLetterEvent>())
+        verify(checkPointer, times(0)).failure()
     }
 }
