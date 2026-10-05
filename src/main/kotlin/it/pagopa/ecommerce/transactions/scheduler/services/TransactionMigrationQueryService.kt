@@ -40,10 +40,17 @@ class TransactionMigrationQueryService(
                 if (CommonLogger.logger.isDebugEnabled) {
                     LogTracingUtils.loggerTracingUtils()
                         .success()
-                        .details(mapOf("page_request" to pageRequest.toString()))
+                        .details(mapOf("event_id" to it.id))
                         .dependency(LogTracingUtils.MONGO_DEPENDENCY)
-                        .logDebug(logger, "Calculated paged request for finding eligible events")
+                        .logDebug(logger, "Eligible event found")
                 }
+            }
+            .doOnComplete {
+                LogTracingUtils.loggerTracingUtils()
+                    .success()
+                    .details(mapOf("page_request" to pageRequest.toString()))
+                    .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                    .logInfo(logger, "Eligible events retrieved successfully")
             }
     }
 
@@ -62,10 +69,17 @@ class TransactionMigrationQueryService(
                 if (CommonLogger.logger.isDebugEnabled) {
                     LogTracingUtils.loggerTracingUtils()
                         .success()
-                        .details(mapOf("page_request" to pageRequest.toString()))
+                        .details(mapOf("transaction_id" to it.transactionId))
                         .dependency(LogTracingUtils.MONGO_DEPENDENCY)
-                        .logDebug(logger, "Calculated paged request for finding eligible views")
+                        .logDebug(logger, "Eligible view found")
                 }
+            }
+            .doOnComplete {
+                LogTracingUtils.loggerTracingUtils()
+                    .success()
+                    .details(mapOf("page_request" to pageRequest.toString()))
+                    .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                    .logInfo(logger, "Eligible views retrieved successfully")
             }
     }
 }
