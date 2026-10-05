@@ -54,6 +54,7 @@ class TransactionMigrationWriteService(
                             LogTracingUtils.loggerTracingUtils()
                                 .success()
                                 .details(mapOf("event_id" to it.id))
+                                .dependency(LogTracingUtils.MONGO_DEPENDENCY)
                                 .logDebug(logger, "Successfully copied event to history")
                         }
                     }
@@ -61,6 +62,7 @@ class TransactionMigrationWriteService(
                         LogTracingUtils.loggerTracingUtils()
                             .failure()
                             .details(mapOf("event_id" to event.id))
+                            .dependency(LogTracingUtils.MONGO_DEPENDENCY)
                             .logErrorWithStackTrace(
                                 logger,
                                 error,
@@ -84,12 +86,14 @@ class TransactionMigrationWriteService(
                     LogTracingUtils.loggerTracingUtils()
                         .success()
                         .details(mapOf("event_id" to it.id))
+                        .dependency(LogTracingUtils.MONGO_DEPENDENCY)
                         .logDebug(logger, "Event migrated to history")
                 }
             }
             .onErrorResume { error ->
                 LogTracingUtils.loggerTracingUtils()
                     .failure()
+                    .dependency(LogTracingUtils.MONGO_DEPENDENCY)
                     .logErrorWithStackTrace(logger, error, "Skipping failed events migration")
                 Mono.empty()
             }
