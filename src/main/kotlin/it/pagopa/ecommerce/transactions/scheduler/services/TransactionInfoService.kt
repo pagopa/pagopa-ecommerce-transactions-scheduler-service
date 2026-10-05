@@ -70,7 +70,7 @@ class TransactionInfoService(
                     .doOnError { exception ->
                         LogTracingUtils.loggerTracingUtils()
                             .failure()
-                            .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                            .dependency(LogTracingUtils.NPG_DEPENDENCY)
                             .logErrorWithStackTrace(
                                 CommonLogger.logger,
                                 exception,
