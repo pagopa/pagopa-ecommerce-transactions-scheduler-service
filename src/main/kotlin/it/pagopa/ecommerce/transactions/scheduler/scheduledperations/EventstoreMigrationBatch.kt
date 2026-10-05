@@ -1,7 +1,6 @@
 package it.pagopa.ecommerce.transactions.scheduler.scheduledperations
 
 import it.pagopa.ecommerce.commons.mdcutilities.LogTracingUtils
-import it.pagopa.ecommerce.transactions.scheduler.deadletter.CommonLogger
 import it.pagopa.ecommerce.transactions.scheduler.services.EventStoreMigrationOrchestrator
 import it.pagopa.ecommerce.transactions.scheduler.services.SchedulerLockService
 import java.time.Duration
@@ -40,24 +39,6 @@ class EventstoreMigrationBatch(
                 schedulerLockService
                     // release lock (always runs)
                     .releaseJobLock(lockDocument)
-                    .doOnSuccess {
-                        if (CommonLogger.logger.isDebugEnabled) {
-                            LogTracingUtils.loggerTracingUtils()
-                                .details(
-                                    mapOf(
-                                        "lock_document_id" to lockDocument.id,
-                                        "lock_document_ttl_seconds" to lockTtlSeconds.toString()
-                                    )
-                                )
-                                .success()
-                                .logDebug(logger, "Lock released successfully")
-                        }
-                    }
-                    .doOnError {
-                        LogTracingUtils.loggerTracingUtils()
-                            .failure()
-                            .logErrorWithStackTrace(logger, it, "Failed to release lock")
-                    }
                     .onErrorResume { Mono.empty() }
             }
             // abort execution if execution take longer than job task lock duration

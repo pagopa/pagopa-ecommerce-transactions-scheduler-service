@@ -87,24 +87,6 @@ class PendingTransactionBatch(
                 schedulerLockService
                     // release lock (always runs)
                     .releaseJobLock(lockDocument)
-                    .doOnSuccess {
-                        if (CommonLogger.logger.isDebugEnabled) {
-                            LogTracingUtils.loggerTracingUtils()
-                                .success()
-                                .details(
-                                    mapOf(
-                                        "lock_document_id" to lockDocument.id,
-                                        "lock_document_ttl_seconds" to lockTtlSeconds.toString()
-                                    )
-                                )
-                                .logDebug(logger, "Lock released successfully")
-                        }
-                    }
-                    .doOnError {
-                        LogTracingUtils.loggerTracingUtils()
-                            .failure()
-                            .logErrorWithStackTrace(logger, it, "Failed to release lock")
-                    }
                     .onErrorResume { Mono.empty() }
             }
             .onErrorResume { error ->
