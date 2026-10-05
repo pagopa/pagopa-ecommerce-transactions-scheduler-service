@@ -81,6 +81,15 @@ abstract class EventPublisher<E, F>(
                     .logErrorWithStackTrace(logger, it, "Error processing transaction")
                 Mono.just(false)
             }
+            .contextWrite { context ->
+                LogTracingUtils.enrichContextForEvent(
+                    mapOf(
+                        LogTracingUtils.AttributeKeys.CTX_TRANSACTION_ID to
+                            getTransactionId(baseTransaction)
+                    ),
+                    context
+                )
+            }
     }
 
     abstract fun getTransactionId(baseTransaction: F): String
