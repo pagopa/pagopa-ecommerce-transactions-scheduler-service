@@ -1,4 +1,7 @@
-FROM amazoncorretto:21-alpine@sha256:fda60fd7965970ce7ed7ce789b18418647b56ac6112fc17df006337bdc6355c4 AS build
+FROM amazoncorretto:21-alpine3.24@sha256:e29d94d3749fa3d76fd11eed59ef466a99dee7a327d2640e831d1d35ad195c6d AS build
+
+RUN apk update && apk upgrade
+
 WORKDIR /workspace/app
 
 RUN apk add --no-cache git gettext
@@ -22,7 +25,10 @@ RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     ./mvnw install -DskipTests
 RUN mkdir target/extracted && java -Djarmode=layertools -jar target/*.jar extract --destination target/extracted
 
-FROM amazoncorretto:21-alpine@sha256:fda60fd7965970ce7ed7ce789b18418647b56ac6112fc17df006337bdc6355c4
+FROM amazoncorretto:21-alpine3.24@sha256:e29d94d3749fa3d76fd11eed59ef466a99dee7a327d2640e831d1d35ad195c6d
+
+RUN apk update && apk upgrade
+
 
 RUN addgroup --system user && adduser --ingroup user --system user
 USER user:user
