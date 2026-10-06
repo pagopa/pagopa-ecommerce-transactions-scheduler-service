@@ -3,7 +3,6 @@ package it.pagopa.ecommerce.transactions.scheduler.services
 import it.pagopa.ecommerce.commons.mdcutilities.LogTracingUtils
 import it.pagopa.ecommerce.transactions.scheduler.configurations.RedisStreamEventControllerConfigs
 import it.pagopa.ecommerce.transactions.scheduler.configurations.redis.EventDispatcherReceiverStatusTemplateWrapper
-import it.pagopa.ecommerce.transactions.scheduler.deadletter.CommonLogger
 import it.pagopa.ecommerce.transactions.scheduler.repositories.redis.eventreceivers.ReceiversStatus
 import it.pagopa.generated.scheduler.server.model.DeploymentVersionDto
 import java.time.OffsetDateTime
@@ -54,7 +53,7 @@ class EventReceiverStatusPoller(
                 LogTracingUtils.loggerTracingUtils()
                     .success()
                     .dependency(LogTracingUtils.REDIS_DEPENDENCY)
-                    .logInfo(CommonLogger.logger, "Event receiver statuses saved successfully")
+                    .logInfo(logger, "Event receiver statuses saved successfully")
             }
             .contextWrite { context ->
                 LogTracingUtils.enrichContextForEvent(
