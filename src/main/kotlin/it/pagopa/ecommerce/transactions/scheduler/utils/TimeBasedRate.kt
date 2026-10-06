@@ -2,6 +2,7 @@ package it.pagopa.ecommerce.transactions.scheduler.utils
 
 import it.pagopa.ecommerce.commons.mdcutilities.LogTracingUtils
 import it.pagopa.ecommerce.transactions.scheduler.configurations.QuerySettings
+import it.pagopa.ecommerce.transactions.scheduler.deadletter.CommonLogger
 import java.time.Duration
 import java.time.LocalTime
 import org.slf4j.Logger
@@ -113,18 +114,20 @@ class TimeBasedRate(
             } else {
                 lowRate
             }
-        LogTracingUtils.loggerTracingUtils()
-            .success()
-            .details(
-                mapOf(
-                    "time_window_from" to from.toString(),
-                    "time_window_to" to to.toString(),
-                    "low_rate" to lowRate.toString(),
-                    "high_rate" to highRate.toString(),
-                    "calculated_rate" to finalRate.toString()
+        if (CommonLogger.logger.isDebugEnabled) {
+            LogTracingUtils.loggerTracingUtils()
+                .success()
+                .details(
+                    mapOf(
+                        "time_window_from" to from.toString(),
+                        "time_window_to" to to.toString(),
+                        "low_rate" to lowRate.toString(),
+                        "high_rate" to highRate.toString(),
+                        "calculated_rate" to finalRate.toString()
+                    )
                 )
-            )
-            .logInfo(logger, "Dynamic rate configuration applied")
+                .logDebug(logger, "Dynamic rate configuration applied")
+        }
         return finalRate
     }
 
