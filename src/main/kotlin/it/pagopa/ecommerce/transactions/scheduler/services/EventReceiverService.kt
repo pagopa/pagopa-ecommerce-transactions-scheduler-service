@@ -1,9 +1,9 @@
 package it.pagopa.ecommerce.transactions.scheduler.services
 
+import it.pagopa.ecommerce.commons.mdcutilities.LogTracingUtils
 import it.pagopa.ecommerce.transactions.scheduler.configurations.RedisStreamEventControllerConfigs
 import it.pagopa.ecommerce.transactions.scheduler.configurations.redis.EventDispatcherCommandsTemplateWrapper
 import it.pagopa.ecommerce.transactions.scheduler.configurations.redis.EventDispatcherReceiverStatusTemplateWrapper
-import it.pagopa.ecommerce.transactions.scheduler.deadletter.CommonLogger
 import it.pagopa.ecommerce.transactions.scheduler.exceptions.NoEventReceiverStatusFound
 import it.pagopa.ecommerce.transactions.scheduler.streams.commands.EventDispatcherReceiverCommand
 import it.pagopa.generated.scheduler.server.model.*
@@ -34,7 +34,11 @@ class EventReceiverService(
                 EventReceiverCommandRequestDto.Command.STOP ->
                     EventDispatcherReceiverCommand.ReceiverCommand.STOP
             }
-        logger.info("Received event receiver command request, command: {}", commandToSend)
+        LogTracingUtils.loggerTracingUtils()
+            .success()
+            .dependency(LogTracingUtils.REDIS_DEPENDENCY)
+            .details(mapOf("command" to commandToSend.toString()))
+            .logInfo(logger, "Received event receiver command request")
         // trim all events before adding new event to be processed-
         eventDispatcherCommandsTemplateWrapper
             .writeEventToStreamTrimmingEvents(
@@ -46,7 +50,11 @@ class EventReceiverService(
                 0
             )
             .doOnSuccess {
-                CommonLogger.logger.info("Sent new event to Redis stream with id: [{}]", it)
+                LogTracingUtils.loggerTracingUtils()
+                    .success()
+                    .dependency(LogTracingUtils.REDIS_DEPENDENCY)
+                    .details(mapOf("event_id" to it.value))
+                    .logInfo(logger, "Sent new event to Redis stream")
             }
             .awaitSingle()
     }

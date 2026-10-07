@@ -1,6 +1,7 @@
 package it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce
 
 import it.pagopa.ecommerce.commons.documents.BaseTransactionEvent
+import it.pagopa.ecommerce.commons.mdcutilities.LogTracingUtils
 import it.pagopa.ecommerce.transactions.scheduler.utils.MigrationUtils.Companion.executeBestEffortBulkPipeline
 import kotlin.collections.forEach
 import org.slf4j.LoggerFactory
@@ -57,9 +58,15 @@ class EventStoreBulkOperations(
             operationName = "Bulk TTL Update"
         ) { result, originalItems ->
             if (result.modifiedCount < originalItems.size) {
-                logger.warn(
-                    "Bulk TTL Update: ${result.modifiedCount} updated out of ${originalItems.size} submitted."
-                )
+                LogTracingUtils.loggerTracingUtils()
+                    .failure()
+                    .details(
+                        mapOf(
+                            "modified_count" to result.modifiedCount.toString(),
+                            "submitted_count" to originalItems.size.toString()
+                        )
+                    )
+                    .logWarn(logger, "Bulk TTL Update partial completion")
             }
         }
     }

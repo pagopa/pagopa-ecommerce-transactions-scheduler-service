@@ -17,6 +17,8 @@ import it.pagopa.ecommerce.commons.domain.v2.EmptyTransaction as EmptyTransactio
 import it.pagopa.ecommerce.commons.domain.v2.TransactionEventCode as TransactionEventCodeV2
 import it.pagopa.ecommerce.commons.domain.v2.pojos.BaseTransaction as BaseTransactionV2
 import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
+import it.pagopa.ecommerce.commons.mdcutilities.LogTracingUtils
+import it.pagopa.ecommerce.transactions.scheduler.deadletter.CommonLogger
 import it.pagopa.ecommerce.transactions.scheduler.publishers.v1.TransactionExpiredEventPublisher as TransactionExpiredEventPublisherV1
 import it.pagopa.ecommerce.transactions.scheduler.publishers.v2.TransactionExpiredEventPublisher as TransactionExpiredEventPublisherV2
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.TransactionsEventStoreRepository
@@ -91,14 +93,31 @@ class PendingTransactionAnalyzer(
         // take here always the first page since every interaction update records in DB changing
         // transaction statuses
         val pageRequest = PageRequest.of(0, page.pageSize, Sort.by("creationDate").ascending())
-        logger.info("Searching for transaction with page request: {}", pageRequest)
+        val transactionIds = mutableListOf<String>()
         val baseTransactionViewFlux =
-            viewRepository.findTransactionInTimeRangeWithExcludedStatusesPaginated(
-                lowerThreshold.toString(),
-                upperThreshold.toString(),
-                transactionStatusesToExcludeFromView,
-                pageRequest,
-            )
+            viewRepository
+                .findTransactionInTimeRangeWithExcludedStatusesPaginated(
+                    lowerThreshold.toString(),
+                    upperThreshold.toString(),
+                    transactionStatusesToExcludeFromView,
+                    pageRequest,
+                )
+                .doOnNext { transactionIds.add(it.transactionId) }
+                .doOnComplete {
+                    LogTracingUtils.loggerTracingUtils()
+                        .success()
+                        .details(
+                            mapOf(
+                                "page_request" to pageRequest.toString(),
+                                "transaction_ids" to transactionIds.joinToString(",")
+                            )
+                        )
+                        .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                        .logInfo(
+                            logger,
+                            "Transaction info with page request retrieved successfully"
+                        )
+                }
         return searchPendingTransactions(
             baseTransactionViewFlux,
             batchExecutionInterTime,
@@ -115,7 +134,6 @@ class PendingTransactionAnalyzer(
     ): Mono<Boolean> {
         return baseTransactionViewFlux
             .flatMap {
-                logger.info("Analyzing transaction: $it")
                 when (it) {
                     is TransactionV1 -> analyzeTransactionV1(it.transactionId)
                     is TransactionV2 -> analyzeTransactionV2(it.transactionId)
@@ -123,6 +141,11 @@ class PendingTransactionAnalyzer(
                         Mono.error(
                             RuntimeException("Not a known event version for transaction found")
                         )
+                }.contextWrite { context ->
+                    LogTracingUtils.enrichContextForEvent(
+                        mapOf(LogTracingUtils.AttributeKeys.CTX_TRANSACTION_ID to it.transactionId),
+                        context
+                    )
                 }
             }
             .collectList()
@@ -137,7 +160,10 @@ class PendingTransactionAnalyzer(
                             others.partition { it is BaseTransactionV2 }
 
                         if (unmatched.isNotEmpty()) {
-                            logger.error("Unmatched transactions found {}", unmatched)
+                            LogTracingUtils.loggerTracingUtils()
+                                .failure()
+                                .details(mapOf("unmatched_transactions" to unmatched.toString()))
+                                .logError(logger, "Unmatched transactions found")
                         }
 
                         val baseTransactionsV1 =
@@ -167,11 +193,15 @@ class PendingTransactionAnalyzer(
                                 publishBaseTransactionV2.map { Pair(v1Outcome, it) }
                             }
                             .map { (v1Outcome, v2Outcome) ->
-                                logger.info(
-                                    "Overall processing outcome -> V1 outcome: {}, V2 outcome: {}",
-                                    v1Outcome,
-                                    v2Outcome
-                                )
+                                LogTracingUtils.loggerTracingUtils()
+                                    .success()
+                                    .details(
+                                        mapOf(
+                                            "v1_outcome" to v1Outcome.toString(),
+                                            "v2_outcome" to v2Outcome.toString()
+                                        )
+                                    )
+                                    .logInfo(logger, "Overall processing completed")
                                 v1Outcome.and(v2Outcome)
                             }
                     }
@@ -190,9 +220,18 @@ class PendingTransactionAnalyzer(
         )
 
     private fun analyzeTransactionV1(transactionId: String): Mono<BaseTransactionV1> {
-        logger.info("Analyze Transaction v1 $transactionId")
         val events =
-            eventStoreRepository.findByTransactionIdOrderByCreationDateAsc(transactionId).cache()
+            eventStoreRepository
+                .findByTransactionIdOrderByCreationDateAsc(transactionId)
+                .doOnNext {
+                    if (CommonLogger.logger.isDebugEnabled) {
+                        LogTracingUtils.loggerTracingUtils()
+                            .success()
+                            .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                            .logDebug(logger, "Transaction info retrieved successfully")
+                    }
+                }
+                .cache()
         return events
             .reduce(
                 EmptyTransactionV1(),
@@ -210,9 +249,18 @@ class PendingTransactionAnalyzer(
     }
 
     private fun analyzeTransactionV2(transactionId: String): Mono<BaseTransactionV2> {
-        logger.info("Analyze Transaction v2 $transactionId")
         val events =
-            eventStoreRepository.findByTransactionIdOrderByCreationDateAsc(transactionId).cache()
+            eventStoreRepository
+                .findByTransactionIdOrderByCreationDateAsc(transactionId)
+                .doOnNext {
+                    if (CommonLogger.logger.isDebugEnabled) {
+                        LogTracingUtils.loggerTracingUtils()
+                            .success()
+                            .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                            .logDebug(logger, "Transaction info retrieved successfully")
+                    }
+                }
+                .cache()
         return events
             .reduce(
                 EmptyTransactionV2(),
@@ -242,9 +290,19 @@ class PendingTransactionAnalyzer(
             }
         return skipTransaction.map {
             val sendExpiryEvent = transactionStatusesForSendExpiryEvent.contains(status)
-            logger.info(
-                "Transaction with id: [${transactionId}] state: [${status}], expired transaction statuses: ${transactionStatusesForSendExpiryEvent}. Send event: $sendExpiryEvent, Skip transaction: $it"
-            )
+            LogTracingUtils.loggerTracingUtils()
+                .success()
+                .details(
+                    mapOf(
+                        "transaction_id" to transactionId,
+                        "status" to status.value,
+                        "expired_transaction_statuses" to
+                            transactionStatusesForSendExpiryEvent.toString(),
+                        "send_event" to sendExpiryEvent.toString(),
+                        "skip_transaction" to it.toString()
+                    )
+                )
+                .logInfo(logger, "Transaction skip decision evaluated")
             sendExpiryEvent && !it
         }
     }
@@ -286,9 +344,6 @@ class PendingTransactionAnalyzer(
                 val closePaymentDate = ZonedDateTime.parse(it.creationDate)
                 val now = ZonedDateTime.now()
                 val timeLeft = Duration.between(now, closePaymentDate.plus(timeout))
-                logger.info(
-                    "Transaction close payment done at: $closePaymentDate, time left: $timeLeft"
-                )
                 return@map timeLeft >= Duration.ZERO
             }
             .switchIfEmpty(Mono.just(false))

@@ -1,5 +1,6 @@
 package it.pagopa.ecommerce.transactions.scheduler.scheduledperations
 
+import it.pagopa.ecommerce.commons.mdcutilities.LogTracingUtils
 import it.pagopa.ecommerce.transactions.scheduler.services.EventStoreMigrationOrchestrator
 import it.pagopa.ecommerce.transactions.scheduler.services.SchedulerLockService
 import java.time.Duration
@@ -38,15 +39,27 @@ class EventstoreMigrationBatch(
                 schedulerLockService
                     // release lock (always runs)
                     .releaseJobLock(lockDocument)
-                    .doOnSuccess { logger.debug("Lock released successfully") }
-                    .doOnError { logger.error("Failed to release lock", it) }
                     .onErrorResume { Mono.empty() }
             }
             // abort execution if execution take longer than job task lock duration
             .timeout(lockTtl)
             .onErrorResume { error ->
-                logger.error("Job execution failed for eventstore-migration-batch", error)
+                LogTracingUtils.loggerTracingUtils()
+                    .failure()
+                    .logErrorWithStackTrace(
+                        logger,
+                        error,
+                        "Job execution failed for eventstore-migration-batch"
+                    )
                 Mono.empty()
+            }
+            .contextWrite { context ->
+                LogTracingUtils.enrichContextForEvent(
+                    mapOf(
+                        LogTracingUtils.AttributeKeys.EVENT_ACTION to "EVENTSTORE_MIGRATION_BATCH"
+                    ),
+                    context
+                )
             }
             .awaitSingleOrNull()
     }

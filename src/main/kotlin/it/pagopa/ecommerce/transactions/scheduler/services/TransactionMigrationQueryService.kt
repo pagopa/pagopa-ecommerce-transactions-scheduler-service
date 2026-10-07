@@ -2,7 +2,9 @@ package it.pagopa.ecommerce.transactions.scheduler.services
 
 import it.pagopa.ecommerce.commons.documents.BaseTransactionEvent
 import it.pagopa.ecommerce.commons.documents.BaseTransactionView
+import it.pagopa.ecommerce.commons.mdcutilities.LogTracingUtils
 import it.pagopa.ecommerce.transactions.scheduler.configurations.TransactionMigrationQueryServiceConfig
+import it.pagopa.ecommerce.transactions.scheduler.deadletter.CommonLogger
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.TransactionsEventStoreRepository
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.TransactionsViewRepository
 import java.time.LocalDate
@@ -32,11 +34,24 @@ class TransactionMigrationQueryService(
                     transactionMigrationQueryServiceConfig.eventstore.cutoffMonthOffset.toLong()
                 )
         val pageRequest: Pageable = PageRequest.of(0, timeBasedRate.calculateRate())
-        logger.info("Calculated paged request for finding eligible events: $pageRequest")
-        return transactionsEventStoreRepository.findByTtlIsNullAndCreationDateLessThan(
-            cutoffDate.toString(),
-            pageRequest
-        )
+        return transactionsEventStoreRepository
+            .findByTtlIsNullAndCreationDateLessThan(cutoffDate.toString(), pageRequest)
+            .doOnNext {
+                if (CommonLogger.logger.isDebugEnabled) {
+                    LogTracingUtils.loggerTracingUtils()
+                        .success()
+                        .details(mapOf("event_id" to it.id))
+                        .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                        .logDebug(logger, "Eligible event found")
+                }
+            }
+            .doOnComplete {
+                LogTracingUtils.loggerTracingUtils()
+                    .success()
+                    .details(mapOf("page_request" to pageRequest.toString()))
+                    .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                    .logInfo(logger, "Eligible events retrieved successfully")
+            }
     }
 
     fun findEligibleTransactions(): Flux<BaseTransactionView> {
@@ -48,10 +63,23 @@ class TransactionMigrationQueryService(
                         .toLong()
                 )
         val pageRequest: Pageable = PageRequest.of(0, timeBasedRate.calculateRate())
-        logger.info("Calculated paged request for finding eligible views: $pageRequest")
-        return transactionViewRepository.findByTtlIsNullAndCreationDateLessThan(
-            cutoffDate.toString(),
-            pageRequest
-        )
+        return transactionViewRepository
+            .findByTtlIsNullAndCreationDateLessThan(cutoffDate.toString(), pageRequest)
+            .doOnNext {
+                if (CommonLogger.logger.isDebugEnabled) {
+                    LogTracingUtils.loggerTracingUtils()
+                        .success()
+                        .details(mapOf("transaction_id" to it.transactionId))
+                        .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                        .logDebug(logger, "Eligible view found")
+                }
+            }
+            .doOnComplete {
+                LogTracingUtils.loggerTracingUtils()
+                    .success()
+                    .details(mapOf("page_request" to pageRequest.toString()))
+                    .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                    .logInfo(logger, "Eligible views retrieved successfully")
+            }
     }
 }

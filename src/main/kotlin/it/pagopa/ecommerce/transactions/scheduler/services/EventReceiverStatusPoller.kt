@@ -1,5 +1,6 @@
 package it.pagopa.ecommerce.transactions.scheduler.services
 
+import it.pagopa.ecommerce.commons.mdcutilities.LogTracingUtils
 import it.pagopa.ecommerce.transactions.scheduler.configurations.RedisStreamEventControllerConfigs
 import it.pagopa.ecommerce.transactions.scheduler.configurations.redis.EventDispatcherReceiverStatusTemplateWrapper
 import it.pagopa.ecommerce.transactions.scheduler.repositories.redis.eventreceivers.ReceiversStatus
@@ -34,7 +35,6 @@ class EventReceiverStatusPoller(
 
     @Scheduled(cron = "\${eventController.status.pollingChron}")
     suspend fun eventReceiverStatusPoller() {
-        logger.info("Polling event receiver statuses")
         val statuses = inboundChannelAdapterLifecycleHandlerService.getAllChannelStatus()
         val consumerName = redisStreamEventControllerConfigs.consumerName
         val queriedAt = OffsetDateTime.now().toString()
@@ -47,6 +47,23 @@ class EventReceiverStatusPoller(
             )
         // save new receivers status as redis instance, all records will be saved with the same key,
         // making this document to be updated automatically for each poll
-        eventDispatcherReceiverStatusTemplateWrapper.save(receiversStatus).awaitSingle()
+        eventDispatcherReceiverStatusTemplateWrapper
+            .save(receiversStatus)
+            .doOnSuccess {
+                LogTracingUtils.loggerTracingUtils()
+                    .success()
+                    .dependency(LogTracingUtils.REDIS_DEPENDENCY)
+                    .logInfo(logger, "Event receiver statuses saved successfully")
+            }
+            .contextWrite { context ->
+                LogTracingUtils.enrichContextForEvent(
+                    mapOf(
+                        LogTracingUtils.AttributeKeys.EVENT_ACTION to
+                            "EVENT_RECEIVER_STATUS_POLLING"
+                    ),
+                    context
+                )
+            }
+            .awaitSingle()
     }
 }

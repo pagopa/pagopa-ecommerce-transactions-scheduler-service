@@ -11,6 +11,7 @@ import it.pagopa.ecommerce.commons.domain.v2.pojos.BaseTransaction
 import it.pagopa.ecommerce.commons.domain.v2.pojos.BaseTransactionWithCancellationRequested as BaseTransactionWithCancellationRequestedV2
 import it.pagopa.ecommerce.commons.domain.v2.pojos.BaseTransactionWithRequestedAuthorization as BaseTransactionWithRequestedAuthorizationV2
 import it.pagopa.ecommerce.commons.generated.server.model.TransactionStatusDto
+import it.pagopa.ecommerce.commons.mdcutilities.LogTracingUtils
 import it.pagopa.ecommerce.commons.queues.TracingUtils
 import it.pagopa.ecommerce.transactions.scheduler.publishers.EventPublisher
 import it.pagopa.ecommerce.transactions.scheduler.repositories.ecommerce.TransactionsEventStoreRepository
@@ -102,6 +103,18 @@ class TransactionExpiredEventPublisher(
     ): Mono<TransactionExpiredEventV2> =
         toEvent(transaction)
             .flatMap { eventStoreRepository.insert(it) }
+            .doOnSuccess {
+                LogTracingUtils.loggerTracingUtils()
+                    .success()
+                    .attributes(
+                        mapOf(
+                            LogTracingUtils.AttributeKeys.CTX_EVENT_CODE to it.eventCode,
+                            LogTracingUtils.AttributeKeys.CTX_EVENT_ID to it.id
+                        )
+                    )
+                    .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                    .logInfo(logger, "Saved domain event")
+            }
             .flatMap { event ->
                 conditionallySaveTransactionView(transaction, newStatus, event)
                     .then(Mono.just(event))
@@ -118,13 +131,28 @@ class TransactionExpiredEventPublisher(
     ): Mono<TransactionV2> =
         Mono.just(transactionsViewUpdateEnabled)
             .filter { it }
-            .map { viewRepository.findByTransactionId(transaction.transactionId.value()) }
-            .flatMap { it.cast(TransactionV2::class.java) }
+            .flatMap {
+                viewRepository.findByTransactionId(transaction.transactionId.value()).doOnNext {
+                    LogTracingUtils.loggerTracingUtils()
+                        .success()
+                        .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                        .logInfo(logger, "Transaction info retrieved successfully")
+                }
+            }
+            .cast(TransactionV2::class.java)
             .flatMap {
                 it.status = newStatus
                 it.lastProcessedEventAt =
                     ZonedDateTime.parse(createdEvent.creationDate).toInstant().toEpochMilli()
                 viewRepository.save(it)
+            }
+            // doOnNext so no log when the view update is disabled
+            .doOnNext {
+                LogTracingUtils.loggerTracingUtils()
+                    .success()
+                    .details(mapOf("new_status" to newStatus.value))
+                    .dependency(LogTracingUtils.MONGO_DEPENDENCY)
+                    .logInfo(logger, "Transaction info saved successfully")
             }
 
     override fun toEvent(baseTransaction: BaseTransactionV2): Mono<TransactionExpiredEventV2> =
