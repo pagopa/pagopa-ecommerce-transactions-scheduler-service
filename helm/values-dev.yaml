@@ -106,7 +106,7 @@ microservice-chart:
     PENDING_TRANSACTIONS_SEND_PAYMENT_RESULT_TIMEOUT_SECONDS: "3900"
     PENDING_TRANSACTIONS_BATCH_LOCK_TTL_SECONDS: "1800" # 30 minutes - pending transactions batch
     OTEL_RESOURCE_ATTRIBUTES: "service.name=pagopa-ecommerce-transactions-scheduler-service,deployment.environment=dev"
-    OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.elastic-system.svc:4317"
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-scalable-lb-collector.otel.svc.cluster.local:4317"
     OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
     OTEL_LOGS_EXPORTER: none
     OTEL_TRACES_SAMPLER: "always_on"
