@@ -14,7 +14,7 @@ microservice-chart:
     image:
       repository: pagopadcommonacr.azurecr.io/pagopaecommercetransactionsschedulerservic
       tag: "latest"
-    envConfig: {}
+    envConfig: {JAVA_OPTS: "-XX:-UseBASE64Intrinsics"}
     envSecret: {}
   image:
     repository: pagopadcommonacr.azurecr.io/pagopaecommercetransactionsschedulerservice
@@ -82,6 +82,7 @@ microservice-chart:
           scaleUp:
             stabilizationWindowSeconds: 60
   envConfig:
+    JAVA_OPTS: "-XX:-UseBASE64Intrinsics"
     ACTIVE_PROFILE: k8s
     MONGO_HOST: pagopa-d-weu-ecommerce-cosmos-account.mongo.cosmos.azure.com
     MONGO_USERNAME: pagopa-d-weu-ecommerce-cosmos-account
