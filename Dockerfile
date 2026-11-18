@@ -50,4 +50,4 @@ COPY --from=build --chown=user ${EXTRACTED}/application/ ./
 
 RUN true
 
-ENTRYPOINT ["java","-javaagent:opentelemetry-javaagent.jar","--enable-preview","org.springframework.boot.loader.launch.JarLauncher"]
+ENTRYPOINT ["java","-javaagent:opentelemetry-javaagent.jar","-XX:-UseBASE64Intrinsics","-XX:UseAVX=2","--enable-preview","org.springframework.boot.loader.launch.JarLauncher"]
